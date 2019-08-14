@@ -30,7 +30,7 @@ probabilistic `event` specifying boolean predicates on the `symbol`s of the
 `Primitive` distributions in the network and returns a new `Dist` representing
 the conditional distribution given the event.
 
-#### Finding the probability of an event
+### Finding the probability of an event
 
 Given a probabilistic program `dist`, the key query is finding the log
 probability of a given `event`:
@@ -53,7 +53,7 @@ If the cumulative probabilities of the `Primitive` distributions (on either
 finite, countable, or uncountable domains) are known then exact inference in the
 network is possible using symbolic analysis with fixed runtime.
 
-#### Finding the mutual information between events
+### Finding the mutual information between events
 
 Given a probabilistic program `dist`, the mutual information of
 `eventA` and `eventB` given `eventC` corresponds to the following expression:
