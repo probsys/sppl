@@ -1,59 +1,74 @@
 # Copyright 2019 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-"""This file is identical to sympy/sets/contains.py except for line 47."""
+# Custom implementation of contains.py from sympy/sets/contains.py
+# 1. Patches bug https://github.com/sympy/sympy/issues/17575
+#
+# 2. Adds NotContains as well
+#     Ideally would use Not(Contains), but error raises
+#     venv/lib/python3.5/site-packages/sympy/logic/boolalg.py:923: ValueError
+#     about illegal operator.
+
 
 from __future__ import division
 from __future__ import print_function
 
 from sympy.core import S
+from sympy.core.logic import Not
 from sympy.core.relational import Eq
 from sympy.core.relational import Ne
 from sympy.logic.boolalg import BooleanFunction
-from sympy.sets.contains import Contains
+from sympy.logic.boolalg import is_literal
+from sympy.sets.sets import Set
 from sympy.utilities.misc import func_name
 
-class NotContains(BooleanFunction):
-    """
-    Asserts that x is not an element of the set S.
+def eval_containment(x, s, negate):
+    if not isinstance(s, Set):
+        raise TypeError('expecting Set, not %s' % func_name(s))
 
-    Examples
-    ========
+    ret = s.contains(x)
+    if not isinstance(ret, Containment) \
+            and (ret in (S.true, S.false) or isinstance(ret, Set)):
+        return ret if not negate else (not ret)
 
-    >>> from sympy import Symbol, Integer, S
-    >>> NotContains(Integer(2), S.Integers)
-    False
-    >>> NotContains(Integer(-2), S.Naturals)
-    True
-    >>> i = Symbol('i', integer=True)
-    >>> Contains(i, S.Naturals)
-    NotContains(i, Naturals)
-
-    References
-    ==========
-
-    .. [1] https://en.wikipedia.org/wiki/Element_%28mathematics%29
-    """
+class Containment(BooleanFunction):
+    # Patches argset bug in logic.boolalg.BooleanFunction._to_nnf
     @classmethod
-    def eval(cls, x, s):
-        from sympy.sets.sets import Set
-
-        if not isinstance(s, Set):
-            raise TypeError('expecting Set, not %s' % func_name(s))
-
-        ret = s.contains(x)
-        if not isinstance(ret, Contains) \
-                and (ret in (S.true, S.false) or isinstance(ret, Set)):
-            return not ret
+    def _to_nnf(cls, *args, **kwargs):
+        simplify = kwargs.get('simplify', True)
+        argset = []
+        for arg in args:
+            if not is_literal(arg):
+                arg = arg.to_nnf(simplify)
+            if simplify:
+                if isinstance(arg, cls):
+                    arg = arg.args
+                else:
+                    arg = (arg,)
+                for a in arg:
+                    if Not(a) in argset:
+                        return cls.zero
+                    argset.append(a)
+            else:
+                argset.append(arg)
+        return cls(*argset)
 
     @property
     def binary_symbols(self):
-        return set().union(*[
-            i.binary_symbols for i in self.args[1].args
-            if i.is_Boolean \
-                or i.is_Symbol \
-                or isinstance(i, (Eq, Ne))
-        ])
+        return set().union(*[i.binary_symbols
+            for i in self.args[1].args
+            if i.is_Boolean or i.is_Symbol or
+            isinstance(i, (Eq, Ne))])
 
     def as_set(self):
         raise NotImplementedError()
+
+class Contains(Containment):
+    @classmethod
+    def eval(cls, x, s):
+        return eval_containment(x, s, False)
+
+class NotContains(Containment):
+    @classmethod
+    def eval(cls, x, s):
+        return eval_containment(x, s, True)
