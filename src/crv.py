@@ -77,7 +77,7 @@ def factor_dnf(expr):
     return factor_dnf_symbols(expr, lookup)
 
 def factor_dnf_symbols(expr, lookup):
-    if isinstance(expr, Relational):
+    if isinstance(expr, (Relational, Contains, NotContains)):
         # Literal term.
         symbols = get_symbols(expr)
         if len(symbols) > 1:
@@ -88,7 +88,7 @@ def factor_dnf_symbols(expr, lookup):
     elif isinstance(expr, And):
         # Product term.
         subexprs = expr.args
-        assert all(isinstance(e, Relational) for e in subexprs)
+        assert all(isinstance(e, (Relational, Contains, NotContains)) for e in subexprs)
         mappings = [factor_dnf_symbols(subexpr, lookup) for subexpr in  subexprs]
         exprs = {}
         for mapping in mappings:
@@ -254,7 +254,7 @@ class ProductDistribution(Distribution):
         return ProductDistribution(distributions)
 
 class IntervalDistribution(Distribution):
-    """Univariate continuous probability distribution on a real interval."""
+    """Univariate probability distribution on a real interval."""
 
     def __init__(self, symbol, dist, support, conditioned):
         assert isinstance(support, Interval)
@@ -346,34 +346,70 @@ class IntervalDistribution(Distribution):
         else:
             assert False, 'Unknown expression type: %s' % (expression,)
 
-
+# XXX Update: Not sure why I originally wrote this comment:
+#
 # There is work that needs to be done to handle Eq and Contains
 # in the constraints. We should probably create our own
 # subclasses of Relational with the needed implementations.
 # We might need to make the domain S.Naturals, and then have
 # solver either return FiniteSet(.) or FiniteSet.complement(S.Naturals).
-def simplify_atomic(event):
-    # For now we forbid Contains(X, Vals) since our solver does not
-    # know how to simplify the negation of this expression.
+def simplify_atomic(event, support):
     if isinstance(event, Eq):
         a, b = event.args
-        return b if isinstance(a, Symbol) else a
+        value = b if isinstance(a, Symbol) else a
+        return support.intersection({value})
+    elif isinstance(event, Contains):
+        a, b = event.args
+        assert isinstance(a, Symbol)
+        return support.intersection(b)
+    elif isinstance(event, NotContains):
+        a, b = event.args
+        assert isinstance(a, Symbol)
+        return support.difference(b)
+    elif isinstance(event, And):
+        sets = [simplify_atomic(e, support) for e in event.args]
+        return get_intersection(sets)
+    elif isinstance(event, Or):
+        sets = [simplify_atomic(e, support) for e in event.args]
+        return get_union(sets)
+    else:
+        raise ValueError('Event "%s" is non atomic.' % (event,))
 
 class AtomicDistribution(Distribution):
-    """Probability distribution on set of unorderd atoms."""
+    """Probability distribution on set of unordered, non-numeric atoms."""
 
     def __init__(self, symbol, dist):
         self.symbol = symbol
         self.symbols = frozenset({symbol})
         self.dist = dict(dist)
         self.support = frozenset(dist.keys())
-        # Verify the distribution is well-formed.
-        for outcome in dist.keys():
-            assert outcome in self.support
-        assert allclose(sum(dist.values()),  1)
+        self.outcomes = list(dist.keys())
+        self.weights = list(dist.values())
+        assert allclose(sum(self.weights),  1)
 
     def logpdf(self, x):
         return self.dist.get(x, -inf)
 
     def logprob(self, event):
-        pass
+        _, logp = self._logprob(event)
+        return logp
+
+    def _logprob(self, event):
+        values = simplify_atomic(event, self.support)
+        logp = sum(self.logpdf(x) for x in values)
+        return (values, logp)
+
+    def condition(self, event):
+        values, logp = self._logprob(event)
+        if logp == -inf:
+            raise ValueError('Cannot condition on zero probability event: %s'
+                % (event,))
+        dist = {x: self.logpdf(x) - logp for x in values}
+        return AtomicDistribution(self.symbol, dist)
+
+    def sample(self, N, rng):
+        return logflip(self.weights, self.support, N, rng)
+
+    def sample_expr(self, expr, N, rng):
+        samples = self.sample(N, rng)
+        return [expr.xreplace({self.symbol: sample}) for sample in samples]
