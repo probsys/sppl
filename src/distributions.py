@@ -37,6 +37,9 @@ from .contains import NotContains
 
 inf = float('inf')
 
+# ==============================================================================
+# Utilities
+
 def get_symbols(expr):
     atoms = expr.atoms()
     return [a for a in atoms if isinstance(a, Symbol)]
@@ -114,19 +117,28 @@ def factor_dnf_symbols(expr, lookup):
     else:
         assert False, 'Invalid DNF expression: %s' % (expr,)
 
-class Distribution(object):
-    def __init__(self):
-        raise NotImplementedError()
-    def sample(self, N, rng):
-        raise NotImplementedError()
-    def sample_expr(self, expr, N, rng):
-        raise NotImplementedError()
-    def logprob(self, event):
-        raise NotImplementedError()
-    def logpdf(self, x):
-        raise NotImplementedError()
-    def condition(self, event):
-        raise NotImplementedError()
+def simplify_nominal_event(event, support):
+    if isinstance(event, Eq):
+        a, b = event.args
+        value = b if isinstance(a, Symbol) else a
+        return support.intersection({value})
+    elif isinstance(event, Contains):
+        a, b = event.args
+        assert isinstance(a, Symbol)
+        return support.intersection(b)
+    elif isinstance(event, NotContains):
+        a, b = event.args
+        assert isinstance(a, Symbol)
+        return support.difference(b)
+    elif isinstance(event, And):
+        sets = [simplify_nominal_event(e, support) for e in event.args]
+        return get_intersection(sets)
+    elif isinstance(event, Or):
+        sets = [simplify_nominal_event(e, support) for e in event.args]
+        return get_union(sets)
+    else:
+        raise ValueError('Event "%s" does not apply to nominal variable'
+            % (event,))
 
 def get_union(sets):
     return sets[0].union(*sets[1:])
@@ -141,6 +153,23 @@ def are_disjoint(sets):
 def are_identical(sets):
     intersection = get_intersection(sets)
     assert all(len(s) == len(intersection) for s in sets)
+
+# ==============================================================================
+# Distribution classes
+
+class Distribution(object):
+    def __init__(self):
+        raise NotImplementedError()
+    def sample(self, N, rng):
+        raise NotImplementedError()
+    def sample_expr(self, expr, N, rng):
+        raise NotImplementedError()
+    def logprob(self, event):
+        raise NotImplementedError()
+    def logpdf(self, x):
+        raise NotImplementedError()
+    def condition(self, event):
+        raise NotImplementedError()
 
 class MixtureDistribution(Distribution):
     """Weighted mixture of distributions."""
@@ -342,36 +371,6 @@ class NumericDistribution(Distribution):
             return MixtureDistribution(distributions, weights)
         else:
             assert False, 'Unknown expression type: %s' % (expression,)
-
-# XXX Update: Not sure why I originally wrote this comment:
-#
-# There is work that needs to be done to handle Eq and Contains
-# in the constraints. We should probably create our own
-# subclasses of Relational with the needed implementations.
-# We might need to make the domain S.Naturals, and then have
-# solver either return FiniteSet(.) or FiniteSet.complement(S.Naturals).
-def simplify_nominal_event(event, support):
-    if isinstance(event, Eq):
-        a, b = event.args
-        value = b if isinstance(a, Symbol) else a
-        return support.intersection({value})
-    elif isinstance(event, Contains):
-        a, b = event.args
-        assert isinstance(a, Symbol)
-        return support.intersection(b)
-    elif isinstance(event, NotContains):
-        a, b = event.args
-        assert isinstance(a, Symbol)
-        return support.difference(b)
-    elif isinstance(event, And):
-        sets = [simplify_nominal_event(e, support) for e in event.args]
-        return get_intersection(sets)
-    elif isinstance(event, Or):
-        sets = [simplify_nominal_event(e, support) for e in event.args]
-        return get_union(sets)
-    else:
-        raise ValueError('Event "%s" does not apply to nominal variable'
-            % (event,))
 
 class NominalDistribution(Distribution):
     """Probability distribution on set of unordered, non-numeric atoms."""
