@@ -131,12 +131,18 @@ class Distribution(object):
     def condition(self, event):
         raise NotImplementedError()
 
+def get_union(sets):
+    return sets[0].union(*sets[1:])
+
+def get_intersection(sets):
+    return sets[0].intersection(*sets[1:])
+
 def are_disjoint(sets):
-    union = sets[0].union(*sets[1:])
+    union = get_union(sets)
     return len(union) == sum(len(s) for s in sets)
 
 def are_identical(sets):
-    intersection = sets[0].intersection(*sets[1:])
+    intersection = get_intersection(sets)
     assert all(len(s) == len(intersection) for s in sets)
 
 class MixtureDistribution(Distribution):
