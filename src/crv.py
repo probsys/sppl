@@ -32,11 +32,8 @@ from math_util import logflip
 from math_util import lognorm
 from math_util import logsumexp
 
-# These are implemented as BooleanFunction in sympy but I think we need to
-# implement them as Boolean, so that these expressions work with to_dnf and
-# solver.
-from notcontains import NotContains
-from sympy import Contains
+from .contains import Contains
+from .contains import NotContains
 
 inf = float('inf')
 
