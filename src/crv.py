@@ -253,7 +253,7 @@ class ProductDistribution(Distribution):
         ]
         return ProductDistribution(distributions)
 
-class IntervalDistribution(Distribution):
+class NumericDistribution(Distribution):
     """Univariate probability distribution on a real interval."""
 
     def __init__(self, symbol, dist, support, conditioned):
@@ -333,11 +333,11 @@ class IntervalDistribution(Distribution):
                 % (event, self.support))
 
         if isinstance(expression, Interval):
-            return IntervalDistribution(self.symbol, self.dist, support, True)
+            return NumericDistribution(self.symbol, self.dist, support, True)
         elif isinstance(expression, Union):
             intervals = expression.args
             distributions = [
-                IntervalDistribution(self.symbol, self.dist, interval, True)
+                NumericDistribution(self.symbol, self.dist, interval, True)
                 for interval in intervals
             ]
             weights_unorm = [self._logcdf_interval(i) for i in intervals]
@@ -353,7 +353,7 @@ class IntervalDistribution(Distribution):
 # subclasses of Relational with the needed implementations.
 # We might need to make the domain S.Naturals, and then have
 # solver either return FiniteSet(.) or FiniteSet.complement(S.Naturals).
-def simplify_atomic(event, support):
+def simplify_nominal_event(event, support):
     if isinstance(event, Eq):
         a, b = event.args
         value = b if isinstance(a, Symbol) else a
@@ -367,15 +367,16 @@ def simplify_atomic(event, support):
         assert isinstance(a, Symbol)
         return support.difference(b)
     elif isinstance(event, And):
-        sets = [simplify_atomic(e, support) for e in event.args]
+        sets = [simplify_nominal_event(e, support) for e in event.args]
         return get_intersection(sets)
     elif isinstance(event, Or):
-        sets = [simplify_atomic(e, support) for e in event.args]
+        sets = [simplify_nominal_event(e, support) for e in event.args]
         return get_union(sets)
     else:
-        raise ValueError('Event "%s" is non atomic.' % (event,))
+        raise ValueError('Event "%s" does not apply to nominal variable'
+            % (event,))
 
-class AtomicDistribution(Distribution):
+class NominalDistribution(Distribution):
     """Probability distribution on set of unordered, non-numeric atoms."""
 
     def __init__(self, symbol, dist):
@@ -395,7 +396,7 @@ class AtomicDistribution(Distribution):
         return logp
 
     def _logprob(self, event):
-        values = simplify_atomic(event, self.support)
+        values = simplify_nominal_event(event, self.support)
         logp = sum(self.logpdf(x) for x in values)
         return (values, logp)
 
@@ -405,7 +406,7 @@ class AtomicDistribution(Distribution):
             raise ValueError('Cannot condition on zero probability event: %s'
                 % (event,))
         dist = {x: self.logpdf(x) - logp for x in values}
-        return AtomicDistribution(self.symbol, dist)
+        return NominalDistribution(self.symbol, dist)
 
     def sample(self, N, rng):
         return logflip(self.weights, self.support, N, rng)
