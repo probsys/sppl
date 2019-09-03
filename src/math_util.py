@@ -2,7 +2,6 @@
 # See LICENSE.txt
 
 from math import exp
-from math import fabs
 from math import log
 
 import numpy
@@ -21,9 +20,9 @@ def lognorm(array):
 
 def logflip(logp, array, size, rng):
     p = numpy.exp(lognorm(logp))
-    return pflip(p, array, size, rng)
+    return flip(p, array, size, rng)
 
-def pflip(p, array, size, rng):
+def flip(p, array, size, rng):
     p = normalize(p)
     return rng.choice(array, size=size, p=p)
 
