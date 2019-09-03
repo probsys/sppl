@@ -10,9 +10,7 @@ from sympy import Eq
 from sympy import Not
 from sympy import Or
 
-from sympy import EmptySet
-from sympy import Reals
-
+from sympy import S as Singletons
 from sympy import Symbol
 from sympy import solveset
 
@@ -26,15 +24,17 @@ from sympy import to_dnf
 
 from sympy.core.relational import Relational
 
-from math_util import allclose
-from math_util import logdiffexp
-from math_util import logflip
-from math_util import lognorm
-from math_util import logsumexp
+from .math_util import allclose
+from .math_util import logdiffexp
+from .math_util import logflip
+from .math_util import lognorm
+from .math_util import logsumexp
 
 from .contains import Contains
 from .contains import NotContains
 
+EmptySet = Singletons.EmptySet
+Reals = Singletons.Reals
 inf = float('inf')
 
 # ==============================================================================
