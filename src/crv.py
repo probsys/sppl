@@ -60,12 +60,11 @@ def solver(expr):
         intervals = [solver(e) for e in subexprs]
         result = Intersection(*intervals)
     elif isinstance(expr, Not):
-        (subexpr,) = expr.args
-        notexpr = Not(expr)
+        (notexpr,) = expr.args
         interval = solver(notexpr)
         result = interval.complement(Reals)
     else:
-        raise ValueError('Expression "%s" has unknown type.')
+        raise ValueError('Expression "%s" has unknown type.' % (expr,))
 
     if isinstance(result, ConditionSet):
         raise ValueError('Expression "%s" is not invertible.' % (expr,))
