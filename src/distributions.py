@@ -93,8 +93,7 @@ def factor_dnf_symbols(expr, lookup):
         exprs = {}
         for mapping in mappings:
             assert len(mapping) == 1
-            [(symbol, subexp)] = mapping.items()
-            key = lookup[symbol]
+            [(key, subexp)] = mapping.items()
             if key not in exprs:
                 exprs[key] = subexp
             else:
