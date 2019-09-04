@@ -30,6 +30,7 @@ from .math_util import logflip
 from .math_util import lognorm
 from .math_util import logsumexp
 
+from .contains import Containment
 from .contains import Contains
 from .contains import NotContains
 
@@ -77,7 +78,7 @@ def factor_dnf(expr):
     return factor_dnf_symbols(expr, lookup)
 
 def factor_dnf_symbols(expr, lookup):
-    if isinstance(expr, (Relational, Contains, NotContains)):
+    if isinstance(expr, (Relational, Containment)):
         # Literal term.
         symbols = get_symbols(expr)
         if len(symbols) > 1:
@@ -88,7 +89,7 @@ def factor_dnf_symbols(expr, lookup):
     elif isinstance(expr, And):
         # Product term.
         subexprs = expr.args
-        assert all(isinstance(e, (Relational, Contains, NotContains)) for e in subexprs)
+        assert all(isinstance(e, (Relational, Containment)) for e in subexprs)
         mappings = [factor_dnf_symbols(subexpr, lookup) for subexpr in  subexprs]
         exprs = {}
         for mapping in mappings:
