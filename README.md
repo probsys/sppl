@@ -8,46 +8,82 @@ Run the following command in the shell:
 
     $ ./check.sh
 
-### Overview
+### Overview of the DSL
 
-Consider the following probabilistic domain-specific language:
+Consider the following probabilistic domain-specific language, specified
+in Haskell notation:
 
-    Dist = (Primitive symbol theta)
-            | (Transform (Primitive symbol theta) func)
-            | (Mixture Dist... weights)
-            | (Product Dist...)
-            | (Condition Dist event)
+    ```
+    type VarName = String
 
-A probabilistic program `Dist` in this DSL resembles a Sum--Product network.
+    data Distribution
+      = Normal Double Double
+      | Gamma Double Double
+      | Cauchy Double
+      | Poisson Double
+      | Binomial Integer Double
 
-Internal nodes are `Mixture` `Product` expressions.
+    data Invertible
+      = Identity
+      | Exp Invertible
+      | Log Invertible
+      | Sqrt Invertible
+      | Poly [Double] Invertible
 
-Leaf nodes are either a `Primitive` distribution (whose name is `symbol` and has
-a bundle of parameters `theta`) or a `Transform` of a `Primitive`.
+    data Event
+      = Between Interval Invertible VarName
+      | Contains [Integer] VarName
+      | Or Event Event
+      | And Event
+      | Not Event
 
-The higher-order constructor `Condition` takes in an arbitrary `Dist` and a
-probabilistic `event` specifying boolean predicates on the `symbol`s of the
-`Primitive` distributions in the network and returns a new `Dist` representing
-the conditional distribution given the event.
+    data Network
+      = Primitive VarName Invertible Distribution
+      | Sum [Network] [Double]
+      | Product [Network]
+      | Condition Network Event
+
+    data Interval
+      = ClCl Double Double -- Closed Closed
+      | ClOp Double Double -- Closed Open
+      | OpCl Double Double -- Open Closed
+      | OpOp Double Double -- Open Open
+    ```
+
+A probabilistic program `Dist` in this DSL is a Sum--Product network.
+
+  - Internal nodes are `Sum` `Product` expressions.
+
+  - Leaf nodes are either a `Primitive` distribution named `x`, or an
+    `Transform` (of type `Invertible`) of a `Primitive` distribution.
+
+The higher-order constructor `Condition` takes in an arbitrary `Dist`
+and a probabilistic `Event` and returns a new `Dist` representing the
+conditional distribution given the event.
 
 ### Finding the probability of an event
 
 Given a probabilistic program `dist`, the key query is finding the log
 probability of a given `event`:
 
-    (logprob dist event)
+    logprob:: Dist -> Event -> Real
 
 The conditional probability of an event is obtained by querying a conditioned
 network, for example
 
-    (logprob
-            (condition
-                (mixture
-                    ((normal 'X 0 1) (gamma 'X 1 1))
-                    (.7 .3))
-                (< exp('X) 2)               ; Conditioned Event
-            (or (< sqrt('X))                ; Queried Event
-                (> (- 'X**2 'X/2) 1))))
+  logprob
+    (Condition
+        -- Network
+       (Sum
+          [ (Primitive "X"
+              (Poly [1.2, 1.1, -7] (Log Identity)) $ Normal 0 1)
+          , (Primitive "X" Identity $ Gamma 0 1)
+          ]
+          [0.7, 0.3])
+        -- Conditioning event
+       (Between (ClCl 0 10) Identity "X") )
+    -- Query event
+    (Or (Contains [10, 12, 14] "X") (Between (ClOp (-10) 12) (Log Identity) "X"))
 
 If the cumulative probabilities of the `Primitive` distributions (on either
 finite, countable, or uncountable domains) are known then exact inference in the
@@ -55,22 +91,20 @@ network is possible using symbolic analysis with fixed runtime.
 
 ### Finding the mutual information between events
 
-Given a probabilistic program `dist`, the mutual information of
-`eventA` and `eventB` given `eventC` corresponds to the following expression:
+Given a `network`, the mutual information of `eventA` and `eventB`
+given `eventC` is computed by the following expression:
 
-    (let
-        ([distc (condition dist eventC)]
-         [lpA1 (logprob distc eventA)]
-         [lpB1 (logprob distc eventB)]
-         [lpA0 (- 1 lpA1)]
-         [lpB0 (- 1 lpB1)]
-         [lp00 (logprob dist (and ((not eventA) (not eventB))))]
-         [lp01 (logprob dist (and ((not eventA) eventB)))]
-         [lp10 (logprob dist (and (eventA (not eventB))))]
-         [lp11 (logprob dist (and (eventA eventB)))]
-         [m00 (* (- lp00 (+ lpA0 lpB0 ) (exp lp00)))]
-         [m01 (* (- lp01 (+ lpA0 lpB1 ) (exp lp01)))]
-         [m10 (* (- lp10 (+ lpA1 lpB0 ) (exp lp10)))]
-         [m11 (* (- lp11 (+ lpA1 lpB1 ) (exp lp11)))])
-        ; Compute average
-        (+ m00 m01 m10 m11))
+    let network' = condition network eventC
+    in let lpA1 = logprob network' eventA
+    in let lpB1 = logprob network' eventB
+    in let lpA0 = 1 - lpA1
+    in let lpB0 = 1 - lpB1
+    in let lp00 = logprob network' (And (Not eventA) (Not eventB))
+    in let lp01 = logprob network' (And (Not eventA) eventB)
+    in let lp10 = logprob network' (And (eventA (Not eventB)))
+    in let lp11 = logprob network' (And (eventA eventB))
+    in let m00 = (exp lp00) * (lp00 - (lpA0 + lpB0))
+    in let m01 = (exp lp01) * (lp01 - (lpA0 + lpB1))
+    in let m10 = (exp lp10) * (lp10 - (lpA1 + lpB0))
+    in let m11 = (exp lp11) * (lp11 - (lpA1 + lpB1))
+    in m00 + m01 + m10 + m11
