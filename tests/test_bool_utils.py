@@ -3,8 +3,11 @@
 
 import pytest
 
+from sympy import And
+from sympy import Eq
 from sympy import FiniteSet
 from sympy import Interval
+from sympy import Or
 from sympy import S as Singletons
 from sympy import Union
 from sympy import exp
@@ -19,6 +22,7 @@ from sum_product_dsl.contains import NotContains
 from sum_product_dsl.distributions import factor_dnf
 from sum_product_dsl.distributions import factor_dnf_symbols
 from sum_product_dsl.distributions import get_symbols
+from sum_product_dsl.distributions import simplify_nominal_event
 from sum_product_dsl.distributions import solver
 
 (X0, X1, X2, X3, X4, X5, X6, X7, X8, X9) = symbols('X:10')
@@ -146,3 +150,36 @@ def test_factor_dnf_symbols_2():
         | NotContains(X4, FiniteSet(5, 6)))
 
     assert dnf[2] == ((10*log(X5) + 9) > 5)
+
+def test_simplify_nominal_event():
+    support = frozenset(range(100))
+    snf = simplify_nominal_event
+
+    # Eq.
+    assert snf(Eq(X0, 5), support) == {5}
+    assert snf(Eq(X0, -5), support) == set()
+
+    V = (4, 1, 10)
+    W = (12, -1, 8)
+    E1 = FiniteSet(*V)
+    E2 = FiniteSet(-5, *V)
+    E3 = FiniteSet(-5)
+    E4 = FiniteSet(*W)
+
+    # Contains.
+    assert snf(Contains(X0, E1), support) == set(V)
+    assert snf(Contains(X0, E2), support) == set(V)
+    assert snf(Contains(X0, E3), support) == set()
+
+    # NotContains.
+    assert snf(NotContains(X0, E1), support) == support.difference(V)
+    assert snf(NotContains(X0, E2), support) == support.difference(V)
+    assert snf(NotContains(X0, E3), support) == support
+
+    # And
+    assert snf(And(Contains(X0, E1), NotContains(X0, E4)), support) == \
+        set(V).intersection(support.difference(W))
+
+    # Or
+    assert snf(Or(Contains(X0, E1), NotContains(X0, E4)), support) == \
+        set(V).union(support.difference(W))
