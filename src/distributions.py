@@ -104,11 +104,10 @@ def factor_dnf_symbols(expr, lookup):
     elif isinstance(expr, Or):
         # Sum term.
         subexprs = expr.args
-        mappings = [factor_dnf(subexpr) for subexpr in subexprs]
+        mappings = [factor_dnf_symbols(subexpr, lookup) for subexpr in subexprs]
         exprs = {}
         for mapping in mappings:
-            for symbol, subexp in mapping.items():
-                key = lookup[symbol]
+            for key, subexp in mapping.items():
                 if key not in exprs:
                     exprs[key] = subexp
                 else:

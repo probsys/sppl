@@ -5,6 +5,7 @@ import pytest
 
 from sympy import FiniteSet
 from sympy import Interval
+from sympy import Or
 from sympy import S as Singletons
 from sympy import Union
 from sympy import exp
@@ -71,7 +72,7 @@ def test_solver():
     with pytest.raises(ValueError):
         solver(expr)
 
-def test_factor_dnf_symbols():
+def test_factor_dnf_symbols_1():
     lookup = {X0:0, X1:0, X2:0, X3:1, X4:1, X5:2}
 
     expr = (
@@ -92,6 +93,9 @@ def test_factor_dnf_symbols():
     assert dnf[1] == (X4 < 1)
     assert dnf[2] == (X5 < 1)
 
+def test_factor_dnf_symbols_2():
+    lookup = {X0:0, X1:0, X2:0, X3:1, X4:1, X5:2}
+
     expr = (
         (exp(X0) > 0)
             & (X0 < 10)
@@ -104,8 +108,16 @@ def test_factor_dnf_symbols():
 
     expr_dnf = to_dnf(expr)
     dnf = factor_dnf_symbols(expr_dnf, lookup)
+    assert len(dnf) == 3
 
-    assert dnf[0] == ((exp(X0) > 0)
+    assert dnf[0] == (
+        (exp(X0) > 0)
             & (X0 < 10)
             & (X1 < 10)) \
         | ((X2**2 - X2/2) < 0)
+
+    assert dnf[1] == (
+        Contains(X4, FiniteSet(10, 11))
+        | NotContains(X4, FiniteSet(5, 6)))
+
+    assert dnf[2] == ((10*log(X5) + 9) > 5)
