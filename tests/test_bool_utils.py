@@ -5,7 +5,6 @@ import pytest
 
 from sympy import FiniteSet
 from sympy import Interval
-from sympy import Or
 from sympy import S as Singletons
 from sympy import Union
 from sympy import exp
