@@ -17,9 +17,9 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         # activates integration testing code path. If --integration is
         # not specified then a __ci_() test will either run as a crash test
         # or not run at all. (Use git grep '__ci_' to find these tests.)
-        ./pythenv.sh "$PYTHON" -m pytest --pyargs discrete_sampling
+        ./pythenv.sh "$PYTHON" -m pytest --pyargs sum_product_dsl
     elif [ ${1} = 'crash' ]; then
-        ./pythenv.sh "$PYTHON" -m pytest -k 'not __ci_' --pyargs discrete_sampling
+        ./pythenv.sh "$PYTHON" -m pytest -k 'not __ci_' --pyargs sum_product_dsl
     else
         # If args are specified delegate control to user.
         ./pythenv.sh "$PYTHON" -m pytest "$@"
