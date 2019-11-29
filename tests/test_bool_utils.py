@@ -93,7 +93,8 @@ def test_factor_dnf():
     assert dnf[X1] == (X1 < 10)
     assert dnf[X2] == ((X2**2 - X2/2) < 0)
     assert dnf[X3] == (X3 > 10) | ((sqrt(2*X3)) < 0)
-    assert dnf[X4] == Contains(X4, FiniteSet(10, 11)) | NotContains(X4, FiniteSet(5, 6))
+    assert dnf[X4] == Contains(X4, FiniteSet(10, 11)) \
+        | NotContains(X4, FiniteSet(5, 6))
     assert dnf[X5] == ((10*log(X5) + 9) > 5)
 
 def test_factor_dnf_symbols_1():
