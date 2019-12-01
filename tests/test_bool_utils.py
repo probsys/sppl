@@ -76,6 +76,17 @@ def test_solver():
     with pytest.raises(ValueError):
         solver(expr)
 
+    # TODO: Our solver should be able to handle this case:
+    # expr' = 2*Z**3 - Z - 5 > 0 [[subst. Z=log(X0)]]
+    # [Z_low, Z_high] = solver(expr')
+    #       Z_low < Z iff Z_low < log(X0) iff exp(Z_low) < X0
+    #       Z < Z_high iff log(X0) < Z_high iff X0 < exp(Z_high)
+    # solver(expr) = [exp(Z_low), exp(Z_high)]
+    # For F invertible, can thus solve Poly(coeffs, F) > 0 using this method.
+    expr = 2*(log(X0))**3 - log(X0) -5 > 0
+    with pytest.raises(ValueError):
+        solver(expr)
+
 def test_factor_dnf():
     expr = (
         (exp(X0) > 0)
