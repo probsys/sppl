@@ -289,9 +289,9 @@ class NumericDistribution(Distribution):
         self.xl = float(support.start)
         self.xh = float(support.end)
         if conditioned:
-            self.lognorm = dist.logdiffexp(
-                dist.logcdf(self.xl),
-                dist.logcdf(self.xh))
+            logp_lower = dist.logcdf(self.xl)
+            logp_upper = dist.logcdf(self.xh)
+            self.lognorm = logdiffexp(logp_upper, logp_lower)
             self.Fl = dist.cdf(self.xl)
             self.Fh = dist.cdf(self.xh)
         else:
