@@ -39,53 +39,137 @@ def test_get_symbols():
     assert X1 in syms
     assert X2 in syms
 
+from sum_product_dsl.distributions import Identity
+from sum_product_dsl.distributions import Abs
+from sum_product_dsl.distributions import Pow
+from sum_product_dsl.distributions import Exp
+from sum_product_dsl.distributions import Log
+from sum_product_dsl.distributions import Poly
+
+from sum_product_dsl.distributions import Event
+from sum_product_dsl.distributions import EventBetween
+from sum_product_dsl.distributions import EventOr
+from sum_product_dsl.distributions import EventAnd
+from sum_product_dsl.distributions import EventNot
+
 def test_solver():
+    # TEST CASE 1
     expr = log(X0) > 2
     interval = solver(expr)
     assert interval.start == exp(2)
     assert interval.end == oo
 
+    expr = Log(X0, exp(1))
+    event = EventBetween(expr, 2, oo)
+    interval = event.solve()
+    assert interval.start == exp(2)
+    assert interval.end == oo
+
+    # TEST CASE 2
     expr = (log(X0) > 2) & (X0 < exp(2))
     interval = solver(expr)
     assert interval == Singletons.EmptySet
 
+    event = EventAnd([
+        EventBetween(Log(X0, exp(1)), 2, oo),
+        EventBetween(X0, -oo, exp(2))
+    ])
+    interval = event.solve()
+    assert interval == FiniteSet(exp(2))
+
+    # TEST CASE 3
+    # Same as previous case using our system (only Between; measure zero).
     expr = (log(X0) >= 2) & (X0 <= exp(2))
     interval = solver(expr)
     assert interval == FiniteSet(exp(2))
 
+    # TEST CASE 4
     expr = (X0 >= 0) | (X0 <= 0)
     interval = solver(expr)
     assert interval == Singletons.Reals
 
+    event = EventOr([
+        EventBetween(X0, 0, oo),
+        EventBetween(X0, -oo, 0)
+    ])
+    interval = event.solve()
+    assert interval == Singletons.Reals
+
+    # TEST CASE 5
     expr = ((2*X0 + 10) < 4) & (X0 + 10 > 3)
     interval = solver(expr)
     assert interval.start == 3 - 10
     assert interval.end == (4-10)/2
 
+    event = EventAnd([
+        EventBetween(Poly(X0, [10, 2]), -oo, 4),
+        EventBetween(Poly(X0, [10, 1]), 3, oo),
+    ])
+    interval = event.solve()
+    assert interval.start == 3 - 10
+    assert interval.end == (4-10)/2
+
+    # TEST CASE 6
     expr = (X0**2 - 2*X0) > 10
     interval = solver(expr)
     assert interval == Union(
         Interval.open(-oo, 1 - sqrt(11)),
         Interval.open(1 + sqrt(11), oo))
 
+    event = EventBetween(Poly(X0, [0, -2, 1]), 10, oo)
+    interval = event.solve()
+    assert interval == Union(
+        Interval(-oo, 1 - sqrt(11)),
+        Interval(1 + sqrt(11), oo))
+
+    # TEST CASE 7
     expr = (X0**2 - 2*X0 + exp(X0)) > 10
     with pytest.raises(ValueError):
         solver(expr)
 
+    # TEST CASE 8
     expr = (X0 + X1 < 3)
     with pytest.raises(ValueError):
         solver(expr)
 
-    # TODO: Our solver should be able to handle this case:
+    # TEST CASE 9
+    expr = 2*(log(X0))**3 - log(X0) -5 > 0
+    with pytest.raises(ValueError):
+        solver(expr)
+
+    # Our solver handles this case as follows
     # expr' = 2*Z**3 - Z - 5 > 0 [[subst. Z=log(X0)]]
     # [Z_low, Z_high] = solver(expr')
     #       Z_low < Z iff Z_low < log(X0) iff exp(Z_low) < X0
     #       Z < Z_high iff log(X0) < Z_high iff X0 < exp(Z_high)
     # solver(expr) = [exp(Z_low), exp(Z_high)]
     # For F invertible, can thus solve Poly(coeffs, F) > 0 using this method.
-    expr = 2*(log(X0))**3 - log(X0) -5 > 0
-    with pytest.raises(ValueError):
-        solver(expr)
+    expr = Poly(Log(X0, exp(1)), [-5, -1, 0, 2])
+    event = EventBetween(expr, 0, oo)
+    interval = event.solve()
+    assert interval.left == \
+        exp(1/(6*(sqrt(2019)/36 + 5/4)**(1/3)) \
+        + (sqrt(2019)/36 + 5/4)**(1/3))
+    assert interval.right == oo
+
+    # TEST CASE 10
+    # Sympy hangs for some reason.
+    # expr = exp(sqrt(log(X0))) > -5
+    from sympy import Rational
+    expr = Exp(Pow(Log(X0, exp(1)), Rational(1, 2)), exp(1))
+    event = EventBetween(expr, -5, oo)
+    interval = event.solve()
+    assert interval.left == 1
+    assert interval.right == oo
+
+    # TEST CASE 11
+    # Sympy hangs for some reason.
+    # expr = exp(sqrt(log(X0))) > 6
+    expr = Exp(Pow(Log(X0, exp(1)), Rational(1, 2)), exp(1))
+    event = EventBetween(expr, 6, oo)
+    interval = event.solve()
+    assert interval.left == exp(log(6)**2)
+    assert interval.right == oo
 
 def test_factor_dnf():
     expr = (

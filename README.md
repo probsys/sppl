@@ -25,9 +25,10 @@ in Haskell notation:
 
     data Invertible
       = Identity
-      | Exp Invertible
-      | Log Invertible
-      | Sqrt Invertible
+      | Abs Invertible
+      | Exp Double Invertible
+      | Log Double Invertible
+      | Pow Double Invertible
       | Poly [Double] Invertible
 
     data Event
