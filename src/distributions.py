@@ -5,12 +5,7 @@ from collections import Counter
 from functools import reduce
 from itertools import chain
 
-from sympy import And
-from sympy import Eq
-from sympy import Or
-
 from sympy import S as Singletons
-from sympy import Symbol
 
 from sympy import Intersection
 from sympy import Interval
@@ -19,7 +14,7 @@ from sympy import Union
 from sympy import Tuple
 from sympy import to_dnf
 
-from sympy.core.relational import Relational
+from .dnf import factor_dnf_symbols
 
 from .math_util import allclose
 from .math_util import logdiffexp
@@ -27,102 +22,18 @@ from .math_util import logflip
 from .math_util import lognorm
 from .math_util import logsumexp
 
-from .contains import Containment
-from .contains import Contains
-from .contains import NotContains
-
-from .solver import get_symbols
 from .solver import solver
+
+from .sym_util import are_disjoint
+from .sym_util import are_identical
+from .sym_util import get_symbols
+from .sym_util import simplify_nominal_event
 
 EmptySet = Singletons.EmptySet
 inf = float('inf')
 
 # ==============================================================================
-# Utilities.
-
-def factor_dnf(expr):
-    symbols = get_symbols(expr)
-    lookup = {s:s for s in symbols}
-    return factor_dnf_symbols(expr, lookup)
-
-def factor_dnf_symbols(expr, lookup):
-    if isinstance(expr, (Relational, Containment)):
-        # Literal term.
-        symbols = get_symbols(expr)
-        if len(symbols) > 1:
-            raise ValueError('Expression "%s" has multiple symbols.' % (expr,))
-        key = lookup[symbols[0]]
-        return {key: expr}
-
-    elif isinstance(expr, And):
-        # Product term.
-        subexprs = expr.args
-        assert all(isinstance(e, (Relational, Containment)) for e in subexprs)
-        mappings = [factor_dnf_symbols(subexpr, lookup) for subexpr in  subexprs]
-        exprs = {}
-        for mapping in mappings:
-            assert len(mapping) == 1
-            [(key, subexp)] = mapping.items()
-            if key not in exprs:
-                exprs[key] = subexp
-            else:
-                exprs[key] = And(subexp, exprs[key])
-        return exprs
-
-    elif isinstance(expr, Or):
-        # Sum term.
-        subexprs = expr.args
-        mappings = [factor_dnf_symbols(subexpr, lookup) for subexpr in subexprs]
-        exprs = {}
-        for mapping in mappings:
-            for key, subexp in mapping.items():
-                if key not in exprs:
-                    exprs[key] = subexp
-                else:
-                    exprs[key] = Or(subexp, exprs[key])
-        return exprs
-    else:
-        assert False, 'Invalid DNF expression: %s' % (expr,)
-
-def simplify_nominal_event(event, support):
-    if isinstance(event, Eq):
-        a, b = event.args
-        value = b if isinstance(a, Symbol) else a
-        return support.intersection({value})
-    elif isinstance(event, Contains):
-        a, b = event.args
-        assert isinstance(a, Symbol)
-        return support.intersection(b)
-    elif isinstance(event, NotContains):
-        a, b = event.args
-        assert isinstance(a, Symbol)
-        return support.difference(b)
-    elif isinstance(event, And):
-        sets = [simplify_nominal_event(e, support) for e in event.args]
-        return get_intersection(sets)
-    elif isinstance(event, Or):
-        sets = [simplify_nominal_event(e, support) for e in event.args]
-        return get_union(sets)
-    else:
-        raise ValueError('Event "%s" does not apply to nominal variable'
-            % (event,))
-
-def get_union(sets):
-    return sets[0].union(*sets[1:])
-
-def get_intersection(sets):
-    return sets[0].intersection(*sets[1:])
-
-def are_disjoint(sets):
-    union = get_union(sets)
-    return len(union) == sum(len(s) for s in sets)
-
-def are_identical(sets):
-    intersection = get_intersection(sets)
-    assert all(len(s) == len(intersection) for s in sets)
-
-# ==============================================================================
-# Distribution classes
+# Distribution classes.
 
 class Distribution(object):
     def __init__(self):
