@@ -21,9 +21,23 @@ from sum_product_dsl.contains import Contains
 from sum_product_dsl.contains import NotContains
 from sum_product_dsl.distributions import factor_dnf
 from sum_product_dsl.distributions import factor_dnf_symbols
-from sum_product_dsl.distributions import get_symbols
 from sum_product_dsl.distributions import simplify_nominal_event
-from sum_product_dsl.distributions import solver
+
+from sum_product_dsl.solver import get_symbols
+from sum_product_dsl.solver import solver
+
+from sum_product_dsl.solver import Identity
+from sum_product_dsl.solver import Abs
+from sum_product_dsl.solver import Pow
+from sum_product_dsl.solver import Exp
+from sum_product_dsl.solver import Log
+from sum_product_dsl.solver import Poly
+
+from sum_product_dsl.solver import Event
+from sum_product_dsl.solver import EventBetween
+from sum_product_dsl.solver import EventOr
+from sum_product_dsl.solver import EventAnd
+from sum_product_dsl.solver import EventNot
 
 (X0, X1, X2, X3, X4, X5, X6, X7, X8, X9) = symbols('X:10')
 
@@ -38,19 +52,6 @@ def test_get_symbols():
     assert X0 in syms
     assert X1 in syms
     assert X2 in syms
-
-from sum_product_dsl.distributions import Identity
-from sum_product_dsl.distributions import Abs
-from sum_product_dsl.distributions import Pow
-from sum_product_dsl.distributions import Exp
-from sum_product_dsl.distributions import Log
-from sum_product_dsl.distributions import Poly
-
-from sum_product_dsl.distributions import Event
-from sum_product_dsl.distributions import EventBetween
-from sum_product_dsl.distributions import EventOr
-from sum_product_dsl.distributions import EventAnd
-from sum_product_dsl.distributions import EventNot
 
 def test_solver():
     # TEST CASE 1
