@@ -35,6 +35,10 @@ RealsNeg = Interval(-oo, 0)
 # ==============================================================================
 # Utilities.
 
+def get_symbols(expr):
+    atoms = expr.atoms()
+    return [a for a in atoms if isinstance(a, Symbol)]
+
 def make_sympy_polynomial(coeffs):
     terms = [c*symX**i for (i,c) in enumerate(coeffs)]
     return SymAdd(*terms)
@@ -227,11 +231,7 @@ class EventNot(Event):
         return interval.complement(Reals)
 
 # ==============================================================================
-# Utilities
-
-def get_symbols(expr):
-    atoms = expr.atoms()
-    return [a for a in atoms if isinstance(a, Symbol)]
+# SymPy solver.
 
 def solver(expr):
     symbols = get_symbols(expr)
