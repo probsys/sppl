@@ -39,12 +39,12 @@ def make_sympy_polynomial(coeffs):
     terms = [c*symX**i for (i,c) in enumerate(coeffs)]
     return SymAdd(*terms)
 
-def make_subexp(subexp):
-    if isinstance(subexp, Symbol):
-        return Identity(subexp)
-    if isinstance(subexp, Transform):
-        return subexp
-    assert False, 'Unknown subexp: %s' % (subexp,)
+def make_subexpr(subexpr):
+    if isinstance(subexpr, Symbol):
+        return Identity(subexpr)
+    if isinstance(subexpr, Transform):
+        return subexpr
+    assert False, 'Unknown subexpr: %s' % (subexpr,)
 
 def solveset_bounds(sympy_expr, b):
     if not isinf(b):
@@ -70,7 +70,7 @@ def listify_interval(interval):
 class Transform(object):
     def symbol(self):
         raise NotImplementedError()
-    def subexp(self):
+    def subexpr(self):
         raise NotImplementedError()
     def domain(self):
         raise NotImplementedError()
@@ -93,10 +93,10 @@ class Identity(Transform):
         return Interval(a, b)
 
 class Abs(Transform):
-    def __init__(self, subexp):
-        self.subexp = make_subexp(subexp)
+    def __init__(self, subexpr):
+        self.subexpr = make_subexpr(subexpr)
     def symbol(self):
-        return self.subexp.symbol
+        return self.subexpr.symbol
     def domain(self):
         return Reals
     def range(self):
@@ -105,19 +105,19 @@ class Abs(Transform):
         intersection = Intersection(self.range(), Interval(a, b))
         if intersection == EmptySet:
             return EmptySet
-        xvals_pos = self.subexp.solve(intersection.left, intersection.right)
-        xvals_neg = self.subexp.solve(-intersection.right, -intersection.left)
+        xvals_pos = self.subexpr.solve(intersection.left, intersection.right)
+        xvals_neg = self.subexpr.solve(-intersection.right, -intersection.left)
         return Union(xvals_pos, xvals_neg)
 
 class Pow(Transform):
-    def __init__(self, subexp, expon):
+    def __init__(self, subexpr, expon):
         assert isinstance(expon, (int, Rational))
         assert expon != 0
-        self.subexp = make_subexp(subexp)
+        self.subexpr = make_subexpr(subexpr)
         self.expon = expon
         self.integral = expon == int(expon)
     def symbol(self):
-        return self.subexp.symbol
+        return self.subexpr.symbol
     def domain(self):
         if self.integral:
             return Reals
@@ -132,15 +132,15 @@ class Pow(Transform):
             return EmptySet
         a_prime = SymPow(intersection.left, 1/self.expon)
         b_prime = SymPow(intersection.right, 1/self.expon)
-        return self.subexp.solve(a_prime, b_prime)
+        return self.subexpr.solve(a_prime, b_prime)
 
 class Exp(Transform):
-    def __init__(self, subexp, base):
+    def __init__(self, subexpr, base):
         assert base > 0
-        self.subexp = make_subexp(subexp)
+        self.subexpr = make_subexpr(subexpr)
         self.base = base
     def symbol(self):
-        return self.subexp.symbol
+        return self.subexpr.symbol
     def domain(self):
         return Reals
     def range(self):
@@ -152,15 +152,15 @@ class Exp(Transform):
         a_prime = SymLog(intersection.left, self.base) \
             if intersection.left > 0 else -oo
         b_prime = SymLog(intersection.right, self.base)
-        return self.subexp.solve(a_prime, b_prime)
+        return self.subexpr.solve(a_prime, b_prime)
 
 class Log(Transform):
-    def __init__(self, subexp, base):
+    def __init__(self, subexpr, base):
         assert base > 0
-        self.subexp = make_subexp(subexp)
+        self.subexpr = make_subexpr(subexpr)
         self.base = base
     def symbol(self):
-        return self.subexp.symbol
+        return self.subexpr.symbol
     def domain(self):
         return RealsPos
     def range(self):
@@ -168,28 +168,28 @@ class Log(Transform):
     def solve(self, a, b):
         a_prime = SymPow(self.base, a)
         b_prime = SymPow(self.base, b)
-        return self.subexp.solve(a_prime, b_prime)
+        return self.subexpr.solve(a_prime, b_prime)
 
 class Poly(Transform):
-    def __init__(self, subexp, coeffs):
-        self.subexp = make_subexp(subexp)
+    def __init__(self, subexpr, coeffs):
+        self.subexpr = make_subexpr(subexpr)
         self.coeffs = coeffs
         self.degree = len(coeffs) - 1
-        self.symexp = make_sympy_polynomial(coeffs)
+        self.symexpr = make_sympy_polynomial(coeffs)
     def symbol(self):
-        return self.subexp.symbol
+        return self.subexpr.symbol
     def domain(self):
         return Reals
     def range(self):
         raise NotImplementedError()
     def solve(self, a, b):
-        xvals_a = solveset_bounds(self.symexp, a)
-        xvals_b = solveset_bounds(self.symexp, b)
+        xvals_a = solveset_bounds(self.symexpr, a)
+        xvals_b = solveset_bounds(self.symexpr, b)
         xvals = xvals_a.complement(xvals_b)
         if xvals == EmptySet:
             return EmptySet
         xvals_list = listify_interval(xvals)
-        intervals = [self.subexp.solve(xv.left, xv.right)
+        intervals = [self.subexpr.solve(xv.left, xv.right)
             for xv in xvals_list if xv != EmptySet]
         return Union(*intervals)
 
@@ -200,7 +200,7 @@ class EventBetween(Event):
     def __init__(self, expr, a, b):
         self.a = a
         self.b = b
-        self.expr = make_subexp(expr)
+        self.expr = make_subexpr(expr)
     def solve(self):
         return self.expr.solve(self.a, self.b)
 
