@@ -24,6 +24,10 @@ from sum_product_dsl.solver import Log
 from sum_product_dsl.solver import Poly
 from sum_product_dsl.solver import Pow
 
+from sum_product_dsl.solver import ExpNat
+from sum_product_dsl.solver import LogNat
+from sum_product_dsl.solver import Sqrt
+
 from sum_product_dsl.solver import EventAnd
 from sum_product_dsl.solver import EventBetween
 from sum_product_dsl.solver import EventNot
@@ -37,7 +41,7 @@ def test_solver_1():
     assert interval.start == SymExp(2)
     assert interval.end == oo
 
-    expr = Log(X0, SymExp(1))
+    expr = LogNat(X0)
     event = EventBetween(expr, 2, oo)
     interval = event.solve()
     assert interval.start == SymExp(2)
@@ -49,7 +53,7 @@ def test_solver_2():
     assert interval == Singletons.EmptySet
 
     event = EventAnd([
-        EventBetween(Log(X0, SymExp(1)), 2, oo),
+        EventBetween(LogNat(X0), 2, oo),
         EventBetween(X0, -oo, SymExp(2))
     ])
     interval = event.solve()
@@ -122,7 +126,7 @@ def test_solver_9():
     #       Z < Z_high iff log(X0) < Z_high iff X0 < exp(Z_high)
     # solver(expr) = [exp(Z_low), exp(Z_high)]
     # For F invertible, can thus solve Poly(coeffs, F) > 0 using this method.
-    expr = Poly(Log(X0, SymExp(1)), [-5, -1, 0, 2])
+    expr = Poly(LogNat(X0), [-5, -1, 0, 2])
     event = EventBetween(expr, 0, oo)
     interval = event.solve()
     assert interval.left == \
@@ -133,7 +137,7 @@ def test_solver_9():
 def test_solver_10():
     # Sympy hangs for some reason.
     # expr = exp(sqrt(log(X0))) > -5
-    expr = Exp(Pow(Log(X0, SymExp(1)), Rational(1, 2)), SymExp(1))
+    expr = ExpNat(Sqrt(LogNat(X0)))
     event = EventBetween(expr, -5, oo)
     interval = event.solve()
     assert interval.left == 1
@@ -142,7 +146,7 @@ def test_solver_10():
 def test_solver_11():
     # Sympy hangs for some reason.
     # expr = exp(sqrt(log(X0))) > 6
-    expr = Exp(Pow(Log(X0, SymExp(1)), Rational(1, 2)), SymExp(1))
+    expr = ExpNat(Sqrt(LogNat(X0)))
     event = EventBetween(expr, 6, oo)
     interval = event.solve()
     assert interval.left == SymExp(SymLog(6)**2)

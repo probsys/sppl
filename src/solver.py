@@ -13,6 +13,7 @@ from sympy import Union
 
 from sympy import Add as SymAdd
 from sympy import Pow as SymPow
+from sympy import exp as SymExp
 from sympy import log as SymLog
 
 from sympy import Rational
@@ -66,7 +67,7 @@ def listify_interval(interval):
     assert False, 'Unknown interval: %s' % (interval,)
 
 # ==============================================================================
-# Custom invertible language.
+# Custom invertible function language.
 
 class Transform(object):
     def symbol(self):
@@ -193,6 +194,19 @@ class Poly(Transform):
         intervals = [self.subexpr.solve(xv.left, xv.right)
             for xv in xvals_list if xv != EmptySet]
         return Union(*intervals)
+
+# Some useful constructors.
+def ExpNat(subexpr):
+    return Exp(subexpr, SymExp(1))
+def LogNat(subexpr):
+    return Log(subexpr, SymExp(1))
+def Radical(subexpr, n):
+    return Pow(subexpr, Rational(1, n))
+def Sqrt(subexpr):
+    return Radical(subexpr, 2)
+
+# ==============================================================================
+# Custom event language.
 
 class Event(object):
     pass
