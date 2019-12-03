@@ -11,6 +11,7 @@ from sympy import Union
 from sympy import oo
 from sympy import symbols
 
+from sympy import Abs as SymAbs
 from sympy import exp as SymExp
 from sympy import log as SymLog
 from sympy import sqrt as SymSqrt
@@ -151,3 +152,18 @@ def test_solver_11():
     interval = event.solve()
     assert interval.left == SymExp(SymLog(6)**2)
     assert interval.right == oo
+
+def test_solver_12():
+    expr = 2*SymSqrt(SymAbs(X0)) - 3 > 10
+    interval = solver(expr)
+    assert isinstance(interval, Union)
+    assert interval == Union(
+        Interval.open(-oo, -169/4),
+        Interval.open(169/4, oo))
+
+    expr = Poly(Sqrt(Abs(X0)), [-3, 2])
+    event = EventBetween(expr, 10, oo)
+    interval = event.solve()
+    assert interval == Union(
+        Interval(-oo, -169/4),
+        Interval(169/4, oo))
