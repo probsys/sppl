@@ -109,9 +109,9 @@ class Abs(Transform):
         return RealsPos
     def solve(self, interval):
         intersection = Intersection(self.range(), interval)
-        (a, b) = (intersection.left, intersection.right)
         if intersection == EmptySet:
             return EmptySet
+        (a, b) = (intersection.left, intersection.right)
         # Positive solution.
         (a_pos, b_pos) = (a, b)
         interval_pos = transform_interval(intersection, a_pos, b_pos)
@@ -142,9 +142,9 @@ class Pow(Transform):
         return RealsPos
     def solve(self, interval):
         intersection = Intersection(self.range(), interval)
-        (a, b) = (intersection.left, intersection.right)
         if intersection == EmptySet:
             return EmptySet
+        (a, b) = (intersection.left, intersection.right)
         a_prime = SymPow(a, 1/self.expon)
         b_prime = SymPow(b, 1/self.expon)
         interval_prime = transform_interval(intersection, a_prime, b_prime)
@@ -163,9 +163,9 @@ class Exp(Transform):
         return RealsPos
     def solve(self, interval):
         intersection = Intersection(self.range(), interval)
-        (a, b) = (intersection.left, intersection.right)
         if intersection == EmptySet:
             return EmptySet
+        (a, b) = (intersection.left, intersection.right)
         a_prime = SymLog(a, self.base) if a > 0 else -oo
         b_prime = SymLog(b, self.base)
         interval_prime = transform_interval(intersection, a_prime, b_prime)
