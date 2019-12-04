@@ -37,6 +37,9 @@ RealsNeg = Interval(-oo, 0)
 # ==============================================================================
 # Utilities.
 
+def transform_interval(interval, a, b):
+    return Interval(a, b, interval.left_open, interval.right_open)
+
 def make_sympy_polynomial(coeffs):
     terms = [c*symX**i for (i,c) in enumerate(coeffs)]
     return SymAdd(*terms)
@@ -48,9 +51,10 @@ def make_subexpr(subexpr):
         return subexpr
     assert False, 'Unknown subexpr: %s' % (subexpr,)
 
-def solveset_bounds(sympy_expr, b):
+def solveset_bounds(sympy_expr, b, strict):
     if not isinf(b):
-        return solveset(sympy_expr < b, domain=Reals)
+        expr = (sympy_expr < b) if strict else (sympy_expr <= b)
+        return solveset(expr, domain=Reals)
     if b < oo:
         return EmptySet
     return Reals
@@ -78,7 +82,7 @@ class Transform(object):
         raise NotImplementedError()
     def range(self):
         raise NotImplementedError()
-    def solve(self, a, b):
+    def solve(self, interval):
         raise NotImplementedError()
 
 class Identity(Transform):
@@ -91,8 +95,8 @@ class Identity(Transform):
         return Reals
     def range(self):
         return Reals
-    def solve(self, a, b):
-        return Interval(a, b)
+    def solve(self, interval):
+        return interval
 
 class Abs(Transform):
     def __init__(self, subexpr):
@@ -103,12 +107,20 @@ class Abs(Transform):
         return Reals
     def range(self):
         return RealsPos
-    def solve(self, a, b):
-        intersection = Intersection(self.range(), Interval(a, b))
+    def solve(self, interval):
+        intersection = Intersection(self.range(), interval)
+        (a, b) = (intersection.left, intersection.right)
         if intersection == EmptySet:
             return EmptySet
-        xvals_pos = self.subexpr.solve(intersection.left, intersection.right)
-        xvals_neg = self.subexpr.solve(-intersection.right, -intersection.left)
+        # Positive solution.
+        (a_pos, b_pos) = (a, b)
+        interval_pos = transform_interval(intersection, a_pos, b_pos)
+        xvals_pos = self.subexpr.solve(interval_pos)
+        # Negative solution.
+        (a_neg, b_neg) = (-b, -a)
+        interval_neg = transform_interval(intersection, a_neg, b_neg)
+        xvals_neg = self.subexpr.solve(interval_neg)
+        # Return the union.
         return Union(xvals_pos, xvals_neg)
 
 class Pow(Transform):
@@ -128,13 +140,15 @@ class Pow(Transform):
         if self.integral:
             return Reals if self.expon % 2 else RealsPos
         return RealsPos
-    def solve(self, a, b):
-        intersection = Intersection(self.range(), Interval(a, b))
+    def solve(self, interval):
+        intersection = Intersection(self.range(), interval)
+        (a, b) = (intersection.left, intersection.right)
         if intersection == EmptySet:
             return EmptySet
-        a_prime = SymPow(intersection.left, 1/self.expon)
-        b_prime = SymPow(intersection.right, 1/self.expon)
-        return self.subexpr.solve(a_prime, b_prime)
+        a_prime = SymPow(a, 1/self.expon)
+        b_prime = SymPow(b, 1/self.expon)
+        interval_prime = transform_interval(intersection, a_prime, b_prime)
+        return self.subexpr.solve(interval_prime)
 
 class Exp(Transform):
     def __init__(self, subexpr, base):
@@ -147,14 +161,15 @@ class Exp(Transform):
         return Reals
     def range(self):
         return RealsPos
-    def solve(self, a, b):
-        intersection = Intersection(self.range(), Interval(a,b))
+    def solve(self, interval):
+        intersection = Intersection(self.range(), interval)
+        (a, b) = (intersection.left, intersection.right)
         if intersection == EmptySet:
             return EmptySet
-        a_prime = SymLog(intersection.left, self.base) \
-            if intersection.left > 0 else -oo
-        b_prime = SymLog(intersection.right, self.base)
-        return self.subexpr.solve(a_prime, b_prime)
+        a_prime = SymLog(a, self.base) if a > 0 else -oo
+        b_prime = SymLog(b, self.base)
+        interval_prime = transform_interval(intersection, a_prime, b_prime)
+        return self.subexpr.solve(interval_prime)
 
 class Log(Transform):
     def __init__(self, subexpr, base):
@@ -167,10 +182,12 @@ class Log(Transform):
         return RealsPos
     def range(self):
         return Reals
-    def solve(self, a, b):
+    def solve(self, interval):
+        (a, b) = (interval.left, interval.right)
         a_prime = SymPow(self.base, a)
         b_prime = SymPow(self.base, b)
-        return self.subexpr.solve(a_prime, b_prime)
+        interval_prime = transform_interval(interval, a_prime, b_prime)
+        return self.subexpr.solve(interval_prime)
 
 class Poly(Transform):
     def __init__(self, subexpr, coeffs):
@@ -184,15 +201,15 @@ class Poly(Transform):
         return Reals
     def range(self):
         raise NotImplementedError()
-    def solve(self, a, b):
-        xvals_a = solveset_bounds(self.symexpr, a)
-        xvals_b = solveset_bounds(self.symexpr, b)
+    def solve(self, interval):
+        (a, b) = (interval.left, interval.right)
+        xvals_a = solveset_bounds(self.symexpr, a, not interval.left_open)
+        xvals_b = solveset_bounds(self.symexpr, b, interval.right_open)
         xvals = xvals_a.complement(xvals_b)
         if xvals == EmptySet:
             return EmptySet
         xvals_list = listify_interval(xvals)
-        intervals = [self.subexpr.solve(xv.left, xv.right)
-            for xv in xvals_list if xv != EmptySet]
+        intervals = [self.subexpr.solve(x) for x in xvals_list if x != EmptySet]
         return Union(*intervals)
 
 # Some useful constructors.
@@ -211,13 +228,12 @@ def Sqrt(subexpr):
 class Event(object):
     pass
 
-class EventBetween(Event):
-    def __init__(self, expr, a, b):
-        self.a = a
-        self.b = b
+class EventInterval(Event):
+    def __init__(self, expr, interval):
+        self.interval = interval
         self.expr = make_subexpr(expr)
     def solve(self):
-        return self.expr.solve(self.a, self.b)
+        return self.expr.solve(self.interval)
 
 class EventOr(Event):
     def __init__(self, events):
