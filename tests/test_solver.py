@@ -279,3 +279,19 @@ def test_solver_13():
     event = EventInterval(expr, Interval.open(10, oo))
     interval = event.solve()
     assert interval == solution
+
+def test_solver_14():
+    # log(x) > 0
+    event = EventInterval(LogNat(X0), Interval(-oo, oo))
+    interval = event.solve()
+    assert interval == Interval.open(0, oo)
+
+    # exp(x) < 0
+    event = EventInterval(ExpNat(X0), Interval.open(-oo, 0))
+    interval = event.solve()
+    assert interval == Singletons.EmptySet
+
+    # exp(x) <= 0
+    event = EventInterval(ExpNat(X0), Interval(-oo, 0))
+    interval = event.solve()
+    assert interval == FiniteSet(-oo)

@@ -19,6 +19,7 @@ from sympy import log as SymLog
 from sympy import Rational
 from sympy import S as Singletons
 from sympy import Symbol
+from sympy import FiniteSet
 
 from sympy import ConditionSet
 from sympy import solveset
@@ -33,6 +34,10 @@ EmptySet = Singletons.EmptySet
 Reals = Singletons.Reals
 RealsPos = Interval(0, oo)
 RealsNeg = Interval(-oo, 0)
+
+ExtReals = Union(Reals, FiniteSet(-oo, oo))
+ExtRealsPos = Union(RealsPos, FiniteSet(-oo, oo))
+ExtRealsNeg = Union(RealsNeg, FiniteSet(-oo, oo))
 
 # ==============================================================================
 # Utilities.
@@ -70,6 +75,14 @@ def listify_interval(interval):
         return intervals
     assert False, 'Unknown interval: %s' % (interval,)
 
+def SymLogSafe(x, base):
+    # Prevents complex negative infinity zoo.
+    if x == 0:
+        return -oo
+    if x > 0:
+        return SymLog(x, base)
+    assert False, 'Invalid value for SymLogSafe: %f' % (x,)
+
 # ==============================================================================
 # Custom invertible function language.
 
@@ -83,6 +96,17 @@ class Transform(object):
     def range(self):
         raise NotImplementedError()
     def solve(self, interval):
+        intersection = Intersection(self.range(), interval)
+        if intersection == EmptySet:
+            return EmptySet
+        if isinstance(intersection, FiniteSet):
+            return self.solve_finite(intersection)
+        if isinstance(intersection, Interval):
+            return self.solve_interval(intersection)
+        assert False, 'Unknown set: %s' % (intersection,)
+    def solve_finite(self, values):
+        raise NotImplementedError()
+    def solve_interval(self, interval):
         raise NotImplementedError()
 
 class Identity(Transform):
@@ -95,7 +119,11 @@ class Identity(Transform):
         return Reals
     def range(self):
         return Reals
-    def solve(self, interval):
+    def inverse(self, x):
+        return [x]
+    def solve_finite(self, values):
+        return values
+    def solve_interval(self, interval):
         return interval
 
 class Abs(Transform):
@@ -107,18 +135,26 @@ class Abs(Transform):
         return Reals
     def range(self):
         return RealsPos
-    def solve(self, interval):
-        intersection = Intersection(self.range(), interval)
-        if intersection == EmptySet:
-            return EmptySet
-        (a, b) = (intersection.left, intersection.right)
+    def inverse(self, x):
+        return [x, -x]
+    def solve_finite(self, values):
+        # Positive solution.
+        values_pos = FiniteSet(*[x for x in FiniteSet])
+        xvals_pos = self.subexpr.solve(values_pos)
+        # Negative solution.
+        values_neg = FiniteSet(*[-x for x in FiniteSet])
+        xvals_neg = self.subexpr.solve(values_neg)
+        # Return the union.
+        return Union(xvals_pos, xvals_neg)
+    def solve_interval(self, interval):
+        (a, b) = (interval.left, interval.right)
         # Positive solution.
         (a_pos, b_pos) = (a, b)
-        interval_pos = transform_interval(intersection, a_pos, b_pos)
+        interval_pos = transform_interval(interval, a_pos, b_pos)
         xvals_pos = self.subexpr.solve(interval_pos)
         # Negative solution.
         (a_neg, b_neg) = (-b, -a)
-        interval_neg = transform_interval(intersection, a_neg, b_neg)
+        interval_neg = transform_interval(interval, a_neg, b_neg)
         xvals_neg = self.subexpr.solve(interval_neg)
         # Return the union.
         return Union(xvals_pos, xvals_neg)
@@ -140,14 +176,16 @@ class Pow(Transform):
         if self.integral:
             return Reals if self.expon % 2 else RealsPos
         return RealsPos
-    def solve(self, interval):
-        intersection = Intersection(self.range(), interval)
-        if intersection == EmptySet:
-            return EmptySet
-        (a, b) = (intersection.left, intersection.right)
+    def inverse(self, x):
+        return [SymPow(x, 1/self.expon)]
+    def solve_finite(self, values):
+        values_prime = FiniteSet(*[SymPow(x, 1/self.expon) for x in values])
+        return self.subexpr.solve(values_prime)
+    def solve_interval(self, interval):
+        (a, b) = (interval.left, interval.right)
         a_prime = SymPow(a, 1/self.expon)
         b_prime = SymPow(b, 1/self.expon)
-        interval_prime = transform_interval(intersection, a_prime, b_prime)
+        interval_prime = transform_interval(interval, a_prime, b_prime)
         return self.subexpr.solve(interval_prime)
 
 class Exp(Transform):
@@ -161,14 +199,15 @@ class Exp(Transform):
         return Reals
     def range(self):
         return RealsPos
-    def solve(self, interval):
-        intersection = Intersection(self.range(), interval)
-        if intersection == EmptySet:
-            return EmptySet
-        (a, b) = (intersection.left, intersection.right)
-        a_prime = SymLog(a, self.base) if a > 0 else -oo
-        b_prime = SymLog(b, self.base)
-        interval_prime = transform_interval(intersection, a_prime, b_prime)
+    def solve_finite(self, values):
+        import ipdb; ipdb.set_trace()
+        values_prime = FiniteSet(*[SymLogSafe(x, self.base) for x in values])
+        return self.subexpr.solve(values_prime)
+    def solve_interval(self, interval):
+        (a, b) = (interval.left, interval.right)
+        a_prime = SymLogSafe(a, self.base)
+        b_prime = SymLogSafe(b, self.base)
+        interval_prime = transform_interval(interval, a_prime, b_prime)
         return self.subexpr.solve(interval_prime)
 
 class Log(Transform):
@@ -182,7 +221,10 @@ class Log(Transform):
         return RealsPos
     def range(self):
         return Reals
-    def solve(self, interval):
+    def solve_finite(self, values):
+        values_prime = FiniteSet(*[SymPow(self.base, x) for x in values])
+        return self.subexpr.solve(values_prime)
+    def solve_interval(self, interval):
         (a, b) = (interval.left, interval.right)
         a_prime = SymPow(self.base, a)
         b_prime = SymPow(self.base, b)
@@ -200,14 +242,12 @@ class Poly(Transform):
     def domain(self):
         return Reals
     def range(self):
-        raise NotImplementedError()
-    def solve(self, interval):
+        return Reals
+    def solve_interval(self, interval):
         (a, b) = (interval.left, interval.right)
         xvals_a = solveset_bounds(self.symexpr, a, not interval.left_open)
         xvals_b = solveset_bounds(self.symexpr, b, interval.right_open)
         xvals = xvals_a.complement(xvals_b)
-        if xvals == EmptySet:
-            return EmptySet
         xvals_list = listify_interval(xvals)
         intervals = [self.subexpr.solve(x) for x in xvals_list if x != EmptySet]
         return Union(*intervals)
