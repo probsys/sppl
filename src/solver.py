@@ -82,7 +82,15 @@ class Transform(object):
         raise NotImplementedError()
     def range(self):
         raise NotImplementedError()
+    def ffwd(self, x):
+        raise NotImplementedError()
+    def finv(self, x):
+        raise NotImplementedError()
     def solve(self, interval):
+        raise NotImplementedError()
+    def evaluate(self, x):
+        raise NotImplementedError()
+    def inverse(self, x):
         raise NotImplementedError()
 
 class Identity(Transform):
@@ -95,6 +103,10 @@ class Identity(Transform):
         return Reals
     def range(self):
         return Reals
+    def ffwd(self, x):
+        return x
+    def finv(self, x):
+        return [x]
     def solve(self, interval):
         return interval
 
@@ -107,6 +119,10 @@ class Abs(Transform):
         return Reals
     def range(self):
         return RealsPos
+    def ffwd(self, x):
+        return x if x > 0 else -x
+    def finv(self, x):
+        return [x, -x]
     def solve(self, interval):
         intersection = Intersection(self.range(), interval)
         if intersection == EmptySet:
@@ -134,13 +150,17 @@ class Radical(Transform):
         return RealsPos
     def range(self):
         return RealsPos
+    def ffwd(self, x):
+        return SymPow(x, Rational(1, self.degree))
+    def finv(self, x):
+        return SymPow(x, Rational(self.degree, 1))
     def solve(self, interval):
         intersection = Intersection(self.range(), interval)
         if intersection == EmptySet:
             return EmptySet
         (a, b) = (intersection.left, intersection.right)
-        a_prime = SymPow(a, Rational(self.degree, 1))
-        b_prime = SymPow(b, Rational(self.degree, 1))
+        a_prime = self.finv(a)
+        b_prime = self.finv(b)
         interval_prime = transform_interval(intersection, a_prime, b_prime)
         return self.subexpr.solve(interval_prime)
 
@@ -155,19 +175,25 @@ class Exp(Transform):
         return Reals
     def range(self):
         return RealsPos
+    def ffwd(self, x):
+        assert x in self.domain()
+        return SymPow(self.base, x)
+    def finv(self, x):
+        assert x in self.range()
+        return SymLog(x, self.base) if x > 0 else -oo
     def solve(self, interval):
         intersection = Intersection(self.range(), interval)
         if intersection == EmptySet:
             return EmptySet
         (a, b) = (intersection.left, intersection.right)
-        a_prime = SymLog(a, self.base) if a > 0 else -oo
-        b_prime = SymLog(b, self.base)
+        a_prime = self.finv(a)
+        b_prime = self.finv(b)
         interval_prime = transform_interval(intersection, a_prime, b_prime)
         return self.subexpr.solve(interval_prime)
 
 class Log(Transform):
     def __init__(self, subexpr, base):
-        assert base > 0
+        assert base > 1
         self.subexpr = make_subexpr(subexpr)
         self.base = base
     def symbol(self):
@@ -176,10 +202,16 @@ class Log(Transform):
         return RealsPos
     def range(self):
         return Reals
+    def ffwd(self, x):
+        assert x in self.domain()
+        return SymLog(x, self.base) if x > 0 else -oo
+    def finv(self, x):
+        assert x in self.range()
+        return SymPow(self.base, x)
     def solve(self, interval):
         (a, b) = (interval.left, interval.right)
-        a_prime = SymPow(self.base, a)
-        b_prime = SymPow(self.base, b)
+        a_prime = self.finv(a)
+        b_prime = self.finv(b)
         interval_prime = transform_interval(interval, a_prime, b_prime)
         return self.subexpr.solve(interval_prime)
 
@@ -195,6 +227,10 @@ class Poly(Transform):
         return Reals
     def range(self):
         raise NotImplementedError()
+    def ffwd(self, x):
+        return self.symexpr.subs(symX, x)
+    def finv(self, x):
+        pass
     def solve(self, interval):
         (a, b) = (interval.left, interval.right)
         xvals_a = solveset_bounds(self.symexpr, a, not interval.left_open)
