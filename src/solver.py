@@ -145,8 +145,8 @@ class Pow(Transform):
         if intersection == EmptySet:
             return EmptySet
         (a, b) = (intersection.left, intersection.right)
-        a_prime = SymPow(a, 1/self.expon)
-        b_prime = SymPow(b, 1/self.expon)
+        a_prime = SymPow(a, Rational(1, self.expon))
+        b_prime = SymPow(b, Rational(1, self.expon))
         interval_prime = transform_interval(intersection, a_prime, b_prime)
         return self.subexpr.solve(interval_prime)
 
