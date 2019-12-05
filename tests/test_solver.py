@@ -24,6 +24,7 @@ from sum_product_dsl.solver import Identity
 from sum_product_dsl.solver import Log
 from sum_product_dsl.solver import Poly
 from sum_product_dsl.solver import Pow
+from sum_product_dsl.solver import Radical
 
 from sum_product_dsl.solver import ExpNat
 from sum_product_dsl.solver import LogNat
@@ -277,5 +278,53 @@ def test_solver_13():
 
     expr = Poly(Sqrt(Pow(Abs(X0), 2)), [-3, 2])
     event = EventInterval(expr, Interval.open(10, oo))
+    interval = event.solve()
+    assert interval == solution
+
+def test_solver_14():
+    # x**2 > 10
+    solution = Union(
+        Interval.open(-oo, -SymSqrt(10)),
+        Interval.open(SymSqrt(10), oo))
+
+    expr = X0**2 > 10
+    interval = solver(expr)
+    assert interval == solution
+
+    expr = Pow(X0, 2)
+    event = EventInterval(expr, Interval.open(10, oo))
+    interval = event.solve()
+    assert interval == solution
+
+def test_solver_15():
+    # ((x**4)**(1/7)) < 9
+    solution = Interval.open(-27*SymSqrt(3), 27*SymSqrt(3))
+
+    expr = ((X0**4))**(Rational(1, 7)) < 9
+    interval = solver(expr)
+    with pytest.raises(AssertionError):
+        # SymPy handles exponents unclearly.
+        # Exponent laws with negative numbers are subtle.
+        assert interval == solution
+
+    expr = Radical(Pow(X0, 4), 7)
+    event = EventInterval(expr, Interval.open(-oo, 9))
+    interval = event.solve()
+    assert interval == solution
+
+def test_solver_16():
+    # (x**(1/7))**4 < 9
+    solution = Interval.Ropen(0, 27*SymSqrt(3))
+
+    expr = ((X0**Rational(1,7)))**4 < 9
+    interval = solver(expr)
+    with pytest.raises(AssertionError):
+        # SymPy handles exponents unclearly.
+        # Exponent laws with negative numbers are subtle.
+        print(interval)
+        assert interval == solution
+
+    expr = Pow(Radical(X0, 7), 4)
+    event = EventInterval(expr, Interval.open(-oo, 9))
     interval = event.solve()
     assert interval == solution

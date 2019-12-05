@@ -123,30 +123,24 @@ class Abs(Transform):
         # Return the union.
         return Union(xvals_pos, xvals_neg)
 
-class Pow(Transform):
-    def __init__(self, subexpr, expon):
-        assert isinstance(expon, (int, Rational))
-        assert expon != 0
+class Radical(Transform):
+    def __init__(self, subexpr, degree):
+        assert degree != 0
         self.subexpr = make_subexpr(subexpr)
-        self.expon = expon
-        self.integral = expon == int(expon)
+        self.degree = degree
     def symbol(self):
         return self.subexpr.symbol
     def domain(self):
-        if self.integral:
-            return Reals
         return RealsPos
     def range(self):
-        if self.integral:
-            return Reals if self.expon % 2 else RealsPos
         return RealsPos
     def solve(self, interval):
         intersection = Intersection(self.range(), interval)
         if intersection == EmptySet:
             return EmptySet
         (a, b) = (intersection.left, intersection.right)
-        a_prime = SymPow(a, Rational(1, self.expon))
-        b_prime = SymPow(b, Rational(1, self.expon))
+        a_prime = SymPow(a, Rational(self.degree, 1))
+        b_prime = SymPow(b, Rational(self.degree, 1))
         interval_prime = transform_interval(intersection, a_prime, b_prime)
         return self.subexpr.solve(interval_prime)
 
@@ -217,10 +211,11 @@ def ExpNat(subexpr):
     return Exp(subexpr, SymExp(1))
 def LogNat(subexpr):
     return Log(subexpr, SymExp(1))
-def Radical(subexpr, n):
-    return Pow(subexpr, Rational(1, n))
 def Sqrt(subexpr):
     return Radical(subexpr, 2)
+def Pow(subexpr, n):
+    coeffs = [0]*n + [1]
+    return Poly(subexpr, coeffs)
 
 # ==============================================================================
 # Custom event language.
