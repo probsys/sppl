@@ -92,14 +92,40 @@ class Transform(object):
         raise NotImplementedError()
     def finv(self, x):
         raise NotImplementedError()
-    def solve(self, interval):
-        raise NotImplementedError()
     def evaluate(self, x):
+        # pylint: disable=no-member
+        y = self.subexpr.evaluate(x)
+        return self.ffwd(y)
+    def invert(self, x):
+        if x is EmptySet:
+            return EmptySet
+        if isinstance(x, FiniteSet):
+            return self.invert_finite(x)
+        if isinstance(x, Interval):
+            return self.invert_interval(x)
+    def invert_finite(self, values):
         raise NotImplementedError()
-    def inverse(self, x):
+    def invert_interval(self, interval):
         raise NotImplementedError()
 
-class Identity(Transform):
+class Injective(Transform):
+    # Injective (one-to-one) transforms.
+    def invert_finite(self, values):
+        # pylint: disable=no-member
+        values_prime = [self.finv(x) for x in values]
+        return self.subexpr.invert(values_prime)
+    def invert_interval(self, interval):
+        # pylint: disable=no-member
+        intersection = Intersection(self.range(), interval)
+        if intersection == EmptySet:
+            return EmptySet
+        (a, b) = (intersection.left, intersection.right)
+        a_prime = self.finv(a)
+        b_prime = self.finv(b)
+        interval_prime = transform_interval(intersection, a_prime, b_prime)
+        return self.subexpr.invert(interval_prime)
+
+class Identity(Injective):
     def __init__(self, symbol):
         assert isinstance(symbol, Symbol)
         self.symb = symbol
@@ -114,8 +140,10 @@ class Identity(Transform):
         return x
     def finv(self, x):
         assert x in self.range()
-        return [x]
-    def solve(self, interval):
+        return x
+    def invert_finite(self, values):
+        return values
+    def invert_interval(self, interval):
         return interval
 
 class Abs(Transform):
@@ -132,8 +160,8 @@ class Abs(Transform):
         return x if x > 0 else -x
     def finv(self, x):
         assert x in self.range()
-        return [x, -x]
-    def solve(self, interval):
+        return (x, -x)
+    def invert_interval(self, interval):
         intersection = Intersection(self.range(), interval)
         if intersection == EmptySet:
             return EmptySet
@@ -141,15 +169,15 @@ class Abs(Transform):
         # Positive solution.
         (a_pos, b_pos) = (a, b)
         interval_pos = transform_interval(intersection, a_pos, b_pos)
-        xvals_pos = self.subexpr.solve(interval_pos)
+        xvals_pos = self.subexpr.invert(interval_pos)
         # Negative solution.
         (a_neg, b_neg) = (-b, -a)
         interval_neg = transform_interval(intersection, a_neg, b_neg)
-        xvals_neg = self.subexpr.solve(interval_neg)
+        xvals_neg = self.subexpr.invert(interval_neg)
         # Return the union.
         return Union(xvals_pos, xvals_neg)
 
-class Radical(Transform):
+class Radical(Injective):
     def __init__(self, subexpr, degree):
         assert degree != 0
         self.subexpr = make_subexpr(subexpr)
@@ -165,17 +193,8 @@ class Radical(Transform):
         return SymPow(x, Rational(1, self.degree))
     def finv(self, x):
         return SymPow(x, Rational(self.degree, 1))
-    def solve(self, interval):
-        intersection = Intersection(self.range(), interval)
-        if intersection == EmptySet:
-            return EmptySet
-        (a, b) = (intersection.left, intersection.right)
-        a_prime = self.finv(a)
-        b_prime = self.finv(b)
-        interval_prime = transform_interval(intersection, a_prime, b_prime)
-        return self.subexpr.solve(interval_prime)
 
-class Exp(Transform):
+class Exp(Injective):
     def __init__(self, subexpr, base):
         assert base > 0
         self.subexpr = make_subexpr(subexpr)
@@ -192,17 +211,8 @@ class Exp(Transform):
     def finv(self, x):
         assert x in self.range()
         return SymLog(x, self.base) if x > 0 else -oo
-    def solve(self, interval):
-        intersection = Intersection(self.range(), interval)
-        if intersection == EmptySet:
-            return EmptySet
-        (a, b) = (intersection.left, intersection.right)
-        a_prime = self.finv(a)
-        b_prime = self.finv(b)
-        interval_prime = transform_interval(intersection, a_prime, b_prime)
-        return self.subexpr.solve(interval_prime)
 
-class Log(Transform):
+class Log(Injective):
     def __init__(self, subexpr, base):
         assert base > 1
         self.subexpr = make_subexpr(subexpr)
@@ -219,12 +229,6 @@ class Log(Transform):
     def finv(self, x):
         assert x in self.range()
         return SymPow(self.base, x)
-    def solve(self, interval):
-        (a, b) = (interval.left, interval.right)
-        a_prime = self.finv(a)
-        b_prime = self.finv(b)
-        interval_prime = transform_interval(interval, a_prime, b_prime)
-        return self.subexpr.solve(interval_prime)
 
 class Poly(Transform):
     def __init__(self, subexpr, coeffs):
@@ -255,7 +259,7 @@ class Poly(Transform):
         return self.symexpr.subs(symX, x)
     def finv(self, x):
         raise NotImplementedError()
-    def solve(self, interval):
+    def invert_interval(self, interval):
         (a, b) = (interval.left, interval.right)
         xvals_a = solveset_bounds(self.symexpr, a, not interval.left_open)
         xvals_b = solveset_bounds(self.symexpr, b, interval.right_open)
@@ -263,7 +267,7 @@ class Poly(Transform):
         if xvals == EmptySet:
             return EmptySet
         xvals_list = listify_interval(xvals)
-        intervals = [self.subexpr.solve(x) for x in xvals_list if x != EmptySet]
+        intervals = [self.subexpr.invert(x) for x in xvals_list if x != EmptySet]
         return Union(*intervals)
 
 # Some useful constructors.
@@ -288,7 +292,7 @@ class EventInterval(Event):
         self.interval = interval
         self.expr = make_subexpr(expr)
     def solve(self):
-        return self.expr.solve(self.interval)
+        return self.expr.invert(self.interval)
 
 class EventOr(Event):
     def __init__(self, events):
