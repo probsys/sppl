@@ -16,6 +16,7 @@ from sympy import Pow as SymPow
 from sympy import exp as SymExp
 from sympy import log as SymLog
 
+from sympy import FiniteSet
 from sympy import Rational
 from sympy import S as Singletons
 from sympy import Symbol
@@ -33,6 +34,11 @@ EmptySet = Singletons.EmptySet
 Reals = Singletons.Reals
 RealsPos = Interval(0, oo)
 RealsNeg = Interval(-oo, 0)
+
+Infinities = FiniteSet(-oo, oo)
+ExtReals = Union(Reals, Infinities)
+ExtRealsPos = Union(RealsPos, Infinities)
+ExtRealsNeg = Union(RealsNeg, Infinities)
 
 # ==============================================================================
 # Utilities.
@@ -100,12 +106,14 @@ class Identity(Transform):
     def symbol(self):
         return self.symb
     def domain(self):
-        return Reals
+        return ExtReals
     def range(self):
-        return Reals
+        return ExtReals
     def ffwd(self, x):
+        assert x in self.domain()
         return x
     def finv(self, x):
+        assert x in self.range()
         return [x]
     def solve(self, interval):
         return interval
@@ -116,12 +124,14 @@ class Abs(Transform):
     def symbol(self):
         return self.subexpr.symbol
     def domain(self):
-        return Reals
+        return ExtReals
     def range(self):
-        return RealsPos
+        return ExtRealsPos
     def ffwd(self, x):
+        assert x in self.domain()
         return x if x > 0 else -x
     def finv(self, x):
+        assert x in self.range()
         return [x, -x]
     def solve(self, interval):
         intersection = Intersection(self.range(), interval)
@@ -147,10 +157,11 @@ class Radical(Transform):
     def symbol(self):
         return self.subexpr.symbol
     def domain(self):
-        return RealsPos
+        return ExtRealsPos
     def range(self):
-        return RealsPos
+        return ExtRealsPos
     def ffwd(self, x):
+        assert x in self.domain()
         return SymPow(x, Rational(1, self.degree))
     def finv(self, x):
         return SymPow(x, Rational(self.degree, 1))
@@ -172,9 +183,9 @@ class Exp(Transform):
     def symbol(self):
         return self.subexpr.symbol
     def domain(self):
-        return Reals
+        return ExtReals
     def range(self):
-        return RealsPos
+        return ExtRealsPos
     def ffwd(self, x):
         assert x in self.domain()
         return SymPow(self.base, x)
@@ -199,9 +210,9 @@ class Log(Transform):
     def symbol(self):
         return self.subexpr.symbol
     def domain(self):
-        return RealsPos
+        return ExtRealsPos
     def range(self):
-        return Reals
+        return ExtReals
     def ffwd(self, x):
         assert x in self.domain()
         return SymLog(x, self.base) if x > 0 else -oo
@@ -217,6 +228,7 @@ class Log(Transform):
 
 class Poly(Transform):
     def __init__(self, subexpr, coeffs):
+        assert len(coeffs) > 1
         self.subexpr = make_subexpr(subexpr)
         self.coeffs = coeffs
         self.degree = len(coeffs) - 1
@@ -224,13 +236,25 @@ class Poly(Transform):
     def symbol(self):
         return self.subexpr.symbol
     def domain(self):
-        return Reals
+        from math import isnan
+        value_pos_inf = self.symexpr.subs(symX, oo)
+        value_neg_inf = self.symexpr.subs(symX, -oo)
+        if isnan(value_pos_inf) and isnan(value_neg_inf):
+            return Reals
+        if isnan(value_neg_inf) and not isnan(value_pos_inf):
+            return Union(Reals, FiniteSet(oo))
+        if isnan(value_pos_inf) and not isnan(value_neg_inf):
+            return Union(Reals, FiniteSet(-oo))
+        assert not isnan(value_pos_inf)
+        assert not isnan(value_neg_inf)
+        return ExtReals
     def range(self):
         raise NotImplementedError()
     def ffwd(self, x):
+        assert x in self.domain()
         return self.symexpr.subs(symX, x)
     def finv(self, x):
-        pass
+        raise NotImplementedError()
     def solve(self, interval):
         (a, b) = (interval.left, interval.right)
         xvals_a = solveset_bounds(self.symexpr, a, not interval.left_open)
