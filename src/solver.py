@@ -16,8 +16,11 @@ from sympy import Pow as SymPow
 from sympy import exp as SymExp
 from sympy import log as SymLog
 
+from sympy import EmptySet
+from sympy import FiniteSet
+from sympy import Reals
+
 from sympy import Rational
-from sympy import S as Singletons
 from sympy import Symbol
 
 from sympy import ConditionSet
@@ -29,8 +32,6 @@ from sympy.core.relational import Relational
 
 from .sym_util import get_symbols
 
-EmptySet = Singletons.EmptySet
-Reals = Singletons.Reals
 RealsPos = Interval(0, oo)
 RealsNeg = Interval(-oo, 0)
 
