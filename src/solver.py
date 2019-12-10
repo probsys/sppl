@@ -18,7 +18,6 @@ from sympy import log as SymLog
 
 from sympy import FiniteSet
 from sympy import Rational
-from sympy import S as Singletons
 from sympy import Symbol
 
 from sympy import ConditionSet
@@ -33,15 +32,10 @@ from sympy.calculus.util import limit
 
 from .sym_util import get_symbols
 
-EmptySet = Singletons.EmptySet
-Reals = Singletons.Reals
-RealsPos = Interval(0, oo)
-RealsNeg = Interval(-oo, 0)
-
-Infinities = FiniteSet(-oo, oo)
-ExtReals = Union(Reals, Infinities)
-ExtRealsPos = Union(RealsPos, Infinities)
-ExtRealsNeg = Union(RealsNeg, Infinities)
+from .sym_util import EmptySet
+from .sym_util import Reals
+from .sym_util import ExtReals
+from .sym_util import ExtRealsPos
 
 # ==============================================================================
 # Utilities.
