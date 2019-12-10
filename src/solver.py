@@ -240,22 +240,12 @@ class Poly(Transform):
     def symbol(self):
         return self.subexpr.symbol
     def domain(self):
-        from math import isnan
-        value_pos_inf = self.symexpr.subs(symX, oo)
-        value_neg_inf = self.symexpr.subs(symX, -oo)
-        if isnan(value_pos_inf) and isnan(value_neg_inf):
-            return Reals
-        if isnan(value_neg_inf) and not isnan(value_pos_inf):
-            return Union(Reals, FiniteSet(oo))
-        if isnan(value_pos_inf) and not isnan(value_neg_inf):
-            return Union(Reals, FiniteSet(-oo))
-        assert not isnan(value_pos_inf)
-        assert not isnan(value_neg_inf)
         return ExtReals
     def range(self):
         raise NotImplementedError()
     def ffwd(self, x):
         assert x in self.domain()
+        # TODO: Handle \pm infinity.
         return self.symexpr.subs(symX, x)
     def finv(self, x):
         raise NotImplementedError()
