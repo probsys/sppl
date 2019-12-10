@@ -28,6 +28,9 @@ from sympy import oo
 from sympy.abc import X as symX
 from sympy.core.relational import Relational
 
+from sympy.calculus.util import function_range
+from sympy.calculus.util import limit
+
 from .sym_util import get_symbols
 
 EmptySet = Singletons.EmptySet
@@ -242,11 +245,14 @@ class Poly(Transform):
     def domain(self):
         return ExtReals
     def range(self):
-        raise NotImplementedError()
+        result = function_range(self.symexpr, symX, Reals)
+        pos_inf = FiniteSet(oo) if result.right == oo else EmptySet
+        neg_inf = FiniteSet(-oo) if result.left == -oo else EmptySet
+        return Union(result, pos_inf, neg_inf)
     def ffwd(self, x):
         assert x in self.domain()
-        # TODO: Handle \pm infinity.
-        return self.symexpr.subs(symX, x)
+        return self.symexpr.subs(symX, x) \
+            if not isinf(x) else limit(self.symexpr, symX, x)
     def finv(self, x):
         raise NotImplementedError()
     def invert_interval(self, interval):
