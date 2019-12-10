@@ -144,6 +144,9 @@ class Identity(Injective):
     def finv(self, x):
         assert x in self.range()
         return x
+    def evaluate(self, x):
+        assert x in self.domain()
+        return x
     def invert_finite(self, values):
         return values
     def invert_interval(self, interval):
