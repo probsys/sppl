@@ -6,6 +6,17 @@ import sympy
 from .contains import Contains
 from .contains import NotContains
 
+EmptySet = sympy.S.EmptySet
+Infinities = sympy.FiniteSet(-sympy.oo, sympy.oo)
+
+Reals = sympy.S.Reals
+RealsPos = sympy.Interval(0, sympy.oo)
+RealsNeg = sympy.Interval(-sympy.oo, 0)
+
+ExtReals = sympy.Union(Reals, Infinities)
+ExtRealsPos = sympy.Union(RealsPos, Infinities)
+ExtRealsNeg = sympy.Union(RealsNeg, Infinities)
+
 def get_symbols(expr):
     atoms = expr.atoms()
     return [a for a in atoms if isinstance(a, sympy.Symbol)]
