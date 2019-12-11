@@ -30,4 +30,4 @@ def normalize(p):
     return numpy.asarray(p, dtype=float) / sum(p)
 
 def allclose(values, x):
-    assert numpy.allclose(values, x)
+    return numpy.allclose(values, x)
