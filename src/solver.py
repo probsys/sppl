@@ -30,8 +30,10 @@ from sympy.core.relational import Relational
 from sympy.calculus.util import function_range
 from sympy.calculus.util import limit
 
-from .sym_util import get_symbols
+from .poly import solve_poly_equality
+from .poly import solve_poly_inequality
 
+from .sym_util import get_symbols
 from .sym_util import EmptySet
 from .sym_util import Reals
 from .sym_util import ExtReals
@@ -251,11 +253,13 @@ class Poly(Transform):
         return self.symexpr.subs(symX, x) \
             if not isinf(x) else limit(self.symexpr, symX, x)
     def finv(self, x):
-        raise NotImplementedError()
+        assert x in self.range()
+        return solve_poly_equality(self.symexpr, x)
     def invert_interval(self, interval):
         (a, b) = (interval.left, interval.right)
-        xvals_a = solveset_bounds(self.symexpr, a, not interval.left_open)
-        xvals_b = solveset_bounds(self.symexpr, b, interval.right_open)
+        (lo, ro) = (not interval.left_open, interval.right_open)
+        xvals_a = solve_poly_inequality(self.symexpr, a, lo, extended=False)
+        xvals_b = solve_poly_inequality(self.symexpr, b, ro, extended=False)
         xvals = xvals_a.complement(xvals_b)
         if xvals == EmptySet:
             return EmptySet
