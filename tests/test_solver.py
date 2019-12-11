@@ -321,7 +321,6 @@ def test_solver_16():
     with pytest.raises(AssertionError):
         # SymPy handles exponents unclearly.
         # Exponent laws with negative numbers are subtle.
-        print(interval)
         assert interval == solution
 
     expr = Pow(Radical(X0, 7), 4)
