@@ -14,8 +14,8 @@ RealsPos = sympy.Interval(0, sympy.oo)
 RealsNeg = sympy.Interval(-sympy.oo, 0)
 
 ExtReals = sympy.Union(Reals, Infinities)
-ExtRealsPos = sympy.Union(RealsPos, Infinities)
-ExtRealsNeg = sympy.Union(RealsNeg, Infinities)
+ExtRealsPos = sympy.Union(RealsPos, sympy.FiniteSet(sympy.oo))
+ExtRealsNeg = sympy.Union(RealsNeg, sympy.FiniteSet(-sympy.oo))
 
 def get_symbols(expr):
     atoms = expr.atoms()
