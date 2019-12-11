@@ -12,6 +12,7 @@ from sympy import oo
 from sympy import symbols
 
 from sympy import Abs as SymAbs
+from sympy import Poly as SymPoly
 from sympy import exp as SymExp
 from sympy import log as SymLog
 from sympy import sqrt as SymSqrt
@@ -327,3 +328,10 @@ def test_solver_16():
     event = EventInterval(expr, Interval.open(-oo, 9))
     interval = event.solve()
     assert interval == solution
+
+@pytest.mark.xfail(reason='too slow', strict=True)
+@pytest.mark.timeout(3)
+def test_solver_17():
+    p = SymPoly((X0-SymSqrt(2)/10)*(X0+Rational(10, 7))*(X0-SymSqrt(5)), X0)
+    expr = p.args[0] < 1
+    solver(expr)
