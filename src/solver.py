@@ -102,6 +102,10 @@ class Transform(object):
             return self.invert_finite(x)
         if isinstance(x, Interval):
             return self.invert_interval(x)
+        if isinstance(x, Union):
+            intervals = [self.invert(y) for y in x.args]
+            return Union(*intervals)
+
     def invert_finite(self, values):
         raise NotImplementedError()
     def invert_interval(self, interval):
@@ -261,11 +265,7 @@ class Poly(Transform):
         xvals_a = solve_poly_inequality(self.symexpr, a, lo, extended=False)
         xvals_b = solve_poly_inequality(self.symexpr, b, ro, extended=False)
         xvals = xvals_a.complement(xvals_b)
-        if xvals == EmptySet:
-            return EmptySet
-        xvals_list = listify_interval(xvals)
-        intervals = [self.subexpr.invert(x) for x in xvals_list if x != EmptySet]
-        return Union(*intervals)
+        return self.subexpr.invert(xvals)
 
 # Some useful constructors.
 def ExpNat(subexpr):
