@@ -335,3 +335,41 @@ def test_solver_17():
     p = SymPoly((X0-SymSqrt(2)/10)*(X0+Rational(10, 7))*(X0-SymSqrt(5)), X0)
     expr = p.args[0] < 1
     solver(expr)
+
+def test_solver_18():
+    # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
+    solution = Interval(0, (Rational(1, 2) + SymSqrt(13)/2)**(Rational(7, 2)))
+
+    expr = Poly(Radical(X0, 7), [0, 0, -3, 0, 3])
+    event = EventInterval(expr, Interval(-oo, 9))
+    interval = event.solve()
+    assert interval == solution
+
+    eventnot = EventNot(event)
+    interval = eventnot.solve()
+    assert interval == Union(
+        Interval.open(-oo, 0),
+        Interval.open(solution.right, oo),
+    )
+
+def test_solver_19():
+    # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
+    #   or || 3*(x**(1/7))**4 - 3*(x**(1/7))**2 > 11
+    solution = Union(
+        Interval(0, (Rational(1, 2) + SymSqrt(13)/2)**(Rational(7, 2))),
+        Interval.open((Rational(1,2) + SymSqrt(141)/6)**(7/2), oo),
+    )
+
+    expr = Poly(Radical(X0, 7), [0, 0, -3, 0, 3])
+    event = EventOr([
+        EventInterval(expr, Interval(-oo, 9)),
+        EventInterval(expr, Interval.open(11, oo)),
+    ])
+    interval = event.solve()
+    assert interval == solution
+
+    eventnot = EventNot(event)
+    interval = eventnot.solve()
+    assert interval == Union(
+        Interval.open(-oo, 0),
+        Interval.Lopen(solution.args[0].right, solution.args[1].left))
