@@ -349,16 +349,14 @@ def test_solver_18():
     interval = eventnot.solve()
     assert interval == Union(
         Interval.open(-oo, 0),
-        Interval.open(solution.right, oo),
-    )
+        Interval.open(solution.right, oo))
 
 def test_solver_19():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
     #   or || 3*(x**(1/7))**4 - 3*(x**(1/7))**2 > 11
     solution = Union(
         Interval(0, (Rational(1, 2) + SymSqrt(13)/2)**(Rational(7, 2))),
-        Interval.open((Rational(1,2) + SymSqrt(141)/6)**(7/2), oo),
-    )
+        Interval.open((Rational(1,2) + SymSqrt(141)/6)**(7/2), oo))
 
     expr = Poly(Radical(X0, 7), [0, 0, -3, 0, 3])
     event = EventOr([
