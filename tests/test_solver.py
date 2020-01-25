@@ -3,28 +3,21 @@
 
 import pytest
 
-from sympy import FiniteSet
+import sympy
+
 from sympy import Interval
 from sympy import Rational
 from sympy import S as Singletons
-from sympy import Union
 from sympy import oo
-from sympy import symbols
-
-from sympy import Abs as SymAbs
-from sympy import Poly as SymPoly
-from sympy import exp as SymExp
-from sympy import log as SymLog
-from sympy import sqrt as SymSqrt
 
 from sum_product_dsl.math_util import allclose
 
 from sum_product_dsl.solver import solver
 
 from sum_product_dsl.solver import Abs
-from sum_product_dsl.solver import Exp
-from sum_product_dsl.solver import Identity
-from sum_product_dsl.solver import Log
+# from sum_product_dsl.solver import Exp
+# from sum_product_dsl.solver import Identity
+# from sum_product_dsl.solver import Log
 from sum_product_dsl.solver import Poly
 from sum_product_dsl.solver import Pow
 from sum_product_dsl.solver import Radical
@@ -38,13 +31,13 @@ from sum_product_dsl.solver import EventInterval
 from sum_product_dsl.solver import EventNot
 from sum_product_dsl.solver import EventOr
 
-(X0, X1, X2, X3, X4, X5, X6, X7, X8, X9) = symbols('X:10')
+(X0, X1, X2, X3, X4, X5, X6, X7, X8, X9) = sympy.symbols('X:10')
 
 def test_solver_1_open():
     # log(x) > 2
-    solution = Interval.open(SymExp(2), oo)
+    solution = Interval.open(sympy.exp(2), oo)
 
-    expr = SymLog(X0) > 2
+    expr = sympy.log(X0) > 2
     interval = solver(expr)
     assert interval == solution
 
@@ -54,9 +47,9 @@ def test_solver_1_open():
 
 def test_solver_1_closed():
     # log(x) >= 2
-    solution = Interval(SymExp(2), oo)
+    solution = Interval(sympy.exp(2), oo)
 
-    expr = SymLog(X0) >= 2
+    expr = sympy.log(X0) >= 2
     interval = solver(expr)
     assert interval == solution
 
@@ -68,28 +61,28 @@ def test_solver_2_open():
     # log(x) < 2 & (x < exp(2))
     solution = Singletons.EmptySet
 
-    expr = (SymLog(X0) > 2) & (X0 < SymExp(2))
+    expr = (sympy.log(X0) > 2) & (X0 < sympy.exp(2))
     interval = solver(expr)
     assert interval == solution
 
     event = EventAnd([
         EventInterval(LogNat(X0), Interval.open(2, oo)),
-        EventInterval(X0, Interval.open(-oo, SymExp(2)))
+        EventInterval(X0, Interval.open(-oo, sympy.exp(2)))
     ])
     interval = event.solve()
     assert interval == solution
 
 def test_solver_2_closed():
     # (log(x) <= 2) & (x >= exp(2))
-    solution = FiniteSet(SymExp(2))
+    solution = sympy.FiniteSet(sympy.exp(2))
 
-    expr = (SymLog(X0) >= 2) & (X0 <= SymExp(2))
+    expr = (sympy.log(X0) >= 2) & (X0 <= sympy.exp(2))
     interval = solver(expr)
     assert interval == solution
 
     event = EventAnd([
         EventInterval(LogNat(X0), Interval(2, oo)),
-        EventInterval(X0, Interval(-oo, SymExp(2)))
+        EventInterval(X0, Interval(-oo, sympy.exp(2)))
     ])
     interval = event.solve()
     assert interval == solution
@@ -156,9 +149,9 @@ def test_solver_5_lopen():
 
 def test_solver_6():
     # (x**2 - 2*x) > 10
-    solution =  Union(
-        Interval.open(-oo, 1 - SymSqrt(11)),
-        Interval.open(1 + SymSqrt(11), oo))
+    solution =  sympy.Union(
+        Interval.open(-oo, 1 - sympy.sqrt(11)),
+        Interval.open(1 + sympy.sqrt(11), oo))
 
     expr = (X0**2 - 2*X0) > 10
     interval = solver(expr)
@@ -170,7 +163,7 @@ def test_solver_6():
 
 def test_solver_7():
     # Illegal expression, cannot express in our custom DSL.
-    expr = (X0**2 - 2*X0 + SymExp(X0)) > 10
+    expr = (X0**2 - 2*X0 + sympy.exp(X0)) > 10
     with pytest.raises(ValueError):
         solver(expr)
 
@@ -182,11 +175,11 @@ def test_solver_8():
 def test_solver_9_open():
     # 2(log(x))**3 - log(x) -5 > 0
     solution = Interval.open(
-        SymExp(1/(6*(SymSqrt(2019)/36 + 5/4)**(1/3))
-            + (SymSqrt(2019)/36 + 5/4)**(1/3)),
+        sympy.exp(1/(6*(sympy.sqrt(2019)/36 + 5/4)**(1/3))
+            + (sympy.sqrt(2019)/36 + 5/4)**(1/3)),
         oo)
 
-    expr = 2*(SymLog(X0))**3 - SymLog(X0) -5 > 0
+    expr = 2*(sympy.log(X0))**3 - sympy.log(X0) -5 > 0
     with pytest.raises(ValueError):
         assert solver(expr) == solution
 
@@ -205,11 +198,11 @@ def test_solver_9_open():
 def test_solver_9_closed():
     # 2(log(x))**3 - log(x) -5 >= 0
     solution = Interval(
-        SymExp(1/(6*(SymSqrt(2019)/36 + 5/4)**(1/3))
-            + (SymSqrt(2019)/36 + 5/4)**(1/3)),
+        sympy.exp(1/(6*(sympy.sqrt(2019)/36 + 5/4)**(1/3))
+            + (sympy.sqrt(2019)/36 + 5/4)**(1/3)),
         oo)
 
-    expr = 2*(SymLog(X0))**3 - SymLog(X0) -5 > 0
+    expr = 2*(sympy.log(X0))**3 - sympy.log(X0) -5 > 0
     with pytest.raises(ValueError):
         assert solver(expr) == solution
 
@@ -232,7 +225,7 @@ def test_solver_10():
 
 def test_solver_11_open():
     # exp(sqrt(log(x))) > 6
-    solution = Interval.open(SymExp(SymLog(6)**2), oo)
+    solution = Interval.open(sympy.exp(sympy.log(6)**2), oo)
 
     # Sympy hangs for some reason.
     # expr = exp(sqrt(log(X0))) > 6
@@ -244,7 +237,7 @@ def test_solver_11_open():
 
 def test_solver_11_closed():
     # exp(sqrt(log(x))) >= 6
-    solution = Interval(SymExp(SymLog(6)**2), oo)
+    solution = Interval(sympy.exp(sympy.log(6)**2), oo)
 
     # Sympy hangs for some reason.
     # expr = exp(sqrt(log(X0))) > 6
@@ -256,11 +249,11 @@ def test_solver_11_closed():
 
 def test_solver_12():
     # 2*sqrt(|x|) - 3 > 10
-    solution = Union(
+    solution = sympy.Union(
         Interval.open(-oo, -Rational(169, 4)),
         Interval.open(Rational(169, 4), oo))
 
-    expr = 2*SymSqrt(SymAbs(X0)) - 3 > 10
+    expr = 2*sympy.sqrt(sympy.Abs(X0)) - 3 > 10
     interval = solver(expr)
     assert interval == solution
 
@@ -271,11 +264,11 @@ def test_solver_12():
 
 def test_solver_13():
     # 2*sqrt(|x|**2) - 3 > 10
-    solution = Union(
+    solution = sympy.Union(
         Interval.open(-oo, -Rational(13, 2)),
         Interval.open(Rational(13, 2), oo))
 
-    expr = 2*SymSqrt(SymAbs(X0)**2) - 3 > 10
+    expr = 2*sympy.sqrt(sympy.Abs(X0)**2) - 3 > 10
     interval = solver(expr)
     assert interval == solution
 
@@ -286,9 +279,9 @@ def test_solver_13():
 
 def test_solver_14():
     # x**2 > 10
-    solution = Union(
-        Interval.open(-oo, -SymSqrt(10)),
-        Interval.open(SymSqrt(10), oo))
+    solution = sympy.Union(
+        Interval.open(-oo, -sympy.sqrt(10)),
+        Interval.open(sympy.sqrt(10), oo))
 
     expr = X0**2 > 10
     interval = solver(expr)
@@ -301,7 +294,7 @@ def test_solver_14():
 
 def test_solver_15():
     # ((x**4)**(1/7)) < 9
-    solution = Interval.open(-27*SymSqrt(3), 27*SymSqrt(3))
+    solution = Interval.open(-27*sympy.sqrt(3), 27*sympy.sqrt(3))
 
     expr = ((X0**4))**(Rational(1, 7)) < 9
     interval = solver(expr)
@@ -317,7 +310,7 @@ def test_solver_15():
 
 def test_solver_16():
     # (x**(1/7))**4 < 9
-    solution = Interval.Ropen(0, 27*SymSqrt(3))
+    solution = Interval.Ropen(0, 27*sympy.sqrt(3))
 
     expr = ((X0**Rational(1,7)))**4 < 9
     interval = solver(expr)
@@ -334,13 +327,15 @@ def test_solver_16():
 @pytest.mark.xfail(reason='too slow', strict=True)
 @pytest.mark.timeout(3)
 def test_solver_17():
-    p = SymPoly((X0-SymSqrt(2)/10)*(X0+Rational(10, 7))*(X0-SymSqrt(5)), X0)
+    p = sympy.Poly(
+        (X0 - sympy.sqrt(2)/10) * (X0+Rational(10, 7)) * (X0 - sympy.sqrt(5)),
+        X0)
     expr = p.args[0] < 1
     solver(expr)
 
 def test_solver_18():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
-    solution = Interval(0, (Rational(1, 2) + SymSqrt(13)/2)**(Rational(7, 2)))
+    solution = Interval(0, (Rational(1, 2) + sympy.sqrt(13)/2)**(Rational(7, 2)))
 
     expr = Poly(Radical(X0, 7), [0, 0, -3, 0, 3])
     event = EventInterval(expr, Interval(-oo, 9))
@@ -349,16 +344,16 @@ def test_solver_18():
 
     eventnot = EventNot(event)
     interval = eventnot.solve()
-    assert interval == Union(
+    assert interval == sympy.Union(
         Interval.open(-oo, 0),
         Interval.open(solution.right, oo))
 
 def test_solver_19():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
     #   or || 3*(x**(1/7))**4 - 3*(x**(1/7))**2 > 11
-    solution = Union(
-        Interval(0, (Rational(1, 2) + SymSqrt(13)/2)**(Rational(7, 2))),
-        Interval.open((Rational(1,2) + SymSqrt(141)/6)**(7/2), oo))
+    solution = sympy.Union(
+        Interval(0, (Rational(1, 2) + sympy.sqrt(13)/2)**(Rational(7, 2))),
+        Interval.open((Rational(1,2) + sympy.sqrt(141)/6)**(7/2), oo))
 
     expr = Poly(Radical(X0, 7), [0, 0, -3, 0, 3])
     event = EventOr([
@@ -370,17 +365,17 @@ def test_solver_19():
 
     eventnot = EventNot(event)
     interval = eventnot.solve()
-    assert interval == Union(
+    assert interval == sympy.Union(
         Interval.open(-oo, 0),
         Interval.Lopen(solution.args[0].right, solution.args[1].left))
 
 def test_solver_20():
     # log(x**2 - 3) < 5
-    solution = Union(
-        Interval.open(-SymSqrt(3 + SymExp(5)), -SymSqrt(3)),
-        Interval.open(SymSqrt(3), SymSqrt(3 + SymExp(5))))
+    solution = sympy.Union(
+        Interval.open(-sympy.sqrt(3 + sympy.exp(5)), -sympy.sqrt(3)),
+        Interval.open(sympy.sqrt(3), sympy.sqrt(3 + sympy.exp(5))))
 
-    expr = SymLog(X0**2 - 3) < 5
+    expr = sympy.log(X0**2 - 3) < 5
     interval = solver(expr)
     assert interval == solution
 
@@ -393,7 +388,7 @@ def test_solver_21__ci_():
     # 1 <= log(x**3 - 3*x + 3) < 5
     # Can only be solved by numerical approximation of roots.
     # https://www.wolframalpha.com/input/?i=1+%3C%3D+log%28x**3+-+3x+%2B+3%29+%3C+5
-    solution = Union(
+    solution = sympy.Union(
         Interval(
             -1.777221448430427630375448631016427343692,
             0.09418455242255462832154474245589911789464),
@@ -402,14 +397,14 @@ def test_solver_21__ci_():
             5.448658707897512189124586716091172798465))
 
     with pytest.raises(ValueError):
-        term = SymLog(X0**3 - 3*X0 + 3)
+        term = sympy.log(X0**3 - 3*X0 + 3)
         expr = (1 < term) & (term < 5)
         interval = solver(expr)
 
     expr = LogNat(Poly(X0, [3, -3, 0, 1]))
     event = EventInterval(expr, Interval.Ropen(1, 5))
     interval = event.solve()
-    assert isinstance(interval, Union)
+    assert isinstance(interval, sympy.Union)
     # Check first interval.
     assert not interval.args[0].left_open
     assert not interval.args[0].right_open
