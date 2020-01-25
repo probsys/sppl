@@ -32,11 +32,9 @@ def make_sympy_polynomial(coeffs):
     return sympy.Add(*terms)
 
 def make_subexpr(subexpr):
-    if isinstance(subexpr, sympy.Symbol):
-        return Identity(subexpr)
     if isinstance(subexpr, Transform):
         return subexpr
-    assert False, 'Unknown subexpr: %s' % (subexpr,)
+    assert False, 'Invalid subexpr: %s' % (subexpr,)
 
 def solveset_bounds(sympy_expr, b, strict):
     if not isinf(b):
@@ -112,7 +110,7 @@ class Injective(Transform):
 
 class Identity(Injective):
     def __init__(self, symbol):
-        assert isinstance(symbol, sympy.Symbol)
+        assert isinstance(symbol, str)
         self.symb = symbol
     def symbol(self):
         return self.symb
