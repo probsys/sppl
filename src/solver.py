@@ -309,7 +309,7 @@ class EventNot(Event):
     def __init__(self, event):
         self.event = event
     def solve(self):
-        # TODO Should complement domain not Reals.
+        # TODO Should complement range not Reals.
         interval = self.event.solve()
         return interval.complement(Reals)
 
