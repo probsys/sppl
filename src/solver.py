@@ -3,25 +3,7 @@
 
 from math import isinf
 
-from sympy import And
-from sympy import Not
-from sympy import Or
-
-from sympy import Intersection
-from sympy import Interval
-from sympy import Union
-
-from sympy import Add as SymAdd
-from sympy import Pow as SymPow
-from sympy import exp as SymExp
-from sympy import log as SymLog
-
-from sympy import FiniteSet
-from sympy import Rational
-from sympy import Symbol
-
-from sympy import ConditionSet
-from sympy import solveset
+import sympy
 
 from sympy import oo
 from sympy.abc import X as symX
@@ -43,14 +25,14 @@ from .sym_util import ExtRealsPos
 # Utilities.
 
 def transform_interval(interval, a, b):
-    return Interval(a, b, interval.left_open, interval.right_open)
+    return sympy.Interval(a, b, interval.left_open, interval.right_open)
 
 def make_sympy_polynomial(coeffs):
     terms = [c*symX**i for (i,c) in enumerate(coeffs)]
-    return SymAdd(*terms)
+    return sympy.Add(*terms)
 
 def make_subexpr(subexpr):
-    if isinstance(subexpr, Symbol):
+    if isinstance(subexpr, sympy.Symbol):
         return Identity(subexpr)
     if isinstance(subexpr, Transform):
         return subexpr
@@ -59,7 +41,7 @@ def make_subexpr(subexpr):
 def solveset_bounds(sympy_expr, b, strict):
     if not isinf(b):
         expr = (sympy_expr < b) if strict else (sympy_expr <= b)
-        return solveset(expr, domain=Reals)
+        return sympy.solveset(expr, domain=Reals)
     if b < oo:
         return EmptySet
     return Reals
@@ -67,11 +49,11 @@ def solveset_bounds(sympy_expr, b, strict):
 def listify_interval(interval):
     if interval == EmptySet:
         return [EmptySet]
-    if isinstance(interval, Interval):
+    if isinstance(interval, sympy.Interval):
         return [interval]
-    if isinstance(interval, Union):
+    if isinstance(interval, sympy.Union):
         intervals = interval.args
-        assert all(isinstance(intv, Interval) for intv in intervals)
+        assert all(isinstance(intv, sympy.Interval) for intv in intervals)
         return intervals
     assert False, 'Unknown interval: %s' % (interval,)
 
@@ -98,13 +80,13 @@ class Transform(object):
     def invert(self, x):
         if x is EmptySet:
             return EmptySet
-        if isinstance(x, FiniteSet):
+        if isinstance(x, sympy.FiniteSet):
             return self.invert_finite(x)
-        if isinstance(x, Interval):
+        if isinstance(x, sympy.Interval):
             return self.invert_interval(x)
-        if isinstance(x, Union):
+        if isinstance(x, sympy.Union):
             intervals = [self.invert(y) for y in x.args]
-            return Union(*intervals)
+            return sympy.Union(*intervals)
 
     def invert_finite(self, values):
         raise NotImplementedError()
@@ -119,7 +101,7 @@ class Injective(Transform):
         return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
         # pylint: disable=no-member
-        intersection = Intersection(self.range(), interval)
+        intersection = sympy.Intersection(self.range(), interval)
         if intersection == EmptySet:
             return EmptySet
         (a, b) = (intersection.left, intersection.right)
@@ -130,7 +112,7 @@ class Injective(Transform):
 
 class Identity(Injective):
     def __init__(self, symbol):
-        assert isinstance(symbol, Symbol)
+        assert isinstance(symbol, sympy.Symbol)
         self.symb = symbol
     def symbol(self):
         return self.symb
@@ -168,7 +150,7 @@ class Abs(Transform):
         assert x in self.range()
         return (x, -x)
     def invert_interval(self, interval):
-        intersection = Intersection(self.range(), interval)
+        intersection = sympy.Intersection(self.range(), interval)
         if intersection == EmptySet:
             return EmptySet
         (a, b) = (intersection.left, intersection.right)
@@ -181,7 +163,7 @@ class Abs(Transform):
         interval_neg = transform_interval(intersection, a_neg, b_neg)
         xvals_neg = self.subexpr.invert(interval_neg)
         # Return the union.
-        return Union(xvals_pos, xvals_neg)
+        return sympy.Union(xvals_pos, xvals_neg)
 
 class Radical(Injective):
     def __init__(self, subexpr, degree):
@@ -196,9 +178,9 @@ class Radical(Injective):
         return ExtRealsPos
     def ffwd(self, x):
         assert x in self.domain()
-        return SymPow(x, Rational(1, self.degree))
+        return sympy.Pow(x, sympy.Rational(1, self.degree))
     def finv(self, x):
-        return SymPow(x, Rational(self.degree, 1))
+        return sympy.Pow(x, sympy.Rational(self.degree, 1))
 
 class Exp(Injective):
     def __init__(self, subexpr, base):
@@ -213,10 +195,10 @@ class Exp(Injective):
         return ExtRealsPos
     def ffwd(self, x):
         assert x in self.domain()
-        return SymPow(self.base, x)
+        return sympy.Pow(self.base, x)
     def finv(self, x):
         assert x in self.range()
-        return SymLog(x, self.base) if x > 0 else -oo
+        return sympy.log(x, self.base) if x > 0 else -oo
 
 class Log(Injective):
     def __init__(self, subexpr, base):
@@ -231,10 +213,10 @@ class Log(Injective):
         return ExtReals
     def ffwd(self, x):
         assert x in self.domain()
-        return SymLog(x, self.base) if x > 0 else -oo
+        return sympy.log(x, self.base) if x > 0 else -oo
     def finv(self, x):
         assert x in self.range()
-        return SymPow(self.base, x)
+        return sympy.Pow(self.base, x)
 
 class Poly(Transform):
     def __init__(self, subexpr, coeffs):
@@ -249,9 +231,9 @@ class Poly(Transform):
         return ExtReals
     def range(self):
         result = function_range(self.symexpr, symX, Reals)
-        pos_inf = FiniteSet(oo) if result.right == oo else EmptySet
-        neg_inf = FiniteSet(-oo) if result.left == -oo else EmptySet
-        return Union(result, pos_inf, neg_inf)
+        pos_inf = sympy.FiniteSet(oo) if result.right == oo else EmptySet
+        neg_inf = sympy.FiniteSet(-oo) if result.left == -oo else EmptySet
+        return sympy.Union(result, pos_inf, neg_inf)
     def ffwd(self, x):
         assert x in self.domain()
         return self.symexpr.subs(symX, x) \
@@ -269,9 +251,9 @@ class Poly(Transform):
 
 # Some useful constructors.
 def ExpNat(subexpr):
-    return Exp(subexpr, SymExp(1))
+    return Exp(subexpr, sympy.exp(1))
 def LogNat(subexpr):
-    return Log(subexpr, SymExp(1))
+    return Log(subexpr, sympy.exp(1))
 def Sqrt(subexpr):
     return Radical(subexpr, 2)
 def Pow(subexpr, n):
@@ -296,14 +278,14 @@ class EventOr(Event):
         self.events = events
     def solve(self):
         intervals = [event.solve() for event in self.events]
-        return Union(*intervals)
+        return sympy.Union(*intervals)
 
 class EventAnd(Event):
     def __init__(self, events):
         self.events = events
     def solve(self):
         intervals = [event.solve() for event in self.events]
-        return Intersection(*intervals)
+        return sympy.Intersection(*intervals)
 
 class EventNot(Event):
     def __init__(self, event):
@@ -322,23 +304,23 @@ def solver(expr):
         raise ValueError('Expression "%s" needs exactly one symbol.' % (expr,))
 
     if isinstance(expr, Relational):
-        result = solveset(expr, domain=Reals)
-    elif isinstance(expr, Or):
+        result = sympy.solveset(expr, domain=Reals)
+    elif isinstance(expr, sympy.Or):
         subexprs = expr.args
         intervals = [solver(e) for e in subexprs]
-        result = Union(*intervals)
-    elif isinstance(expr, And):
+        result = sympy.Union(*intervals)
+    elif isinstance(expr, sympy.And):
         subexprs = expr.args
         intervals = [solver(e) for e in subexprs]
-        result = Intersection(*intervals)
-    elif isinstance(expr, Not):
+        result = sympy.Intersection(*intervals)
+    elif isinstance(expr, sympy.Not):
         (notexpr,) = expr.args
         interval = solver(notexpr)
         result = interval.complement(Reals)
     else:
         raise ValueError('Expression "%s" has unknown type.' % (expr,))
 
-    if isinstance(result, ConditionSet):
+    if isinstance(result, sympy.ConditionSet):
         raise ValueError('Expression "%s" is not invertible.' % (expr,))
 
     return result
