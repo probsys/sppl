@@ -14,6 +14,7 @@ from sum_product_dsl.math_util import allclose
 
 from sum_product_dsl.solver import solver
 
+from sum_product_dsl.solver import Identity
 from sum_product_dsl.solver import Abs
 # from sum_product_dsl.solver import Exp
 # from sum_product_dsl.solver import Identity
@@ -31,17 +32,18 @@ from sum_product_dsl.solver import EventInterval
 from sum_product_dsl.solver import EventNot
 from sum_product_dsl.solver import EventOr
 
-(X0, X1, X2, X3, X4, X5, X6, X7, X8, X9) = sympy.symbols('X:10')
+X = sympy.symbols("X")
+Y = Identity("Y")
 
 def test_solver_1_open():
     # log(x) > 2
     solution = Interval.open(sympy.exp(2), oo)
 
-    expr = sympy.log(X0) > 2
+    expr = sympy.log(X) > 2
     interval = solver(expr)
     assert interval == solution
 
-    event = EventInterval(LogNat(X0), Interval(2, oo, True))
+    event = EventInterval(LogNat(Y), Interval(2, oo, True))
     interval = event.solve()
     assert interval == solution
 
@@ -49,11 +51,11 @@ def test_solver_1_closed():
     # log(x) >= 2
     solution = Interval(sympy.exp(2), oo)
 
-    expr = sympy.log(X0) >= 2
+    expr = sympy.log(X) >= 2
     interval = solver(expr)
     assert interval == solution
 
-    event = EventInterval(LogNat(X0), Interval(2, oo))
+    event = EventInterval(LogNat(Y), Interval(2, oo))
     interval = event.solve()
     assert interval == solution
 
@@ -61,13 +63,13 @@ def test_solver_2_open():
     # log(x) < 2 & (x < exp(2))
     solution = Singletons.EmptySet
 
-    expr = (sympy.log(X0) > 2) & (X0 < sympy.exp(2))
+    expr = (sympy.log(X) > 2) & (X < sympy.exp(2))
     interval = solver(expr)
     assert interval == solution
 
     event = EventAnd([
-        EventInterval(LogNat(X0), Interval.open(2, oo)),
-        EventInterval(X0, Interval.open(-oo, sympy.exp(2)))
+        EventInterval(LogNat(Y), Interval.open(2, oo)),
+        EventInterval(Y, Interval.open(-oo, sympy.exp(2)))
     ])
     interval = event.solve()
     assert interval == solution
@@ -76,13 +78,13 @@ def test_solver_2_closed():
     # (log(x) <= 2) & (x >= exp(2))
     solution = sympy.FiniteSet(sympy.exp(2))
 
-    expr = (sympy.log(X0) >= 2) & (X0 <= sympy.exp(2))
+    expr = (sympy.log(X) >= 2) & (X <= sympy.exp(2))
     interval = solver(expr)
     assert interval == solution
 
     event = EventAnd([
-        EventInterval(LogNat(X0), Interval(2, oo)),
-        EventInterval(X0, Interval(-oo, sympy.exp(2)))
+        EventInterval(LogNat(Y), Interval(2, oo)),
+        EventInterval(Y, Interval(-oo, sympy.exp(2)))
     ])
     interval = event.solve()
     assert interval == solution
@@ -91,13 +93,13 @@ def test_solver_4():
     # (x >= 0) & (x <= 0)
     solution = Singletons.Reals
 
-    expr = (X0 >= 0) | (X0 <= 0)
+    expr = (X >= 0) | (X <= 0)
     interval = solver(expr)
     assert interval == solution
 
     event = EventOr([
-        EventInterval(X0, Interval(0, oo)),
-        EventInterval(X0, Interval(-oo, 0))
+        EventInterval(Y, Interval(0, oo)),
+        EventInterval(Y, Interval(-oo, 0))
     ])
     interval = event.solve()
     assert interval == solution
@@ -106,13 +108,13 @@ def test_solver_5_open():
     # (2*x+10 < 4) & (x + 10 > 3)
     solution = Interval.open(3-10, (4-10)/2)
 
-    expr = ((2*X0 + 10) < 4) & (X0 + 10 > 3)
+    expr = ((2*X + 10) < 4) & (X + 10 > 3)
     interval = solver(expr)
     assert interval == solution
 
     event = EventAnd([
-        EventInterval(Poly(X0, [10, 2]), Interval.open(-oo, 4)),
-        EventInterval(Poly(X0, [10, 1]), Interval.open(3, oo)),
+        EventInterval(Poly(Y, [10, 2]), Interval.open(-oo, 4)),
+        EventInterval(Poly(Y, [10, 1]), Interval.open(3, oo)),
     ])
     interval = event.solve()
     assert interval == solution
@@ -121,13 +123,13 @@ def test_solver_5_ropen():
     # (2*x+10 < 4) & (x + 10 >= 3)
     solution = Interval.Ropen(3-10, (4-10)/2)
 
-    expr = ((2*X0 + 10) < 4) & (X0 + 10 >= 3)
+    expr = ((2*X + 10) < 4) & (X + 10 >= 3)
     interval = solver(expr)
     assert interval == solution
 
     event = EventAnd([
-        EventInterval(Poly(X0, [10, 2]), Interval.open(-oo, 4)),
-        EventInterval(Poly(X0, [10, 1]), Interval(3, oo)),
+        EventInterval(Poly(Y, [10, 2]), Interval.open(-oo, 4)),
+        EventInterval(Poly(Y, [10, 1]), Interval(3, oo)),
     ])
     interval = event.solve()
     assert interval == solution
@@ -136,13 +138,13 @@ def test_solver_5_lopen():
     # (2*x + 10 < 4) & (x + 10 >= 3)
     solution =Interval.Lopen(3-10, (4-10)/2)
 
-    expr = ((2*X0 + 10) <= 4) & (X0 + 10 > 3)
+    expr = ((2*X + 10) <= 4) & (X + 10 > 3)
     interval = solver(expr)
     assert interval == solution
 
     event = EventAnd([
-        EventInterval(Poly(X0, [10, 2]), Interval(-oo, 4)),
-        EventInterval(Poly(X0, [10, 1]), Interval.open(3, oo)),
+        EventInterval(Poly(Y, [10, 2]), Interval(-oo, 4)),
+        EventInterval(Poly(Y, [10, 1]), Interval.open(3, oo)),
     ])
     interval = event.solve()
     assert interval == solution
@@ -153,22 +155,23 @@ def test_solver_6():
         Interval.open(-oo, 1 - sympy.sqrt(11)),
         Interval.open(1 + sympy.sqrt(11), oo))
 
-    expr = (X0**2 - 2*X0) > 10
+    expr = (X**2 - 2*X) > 10
     interval = solver(expr)
     assert interval == solution
 
-    event = EventInterval(Poly(X0, [0, -2, 1]), Interval.open(10, oo))
+    event = EventInterval(Poly(Y, [0, -2, 1]), Interval.open(10, oo))
     interval = event.solve()
     assert interval == solution
 
 def test_solver_7():
     # Illegal expression, cannot express in our custom DSL.
-    expr = (X0**2 - 2*X0 + sympy.exp(X0)) > 10
+    expr = (X**2 - 2*X + sympy.exp(X)) > 10
     with pytest.raises(ValueError):
         solver(expr)
 
 def test_solver_8():
-    expr = (X0 + X1 < 3)
+    Z = sympy.symbols('Z')
+    expr = (X + Z < 3)
     with pytest.raises(ValueError):
         solver(expr)
 
@@ -179,18 +182,18 @@ def test_solver_9_open():
             + (sympy.sqrt(2019)/36 + 5/4)**(1/3)),
         oo)
 
-    expr = 2*(sympy.log(X0))**3 - sympy.log(X0) -5 > 0
+    expr = 2*(sympy.log(X))**3 - sympy.log(X) -5 > 0
     with pytest.raises(ValueError):
         assert solver(expr) == solution
 
     # Our solver handles this case as follows
-    # expr' = 2*Z**3 - Z - 5 > 0 [[subst. Z=log(X0)]]
+    # expr' = 2*Z**3 - Z - 5 > 0 [[subst. Z=log(X)]]
     # [Z_low, Z_high] = solver(expr')
-    #       Z_low < Z iff Z_low < log(X0) iff exp(Z_low) < X0
-    #       Z < Z_high iff log(X0) < Z_high iff X0 < exp(Z_high)
+    #       Z_low < Z iff Z_low < log(X) iff exp(Z_low) < X
+    #       Z < Z_high iff log(X) < Z_high iff X < exp(Z_high)
     # solver(expr) = [exp(Z_low), exp(Z_high)]
     # For F invertible, can thus solve Poly(coeffs, F) > 0 using this method.
-    expr = Poly(LogNat(X0), [-5, -1, 0, 2])
+    expr = Poly(LogNat(Y), [-5, -1, 0, 2])
     event = EventInterval(expr, Interval.open(0, oo))
     interval = event.solve()
     assert interval == solution
@@ -202,11 +205,11 @@ def test_solver_9_closed():
             + (sympy.sqrt(2019)/36 + 5/4)**(1/3)),
         oo)
 
-    expr = 2*(sympy.log(X0))**3 - sympy.log(X0) -5 > 0
+    expr = 2*(sympy.log(X))**3 - sympy.log(X) -5 > 0
     with pytest.raises(ValueError):
         assert solver(expr) == solution
 
-    expr = Poly(LogNat(X0), [-5, -1, 0, 2])
+    expr = Poly(LogNat(Y), [-5, -1, 0, 2])
     event = EventInterval(expr, Interval(0, oo))
     interval = event.solve()
     assert interval == solution
@@ -216,9 +219,9 @@ def test_solver_10():
     solution = Interval(1, oo)
 
     # Sympy hangs for some reason; cannot test.
-    # expr = exp(sqrt(log(X0))) > -5
+    # expr = exp(sqrt(log(X))) > -5
 
-    expr = ExpNat(Sqrt(LogNat(X0)))
+    expr = ExpNat(Sqrt(LogNat(Y)))
     event = EventInterval(expr, Interval.open(-5, oo))
     interval = event.solve()
     assert interval == solution
@@ -228,9 +231,9 @@ def test_solver_11_open():
     solution = Interval.open(sympy.exp(sympy.log(6)**2), oo)
 
     # Sympy hangs for some reason.
-    # expr = exp(sqrt(log(X0))) > 6
+    # expr = exp(sqrt(log(X))) > 6
 
-    expr = ExpNat(Sqrt(LogNat(X0)))
+    expr = ExpNat(Sqrt(LogNat(Y)))
     event = EventInterval(expr, Interval.open(6, oo))
     interval = event.solve()
     assert interval == solution
@@ -240,9 +243,9 @@ def test_solver_11_closed():
     solution = Interval(sympy.exp(sympy.log(6)**2), oo)
 
     # Sympy hangs for some reason.
-    # expr = exp(sqrt(log(X0))) > 6
+    # expr = exp(sqrt(log(X))) > 6
 
-    expr = ExpNat(Sqrt(LogNat(X0)))
+    expr = ExpNat(Sqrt(LogNat(Y)))
     event = EventInterval(expr, Interval(6, oo))
     interval = event.solve()
     assert interval == solution
@@ -253,11 +256,11 @@ def test_solver_12():
         Interval.open(-oo, -Rational(169, 4)),
         Interval.open(Rational(169, 4), oo))
 
-    expr = 2*sympy.sqrt(sympy.Abs(X0)) - 3 > 10
+    expr = 2*sympy.sqrt(sympy.Abs(X)) - 3 > 10
     interval = solver(expr)
     assert interval == solution
 
-    expr = Poly(Sqrt(Abs(X0)), [-3, 2])
+    expr = Poly(Sqrt(Abs(Y)), [-3, 2])
     event = EventInterval(expr, Interval.open(10, oo))
     interval = event.solve()
     assert interval == solution
@@ -268,11 +271,11 @@ def test_solver_13():
         Interval.open(-oo, -Rational(13, 2)),
         Interval.open(Rational(13, 2), oo))
 
-    expr = 2*sympy.sqrt(sympy.Abs(X0)**2) - 3 > 10
+    expr = 2*sympy.sqrt(sympy.Abs(X)**2) - 3 > 10
     interval = solver(expr)
     assert interval == solution
 
-    expr = Poly(Sqrt(Pow(Abs(X0), 2)), [-3, 2])
+    expr = Poly(Sqrt(Pow(Abs(Y), 2)), [-3, 2])
     event = EventInterval(expr, Interval.open(10, oo))
     interval = event.solve()
     assert interval == solution
@@ -283,11 +286,11 @@ def test_solver_14():
         Interval.open(-oo, -sympy.sqrt(10)),
         Interval.open(sympy.sqrt(10), oo))
 
-    expr = X0**2 > 10
+    expr = X**2 > 10
     interval = solver(expr)
     assert interval == solution
 
-    expr = Pow(X0, 2)
+    expr = Pow(Y, 2)
     event = EventInterval(expr, Interval.open(10, oo))
     interval = event.solve()
     assert interval == solution
@@ -296,14 +299,14 @@ def test_solver_15():
     # ((x**4)**(1/7)) < 9
     solution = Interval.open(-27*sympy.sqrt(3), 27*sympy.sqrt(3))
 
-    expr = ((X0**4))**(Rational(1, 7)) < 9
+    expr = ((X**4))**(Rational(1, 7)) < 9
     interval = solver(expr)
     with pytest.raises(AssertionError):
         # SymPy handles exponents unclearly.
         # Exponent laws with negative numbers are subtle.
         assert interval == solution
 
-    expr = Radical(Pow(X0, 4), 7)
+    expr = Radical(Pow(Y, 4), 7)
     event = EventInterval(expr, Interval.open(-oo, 9))
     interval = event.solve()
     assert interval == solution
@@ -312,14 +315,14 @@ def test_solver_16():
     # (x**(1/7))**4 < 9
     solution = Interval.Ropen(0, 27*sympy.sqrt(3))
 
-    expr = ((X0**Rational(1,7)))**4 < 9
+    expr = ((X**Rational(1,7)))**4 < 9
     interval = solver(expr)
     with pytest.raises(AssertionError):
         # SymPy handles exponents unclearly.
         # Exponent laws with negative numbers are subtle.
         assert interval == solution
 
-    expr = Pow(Radical(X0, 7), 4)
+    expr = Pow(Radical(Y, 7), 4)
     event = EventInterval(expr, Interval.open(-oo, 9))
     interval = event.solve()
     assert interval == solution
@@ -328,8 +331,8 @@ def test_solver_16():
 @pytest.mark.timeout(3)
 def test_solver_17():
     p = sympy.Poly(
-        (X0 - sympy.sqrt(2)/10) * (X0+Rational(10, 7)) * (X0 - sympy.sqrt(5)),
-        X0)
+        (X - sympy.sqrt(2)/10) * (X+Rational(10, 7)) * (X - sympy.sqrt(5)),
+        X)
     expr = p.args[0] < 1
     solver(expr)
 
@@ -337,7 +340,7 @@ def test_solver_18():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
     solution = Interval(0, (Rational(1, 2) + sympy.sqrt(13)/2)**(Rational(7, 2)))
 
-    expr = Poly(Radical(X0, 7), [0, 0, -3, 0, 3])
+    expr = Poly(Radical(Y, 7), [0, 0, -3, 0, 3])
     event = EventInterval(expr, Interval(-oo, 9))
     interval = event.solve()
     assert interval == solution
@@ -355,7 +358,7 @@ def test_solver_19():
         Interval(0, (Rational(1, 2) + sympy.sqrt(13)/2)**(Rational(7, 2))),
         Interval.open((Rational(1,2) + sympy.sqrt(141)/6)**(7/2), oo))
 
-    expr = Poly(Radical(X0, 7), [0, 0, -3, 0, 3])
+    expr = Poly(Radical(Y, 7), [0, 0, -3, 0, 3])
     event = EventOr([
         EventInterval(expr, Interval(-oo, 9)),
         EventInterval(expr, Interval.open(11, oo)),
@@ -375,11 +378,11 @@ def test_solver_20():
         Interval.open(-sympy.sqrt(3 + sympy.exp(5)), -sympy.sqrt(3)),
         Interval.open(sympy.sqrt(3), sympy.sqrt(3 + sympy.exp(5))))
 
-    expr = sympy.log(X0**2 - 3) < 5
+    expr = sympy.log(X**2 - 3) < 5
     interval = solver(expr)
     assert interval == solution
 
-    expr = LogNat(Poly(X0, [-3, 0, 1]))
+    expr = LogNat(Poly(Y, [-3, 0, 1]))
     event = EventInterval(expr, Interval.open(-oo, 5))
     interval = event.solve()
     assert interval == solution
@@ -397,11 +400,11 @@ def test_solver_21__ci_():
             5.448658707897512189124586716091172798465))
 
     with pytest.raises(ValueError):
-        term = sympy.log(X0**3 - 3*X0 + 3)
+        term = sympy.log(X**3 - 3*X + 3)
         expr = (1 < term) & (term < 5)
         interval = solver(expr)
 
-    expr = LogNat(Poly(X0, [3, -3, 0, 1]))
+    expr = LogNat(Poly(Y, [3, -3, 0, 1]))
     event = EventInterval(expr, Interval.Ropen(1, 5))
     interval = event.solve()
     assert isinstance(interval, sympy.Union)
