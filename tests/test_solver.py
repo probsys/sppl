@@ -17,6 +17,8 @@ from sympy import exp as SymExp
 from sympy import log as SymLog
 from sympy import sqrt as SymSqrt
 
+from sum_product_dsl.math_util import allclose
+
 from sum_product_dsl.solver import solver
 
 from sum_product_dsl.solver import Abs
@@ -371,3 +373,50 @@ def test_solver_19():
     assert interval == Union(
         Interval.open(-oo, 0),
         Interval.Lopen(solution.args[0].right, solution.args[1].left))
+
+def test_solver_20():
+    # log(x**2 - 3) < 5
+    solution = Union(
+        Interval.open(-SymSqrt(3 + SymExp(5)), -SymSqrt(3)),
+        Interval.open(SymSqrt(3), SymSqrt(3 + SymExp(5))))
+
+    expr = SymLog(X0**2 - 3) < 5
+    interval = solver(expr)
+    assert interval == solution
+
+    expr = LogNat(Poly(X0, [-3, 0, 1]))
+    event = EventInterval(expr, Interval.open(-oo, 5))
+    interval = event.solve()
+    assert interval == solution
+
+def test_solver_21__ci_():
+    # 1 <= log(x**3 - 3*x + 3) < 5
+    # Can only be solved by numerical approximation of roots.
+    # https://www.wolframalpha.com/input/?i=1+%3C%3D+log%28x**3+-+3x+%2B+3%29+%3C+5
+    solution = Union(
+        Interval(
+            -1.777221448430427630375448631016427343692,
+            0.09418455242255462832154474245589911789464),
+        Interval.Ropen(
+            1.683036896007873002053903888560528225797,
+            5.448658707897512189124586716091172798465))
+
+    with pytest.raises(ValueError):
+        term = SymLog(X0**3 - 3*X0 + 3)
+        expr = (1 < term) & (term < 5)
+        interval = solver(expr)
+
+    expr = LogNat(Poly(X0, [3, -3, 0, 1]))
+    event = EventInterval(expr, Interval.Ropen(1, 5))
+    interval = event.solve()
+    assert isinstance(interval, Union)
+    # Check first interval.
+    assert not interval.args[0].left_open
+    assert not interval.args[0].right_open
+    assert allclose(float(interval.args[0].inf), float(solution.args[0].inf))
+    assert allclose(float(interval.args[0].sup), float(solution.args[0].sup))
+    # Check second interval.
+    assert not interval.args[1].left_open
+    assert interval.args[1].right_open
+    assert allclose(float(interval.args[1].inf), float(solution.args[1].inf))
+    assert allclose(float(interval.args[1].sup), float(solution.args[1].sup))
