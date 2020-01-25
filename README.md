@@ -2,18 +2,16 @@
 
 ### Installation and Tests
 
-Please install the python dependencies in `requirements.txt`.
+Please install Python 3 dependencies in `requirements.txt`.
 
 Run the following command in the shell:
 
     $ ./check.sh
 
-### Overview of the DSL
+### Overview of the domain specific language
 
-Consider the following probabilistic domain-specific language, specified
-in Haskell notation:
+Consider the following probabilistic DSKL, specified in Haskell notation:
 
-    ```
     type VarName = String
 
     data Distribution
@@ -31,13 +29,6 @@ in Haskell notation:
       | Pow Double Invertible
       | Poly [Double] Invertible
 
-    data Event
-      = Between Interval Invertible VarName
-      | Contains [Integer] VarName
-      | Or Event Event
-      | And Event
-      | Not Event
-
     data Network
       = Primitive VarName Invertible Distribution
       | Sum [Network] [Double]
@@ -45,26 +36,35 @@ in Haskell notation:
       | Condition Network Event
 
     data Interval
-      = ClCl Double Double -- Closed Closed
-      | ClOp Double Double -- Closed Open
-      | OpCl Double Double -- Open Closed
-      | OpOp Double Double -- Open Open
-    ```
+      = CC Double Double -- Closed Closed
+      | CO Double Double -- Closed Open
+      | OC Double Double -- Open Closed
+      | OO Double Double -- Open Open
 
-A probabilistic program `Dist` in this DSL is a Sum--Product network.
+    data Event
+      = Between Interval Invertible VarName
+      | Contains [Integer] VarName
+      | Or Event Event
+      | And Event
+      | Not Event
+
+    data SampleExpr = Invertible VarName | Event
+
+A probabilistic program is any expression of type `Network` in this DSL.
+Its semantics are given by the usual sum-product network.
 
   - Internal nodes are `Sum` `Product` expressions.
 
   - Leaf nodes are either a `Primitive` distribution named `x`, or an
     `Transform` (of type `Invertible`) of a `Primitive` distribution.
 
-The higher-order constructor `Condition` takes in an arbitrary `Dist`
-and a probabilistic `Event` and returns a new `Dist` representing the
+The higher-order constructor `Condition` takes in an arbitrary `Network`
+and a probabilistic `Event` and returns a new `Network` representing the
 conditional distribution given the event.
 
-### Finding the probability of an event
+### Finding the probability of and simulating an event
 
-Given a probabilistic program `dist`, the key query is finding the log
+Given a probabilistic program `network`, the key query is finding the log
 probability of a given `event`:
 
     logprob:: Dist -> Event -> Real
@@ -72,23 +72,29 @@ probability of a given `event`:
 The conditional probability of an event is obtained by querying a conditioned
 network, for example
 
-  logprob
-    (Condition
-        -- Network
-       (Sum
-          [ (Primitive "X"
-              (Poly [1.2, 1.1, -7] (Log Identity)) $ Normal 0 1)
-          , (Primitive "X" Identity $ Gamma 0 1)
-          ]
-          [0.7, 0.3])
-        -- Conditioning event
-       (Between (ClCl 0 10) Identity "X") )
-    -- Query event
-    (Or (Contains [10, 12, 14] "X") (Between (ClOp (-10) 12) (Log Identity) "X"))
+    logprob
+      (Condition
+          -- Network
+         (Sum
+            [ (Primitive "X"
+                (Poly [1.2, 1.1, -7] (Log Identity)) $ Normal 0 1)
+            , (Primitive "X" Identity $ Gamma 0 1)
+            ]
+            [0.7, 0.3])
+          -- Conditioning event
+         (Between (ClCl 0 10) Identity "X") )
+      -- Query event
+      (Or (Contains [10, 12, 14] "X") (Between (ClOp (-10) 12) (Log Identity) "X"))
 
 If the cumulative probabilities of the `Primitive` distributions (on either
 finite, countable, or uncountable domains) are known then exact inference in the
 network is possible using symbolic analysis with fixed runtime.
+
+To simulate an event from a (possibly conditioned) `network` use:
+
+    simulate :: Dist -> [SampleExpr] -> [Real]
+
+TODO: Add example
 
 ### Finding the mutual information between events
 
