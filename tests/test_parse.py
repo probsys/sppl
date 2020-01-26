@@ -199,7 +199,7 @@ def test_parse_18():
     assert expr == expr_prime
 
     event = EventInterval(expr_prime, Interval(-oo, 9))
-    assert (expr <= 9 ) == event
+    assert (expr <= 9) == event
     assert ~(expr <= 9) == EventNot(event)
 
     expr = (3*Abs(Z))**4 - (3*Abs(Z))**2
