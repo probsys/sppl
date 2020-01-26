@@ -102,8 +102,6 @@ def poly_mul(poly_a, poly_b):
 class Transform(object):
     def symbol(self):
         raise NotImplementedError()
-    def subexpr(self):
-        raise NotImplementedError()
     def domain(self):
         raise NotImplementedError()
     def range(self):
@@ -375,7 +373,7 @@ class Poly(Transform):
     def __init__(self, subexpr, coeffs):
         assert len(coeffs) > 1
         self.subexpr = make_subexpr(subexpr)
-        self.coeffs = coeffs
+        self.coeffs = tuple(coeffs)
         self.degree = len(coeffs) - 1
         self.symexpr = make_sympy_polynomial(coeffs)
     def symbol(self):
@@ -419,6 +417,7 @@ def LogNat(subexpr):
 def Sqrt(subexpr):
     return Radical(subexpr, 2)
 def Pow(subexpr, n):
+    assert 0 <= n
     coeffs = [0]*n + [1]
     return Poly(subexpr, coeffs)
 
