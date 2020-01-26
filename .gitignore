@@ -6,7 +6,10 @@
 
 __pycache__/
 
+a
 build/
+clean.sh
 dist/
 notebooks/
+notes
 venv/
