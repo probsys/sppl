@@ -115,6 +115,10 @@ class Transform(object):
     def __rsub__(self, x):
         return self - x
 
+    def __rpow__(self, x):
+        x_val = sympify_number(x)
+        return Exp(self, x_val)
+
     # Comparison.
     def __le__(self, x):
         # self <= x
