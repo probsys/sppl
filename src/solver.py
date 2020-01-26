@@ -6,6 +6,7 @@ from math import isinf
 import sympy
 
 from sympy import oo
+from sympy import sympify
 from sympy.abc import X as symX
 from sympy.core.relational import Relational
 
@@ -55,6 +56,46 @@ def listify_interval(interval):
         return intervals
     assert False, 'Unknown interval: %s' % (interval,)
 
+def sympify_number(x):
+    error = NotImplementedError('Expected a numeric term, not %s' % (x,))
+    try:
+        sym = sympify(x)
+        if not sym.is_number:
+            raise error
+        return sym
+    except sympy.SympifyError:
+        raise error
+
+def polyify(expr):
+    if isinstance(expr, Poly):
+        return expr
+    return Poly(expr, (0, 1))
+
+def add_coeffs(a, b):
+    length = max(len(a), len(b))
+    a_prime = a + (0,) * (length - len(a))
+    b_prime = b + (0,) * (length - len(b))
+    assert len(a_prime) == len(b_prime)
+    return [xa + xb for (xa, xb) in zip(a_prime, b_prime)]
+
+def poly_add(poly_a, poly_b):
+    assert poly_a.subexpr == poly_b.subexpr
+    # Alternative implementation.
+    # sym_poly_a = sympy.Poly(poly_a.symexpr)
+    # sym_poly_b = sympy.Poly(poly_b.symexpr)
+    # sym_poly_c = sym_poly_a + sym_poly_b
+    # assert sym_poly_c.all_coeffs()[::-1] == coeffs
+    coeffs = add_coeffs(poly_a.coeffs, poly_b.coeffs)
+    return Poly(poly_a.subexpr, coeffs)
+
+def poly_mul(poly_a, poly_b):
+    assert poly_a.subexpr == poly_b.subexpr
+    sym_poly_a = sympy.Poly(poly_a.symexpr, symX)
+    sym_poly_b = sympy.Poly(poly_b.symexpr, symX)
+    sym_poly_c = sym_poly_a * sym_poly_b
+    coeffs = sym_poly_c.all_coeffs()[::-1]
+    return Poly(poly_a.subexpr, coeffs)
+
 # ==============================================================================
 # Custom invertible function language.
 
@@ -90,6 +131,87 @@ class Transform(object):
         raise NotImplementedError()
     def invert_interval(self, interval):
         raise NotImplementedError()
+
+    # Multiplication.
+    def __mul__(self, x):
+        poly_self = polyify(self)
+        # Is x a constant?
+        try:
+            x_val = sympify_number(x)
+            coeffs = [x_val*c for c in poly_self.coeffs]
+            return Poly(poly_self.subexpr, coeffs)
+        except NotImplementedError:
+            pass
+        # Multiply polynomial terms only if subexpressions match.
+        poly_x = polyify(x)
+        if poly_x.subexpr != poly_self.subexpr:
+            raise NotImplementedError('Invalid addition %s + %s' % (self, x))
+        return poly_mul(poly_self, poly_x)
+    def __rmul__(self, x):
+        return self * x
+    def __neg__(self):
+        return -1 * self
+
+    # Exponentiation.
+    def __pow__(self, x):
+        x_val = sympify_number(x)
+        if isinstance(x_val, sympy.Integer):
+            return Pow(self, x_val)
+        if isinstance(x_val, sympy.Rational):
+            (numer, denom) = x_val.as_numer_denom()
+            if numer != 1:
+                raise NotImplementedError(
+                    'Rational powers must be 1/n, not %s' % (x,))
+            return Radical(self, denom)
+        raise NotImplementedError(
+            'Power must be rational or integer, not %s' % (x))
+
+    # Addition.
+    def __add__(self, x):
+        poly_self = polyify(self)
+        # Is x a constant?
+        try:
+            x_val = sympify_number(x)
+            coeffs_new = list(poly_self.coeffs)
+            coeffs_new[0] += x_val
+            return Poly(poly_self.subexpr, coeffs_new)
+        except NotImplementedError:
+            pass
+        # Add polynomial terms only if subexpressions match.
+        poly_x = polyify(x)
+        if poly_x.subexpr != poly_self.subexpr:
+            raise NotImplementedError('Invalid addition %s + %s' % (self, x))
+        return poly_add(poly_self, poly_x)
+    def __radd__(self, x):
+        return self + x
+
+    # Subtraction.
+    def __sub__(self, x):
+        return self + (-1 * x)
+    def __rsub__(self, x):
+        return self - x
+
+    # Comparison.
+    def __le__(self, x):
+        # self <= x
+        x_val = sympify_number(x)
+        interval = sympy.Interval(-oo, x_val)
+        return EventInterval(self, interval)
+    def __lt__(self, x):
+        # self < x
+        x_val = sympify_number(x)
+        interval = sympy.Interval(-oo, x_val, right_open=True)
+        return EventInterval(self, interval)
+    def __ge__(self, x):
+        # self >= x
+        x_val = sympify_number(x)
+        interval = sympy.Interval(x_val, oo)
+        return EventInterval(self, interval)
+    def __gt__(self, x):
+        # self > x
+        x_val = sympify_number(x)
+        interval = sympy.Interval(x_val, oo, left_open=True)
+        return EventInterval(self, interval)
 
 class Injective(Transform):
     # Injective (one-to-one) transforms.
@@ -131,6 +253,10 @@ class Identity(Injective):
         return values
     def invert_interval(self, interval):
         return interval
+    def __eq__(self, x):
+        return isinstance(x, Identity) and self.symb == x.symb
+    def __repr__(self):
+        return 'Identity(%s)' % (repr(self.symb),)
 
 class Abs(Transform):
     def __init__(self, subexpr):
@@ -162,6 +288,10 @@ class Abs(Transform):
         xvals_neg = self.subexpr.invert(interval_neg)
         # Return the union.
         return sympy.Union(xvals_pos, xvals_neg)
+    def __eq__(self, x):
+        return isinstance(x, Abs) and self.subexpr == x.subexpr
+    def __repr__(self):
+        return 'Abs(%s)' % (repr(self.subexpr))
 
 class Radical(Injective):
     def __init__(self, subexpr, degree):
@@ -179,6 +309,13 @@ class Radical(Injective):
         return sympy.Pow(x, sympy.Rational(1, self.degree))
     def finv(self, x):
         return sympy.Pow(x, sympy.Rational(self.degree, 1))
+    def __eq__(self, x):
+        return isinstance(x, Radical) \
+            and self.subexpr == x.subexpr \
+            and self.degree == x.degree
+    def __repr__(self):
+        return 'Radical(degree=%s, %s)' \
+            % (repr(self.degree), repr(self.subexpr))
 
 class Exp(Injective):
     def __init__(self, subexpr, base):
@@ -197,6 +334,15 @@ class Exp(Injective):
     def finv(self, x):
         assert x in self.range()
         return sympy.log(x, self.base) if x > 0 else -oo
+    def __eq__(self, x):
+        return isinstance(x, Exp) \
+            and self.subexpr == x.subexpr \
+            and self.base == x.base
+    def __repr__(self):
+        if self.base == sympy.exp(1):
+            return 'ExpNat(%s)' % (repr(self.subexpr),)
+        return 'Exp(base=%s, %s)' \
+            % (repr(self.base), repr(self.subexpr))
 
 class Log(Injective):
     def __init__(self, subexpr, base):
@@ -215,6 +361,15 @@ class Log(Injective):
     def finv(self, x):
         assert x in self.range()
         return sympy.Pow(self.base, x)
+    def __eq__(self, x):
+        return isinstance(x, Log) \
+            and self.subexpr == x.subexpr \
+            and self.base == x.base
+    def __repr__(self):
+        if self.base == sympy.exp(1):
+            return 'LogNat(%s)' % (repr(self.subexpr),)
+        return 'Log(base=%s, %s)' \
+            % (repr(self.base), repr(self.subexpr))
 
 class Poly(Transform):
     def __init__(self, subexpr, coeffs):
@@ -246,6 +401,15 @@ class Poly(Transform):
         xvals_b = solve_poly_inequality(self.symexpr, b, ro, extended=False)
         xvals = xvals_a.complement(xvals_b)
         return self.subexpr.invert(xvals)
+    def __eq__(self, x):
+        return isinstance(x, Poly) \
+            and self.subexpr == x.subexpr \
+            and self.coeffs == x.coeffs
+    def __neg__(self):
+        return Poly(self.subexpr, [-c for c in self.coeffs])
+    def __repr__(self):
+        return 'Poly(coeffs=%s, %s)' \
+            % (repr(self.coeffs), repr(self.subexpr))
 
 # Some useful constructors.
 def ExpNat(subexpr):
@@ -262,7 +426,14 @@ def Pow(subexpr, n):
 # Custom event language.
 
 class Event(object):
-    pass
+    def __and__(self, event):
+        assert isinstance(event, Event)
+        return EventAnd([self, event])
+    def __or__(self, event):
+        assert isinstance(event, Event)
+        return EventOr([self, event])
+    def __invert__(self):
+        return EventNot(self)
 
 class EventInterval(Event):
     def __init__(self, expr, interval):
@@ -270,6 +441,11 @@ class EventInterval(Event):
         self.expr = make_subexpr(expr)
     def solve(self):
         return self.expr.invert(self.interval)
+    def __eq__(self, event):
+        return (self.interval == event.interval) and (self.expr == event.expr)
+    def __repr__(self):
+        return 'EventInterval(%s, %s)' \
+            % (repr(self.expr), repr(self.interval))
 
 class EventOr(Event):
     def __init__(self, events):
@@ -277,6 +453,10 @@ class EventOr(Event):
     def solve(self):
         intervals = [event.solve() for event in self.events]
         return sympy.Union(*intervals)
+    def __eq__(self, event):
+        return self.events == event.events
+    def __repr__(self):
+        return 'EventOr(%s)' % (repr(self.events,))
 
 class EventAnd(Event):
     def __init__(self, events):
@@ -284,6 +464,10 @@ class EventAnd(Event):
     def solve(self):
         intervals = [event.solve() for event in self.events]
         return sympy.Intersection(*intervals)
+    def __eq__(self, event):
+        return self.events == event.events
+    def __repr__(self):
+        return 'EventAnd(%s)' % (repr(self.events,))
 
 class EventNot(Event):
     def __init__(self, event):
@@ -292,6 +476,12 @@ class EventNot(Event):
         # TODO Should complement range not Reals.
         interval = self.event.solve()
         return interval.complement(Reals)
+    def __invert__(self):
+        return self.event
+    def __eq__(self, event):
+        return event == self.event
+    def __repr__(self):
+        return 'EventNot(%s)' % (repr(self.event,))
 
 # ==============================================================================
 # SymPy solver.
