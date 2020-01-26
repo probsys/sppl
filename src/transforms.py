@@ -139,6 +139,10 @@ class Transform(object):
         interval = sympy.Interval(x_val, oo, left_open=True)
         return EventInterval(self, interval)
 
+    # Sympify.
+    def _sympy_(self):
+        raise NotImplementedError()
+
 class Injective(Transform):
     # Injective (one-to-one) transforms.
     def invert_finite(self, values):
@@ -183,6 +187,8 @@ class Identity(Injective):
         return isinstance(x, Identity) and self.symb == x.symb
     def __repr__(self):
         return 'Identity(%s)' % (repr(self.symb),)
+    def _sympy_(self):
+        return sympy.Symbol(self.symb)
 
 class Abs(Transform):
     def __init__(self, subexpr):
@@ -218,6 +224,9 @@ class Abs(Transform):
         return isinstance(x, Abs) and self.subexpr == x.subexpr
     def __repr__(self):
         return 'Abs(%s)' % (repr(self.subexpr))
+    def _sympy_(self):
+        sub = sympify(self.subexpr)
+        return sympy.Abs(sub)
 
 class Radical(Injective):
     def __init__(self, subexpr, degree):
@@ -242,6 +251,9 @@ class Radical(Injective):
     def __repr__(self):
         return 'Radical(degree=%s, %s)' \
             % (repr(self.degree), repr(self.subexpr))
+    def _sympy_(self):
+        sub = sympify(self.subexpr)
+        return sympy.Pow(sub, sympy.Rational(1, self.degree))
 
 class Exp(Injective):
     def __init__(self, subexpr, base):
@@ -269,6 +281,9 @@ class Exp(Injective):
             return 'ExpNat(%s)' % (repr(self.subexpr),)
         return 'Exp(base=%s, %s)' \
             % (repr(self.base), repr(self.subexpr))
+    def _sympy_(self):
+        sub = sympify(self.subexpr)
+        return sympy.Pow(self.base, sub)
 
 class Log(Injective):
     def __init__(self, subexpr, base):
@@ -296,6 +311,9 @@ class Log(Injective):
             return 'LogNat(%s)' % (repr(self.subexpr),)
         return 'Log(base=%s, %s)' \
             % (repr(self.base), repr(self.subexpr))
+    def _sympy_(self):
+        sub = sympify(self.subexpr)
+        return sympy.log(sub, self.base)
 
 class Poly(Transform):
     def __init__(self, subexpr, coeffs):
@@ -336,6 +354,9 @@ class Poly(Transform):
     def __repr__(self):
         return 'Poly(coeffs=%s, %s)' \
             % (repr(self.coeffs), repr(self.subexpr))
+    def _sympy_(self):
+        sub = sympify(self.subexpr)
+        return self.symexpr.subs(symX, sub)
 
 # Some useful constructors.
 def ExpNat(subexpr):
