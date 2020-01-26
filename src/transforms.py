@@ -50,11 +50,35 @@ class Transform(object):
         if isinstance(x, sympy.Union):
             intervals = [self.invert(y) for y in x.args]
             return sympy.Union(*intervals)
-
     def invert_finite(self, values):
         raise NotImplementedError()
     def invert_interval(self, interval):
         raise NotImplementedError()
+
+    # Addition.
+    def __add__(self, x):
+        poly_self = polyify(self)
+        # Is x a constant?
+        try:
+            x_val = sympify_number(x)
+            coeffs_new = list(poly_self.coeffs)
+            coeffs_new[0] += x_val
+            return Poly(poly_self.subexpr, coeffs_new)
+        except NotImplementedError:
+            pass
+        # Add polynomial terms only if subexpressions match.
+        poly_x = polyify(x)
+        if poly_x.subexpr != poly_self.subexpr:
+            raise NotImplementedError('Invalid addition %s + %s' % (self, x))
+        return poly_add(poly_self, poly_x)
+    def __radd__(self, x):
+        return self + x
+
+    # Subtraction.
+    def __sub__(self, x):
+        return self + (-1 * x)
+    def __rsub__(self, x):
+        return self - x
 
     # Multiplication.
     def __mul__(self, x):
@@ -89,32 +113,6 @@ class Transform(object):
             return Radical(self, denom)
         raise NotImplementedError(
             'Power must be rational or integer, not %s' % (x))
-
-    # Addition.
-    def __add__(self, x):
-        poly_self = polyify(self)
-        # Is x a constant?
-        try:
-            x_val = sympify_number(x)
-            coeffs_new = list(poly_self.coeffs)
-            coeffs_new[0] += x_val
-            return Poly(poly_self.subexpr, coeffs_new)
-        except NotImplementedError:
-            pass
-        # Add polynomial terms only if subexpressions match.
-        poly_x = polyify(x)
-        if poly_x.subexpr != poly_self.subexpr:
-            raise NotImplementedError('Invalid addition %s + %s' % (self, x))
-        return poly_add(poly_self, poly_x)
-    def __radd__(self, x):
-        return self + x
-
-    # Subtraction.
-    def __sub__(self, x):
-        return self + (-1 * x)
-    def __rsub__(self, x):
-        return self - x
-
     def __rpow__(self, x):
         x_val = sympify_number(x)
         return Exp(self, x_val)
