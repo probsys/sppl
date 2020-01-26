@@ -14,23 +14,20 @@ from sum_product_dsl.math_util import allclose
 
 from sum_product_dsl.solver import solver
 
-from sum_product_dsl.solver import Identity
-from sum_product_dsl.solver import Abs
-# from sum_product_dsl.solver import Exp
-# from sum_product_dsl.solver import Identity
-# from sum_product_dsl.solver import Log
-from sum_product_dsl.solver import Poly
-from sum_product_dsl.solver import Pow
-from sum_product_dsl.solver import Radical
+from sum_product_dsl.transforms import Abs
+from sum_product_dsl.transforms import Identity
+from sum_product_dsl.transforms import Poly
+from sum_product_dsl.transforms import Pow
+from sum_product_dsl.transforms import Radical
 
-from sum_product_dsl.solver import ExpNat
-from sum_product_dsl.solver import LogNat
-from sum_product_dsl.solver import Sqrt
+from sum_product_dsl.transforms import ExpNat
+from sum_product_dsl.transforms import LogNat
+from sum_product_dsl.transforms import Sqrt
 
-from sum_product_dsl.solver import EventAnd
-from sum_product_dsl.solver import EventInterval
-from sum_product_dsl.solver import EventNot
-from sum_product_dsl.solver import EventOr
+from sum_product_dsl.events import EventAnd
+from sum_product_dsl.events import EventInterval
+from sum_product_dsl.events import EventNot
+from sum_product_dsl.events import EventOr
 
 X = sympy.symbols("X")
 Y = Identity("Y")
