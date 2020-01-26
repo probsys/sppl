@@ -9,6 +9,8 @@ from .sym_util import Reals
 # Custom event language.
 
 class Event(object):
+    def solve(self):
+        raise NotImplementedError
     def __and__(self, event):
         assert isinstance(event, Event)
         return EventAnd([self, event])
