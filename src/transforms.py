@@ -399,17 +399,6 @@ def make_subexpr(subexpr):
         return subexpr
     assert False, 'Invalid subexpr: %s' % (subexpr,)
 
-def listify_interval(interval):
-    if interval == EmptySet:
-        return [EmptySet]
-    if isinstance(interval, sympy.Interval):
-        return [interval]
-    if isinstance(interval, sympy.Union):
-        intervals = interval.args
-        assert all(isinstance(intv, sympy.Interval) for intv in intervals)
-        return intervals
-    assert False, 'Unknown interval: %s' % (interval,)
-
 def polyify(expr):
     if isinstance(expr, Poly):
         return expr
