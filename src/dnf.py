@@ -1,53 +1,46 @@
 # Copyright 2019 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from sympy import And
-from sympy import Or
-from sympy.core.relational import Relational
+from sum_product_dsl.events import EventAnd
+from sum_product_dsl.events import EventInterval
+from sum_product_dsl.events import EventOr
 
-from .contains import Containment
-from .solver import get_symbols
-
-def factor_dnf(expr):
-    symbols = get_symbols(expr)
+def factor_dnf(event):
+    symbols = event.symbols()
     lookup = {s:s for s in symbols}
-    return factor_dnf_symbols(expr, lookup)
+    return factor_dnf_symbols(event, lookup)
 
-def factor_dnf_symbols(expr, lookup):
-    if isinstance(expr, (Relational, Containment)):
+def factor_dnf_symbols(event, lookup):
+    if isinstance(event, EventInterval):
         # Literal term.
-        symbols = get_symbols(expr)
-        if len(symbols) > 1:
-            raise ValueError('Expression "%s" has multiple symbols.' % (expr,))
+        symbols = event.symbols()
         key = lookup[symbols[0]]
-        return {key: expr}
+        return {key: event}
 
-    elif isinstance(expr, And):
+    if isinstance(event, EventAnd):
         # Product term.
-        subexprs = expr.args
-        assert all(isinstance(e, (Relational, Containment)) for e in subexprs)
-        mappings = [factor_dnf_symbols(subexpr, lookup) for subexpr in  subexprs]
-        exprs = {}
+        assert all(isinstance(e, EventInterval) for e in event.events)
+        mappings = [factor_dnf_symbols(e, lookup) for e in event.events]
+        events = {}
         for mapping in mappings:
             assert len(mapping) == 1
-            [(key, subexp)] = mapping.items()
-            if key not in exprs:
-                exprs[key] = subexp
+            [(key, ev)] = mapping.items()
+            if key not in events:
+                events[key] = ev
             else:
-                exprs[key] = And(subexp, exprs[key])
-        return exprs
+                events[key] &= ev
+        return events
 
-    elif isinstance(expr, Or):
+    if isinstance(event, EventOr):
         # Sum term.
-        subexprs = expr.args
-        mappings = [factor_dnf_symbols(subexpr, lookup) for subexpr in subexprs]
-        exprs = {}
+        mappings = [factor_dnf_symbols(e, lookup) for e in event.events]
+        events = {}
         for mapping in mappings:
-            for key, subexp in mapping.items():
-                if key not in exprs:
-                    exprs[key] = subexp
+            for key, ev in mapping.items():
+                if key not in events:
+                    events[key] = ev
                 else:
-                    exprs[key] = Or(subexp, exprs[key])
-        return exprs
-    else:
-        assert False, 'Invalid DNF expression: %s' % (expr,)
+                    events[key] |= ev
+        return events
+
+    assert False, 'Invalid DNF event: %s' % (event,)

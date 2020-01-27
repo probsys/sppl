@@ -27,7 +27,8 @@ from .sym_util import Reals
 
 class Transform(object):
     def symbol(self):
-        raise NotImplementedError()
+        # pylint: disable=no-member
+        return self.subexpr.symbol()
     def domain(self):
         raise NotImplementedError()
     def range(self):
@@ -163,7 +164,7 @@ class Identity(Injective):
         assert isinstance(symbol, str)
         self.symb = symbol
     def symbol(self):
-        return self.symb
+        return self
     def domain(self):
         return ExtReals
     def range(self):
@@ -194,8 +195,6 @@ class Identity(Injective):
 class Abs(Transform):
     def __init__(self, subexpr):
         self.subexpr = make_subexpr(subexpr)
-    def symbol(self):
-        return self.subexpr.symbol
     def domain(self):
         return ExtReals
     def range(self):
@@ -238,8 +237,6 @@ class Radical(Injective):
         assert degree != 0
         self.subexpr = make_subexpr(subexpr)
         self.degree = degree
-    def symbol(self):
-        return self.subexpr.symbol
     def domain(self):
         return ExtRealsPos
     def range(self):
@@ -267,8 +264,6 @@ class Exp(Injective):
         assert base > 0
         self.subexpr = make_subexpr(subexpr)
         self.base = base
-    def symbol(self):
-        return self.subexpr.symbol
     def domain(self):
         return ExtReals
     def range(self):
@@ -299,8 +294,6 @@ class Log(Injective):
         assert base > 1
         self.subexpr = make_subexpr(subexpr)
         self.base = base
-    def symbol(self):
-        return self.subexpr.symbol
     def domain(self):
         return ExtRealsPos
     def range(self):
@@ -335,8 +328,6 @@ class Poly(Transform):
         self.coeffs = tuple(coeffs)
         self.degree = len(coeffs) - 1
         self.symexpr = make_sympy_polynomial(coeffs)
-    def symbol(self):
-        return self.subexpr.symbol
     def domain(self):
         return ExtReals
     def range(self):
