@@ -309,7 +309,7 @@ class Log(Injective):
             and self.subexpr == x.subexpr \
             and self.base == x.base
     def __repr__(self):
-        return 'Log(base=%s, %s)'
+        return 'Log(base=%s, %s)' \
             % (repr(self.base), repr(self.subexpr))
     def __str__(self):
         if self.base == sympy.E:
