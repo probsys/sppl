@@ -17,11 +17,12 @@ class Event(object):
         raise NotImplementedError()
     def to_dnf(self):
         dnf = self.to_dnf_list()
-        for conjunction in dnf:
-            assert isinstance(conjunction, list)
-            for term in conjunction:
-                assert isinstance(term, EventInterval)
-        simplify_event = lambda x, construct: x[0] if len(x)==1 else construct(x)
+        # Verifying result is in DNF.
+        # for conjunction in dnf:
+        #     assert isinstance(conjunction, list)
+        #     for term in conjunction:
+        #         assert isinstance(term, EventInterval)
+        simplify_event = lambda x, E: x[0] if len(x)==1 else E(x)
         events = [simplify_event(conjunction, EventAnd) for conjunction in dnf]
         return simplify_event(events, EventOr)
     def to_dnf_list(self):
@@ -49,7 +50,6 @@ class EventInterval(Event):
         return interval
     def to_dnf_list(self):
         return [[self]]
-
     def __and__(self, event):
         if isinstance(event, EventAnd):
             events = (self,) + event.events
@@ -88,7 +88,6 @@ class EventOr(Event):
     def to_dnf_list(self):
         sub_dnf = [event.to_dnf_list() for event in self.events]
         return list(itertools.chain.from_iterable(sub_dnf))
-
     def __and__(self, event):
         if isinstance(event, EventAnd):
             events = (self,) + event.events
@@ -132,7 +131,6 @@ class EventAnd(Event):
             list(itertools.chain.from_iterable(cross))
             for cross in itertools.product(*sub_dnf)
         ]
-
     def __and__(self, event):
         if isinstance(event, EventAnd):
             events = self.events + event.events

@@ -55,7 +55,6 @@ class Transform(object):
         raise NotImplementedError()
     def invert_interval(self, interval):
         raise NotImplementedError()
-
     # Addition.
     def __add__(self, x):
         poly_self = polyify(self)
@@ -74,13 +73,11 @@ class Transform(object):
         return poly_add(poly_self, poly_x)
     def __radd__(self, x):
         return self + x
-
     # Subtraction.
     def __sub__(self, x):
         return self + (-1 * x)
     def __rsub__(self, x):
         return self - x
-
     # Multiplication.
     def __mul__(self, x):
         poly_self = polyify(self)
@@ -102,7 +99,6 @@ class Transform(object):
         return -1 * self
     def __abs__(self):
         return Abs(self)
-
     # Exponentiation.
     def __pow__(self, x):
         x_val = sympify_number(x)
@@ -119,7 +115,6 @@ class Transform(object):
     def __rpow__(self, x):
         x_val = sympify_number(x)
         return Exp(self, x_val)
-
     # Comparison.
     def __le__(self, x):
         # self <= x
