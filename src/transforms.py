@@ -54,7 +54,6 @@ class Transform(object):
         raise NotImplementedError()
     def invert_interval(self, interval):
         raise NotImplementedError()
-    # TODO: Implement __str__.
 
     # Addition.
     def __add__(self, x):
@@ -186,6 +185,8 @@ class Identity(Injective):
         return isinstance(x, Identity) and self.symb == x.symb
     def __repr__(self):
         return 'Identity(%s)' % (repr(self.symb),)
+    def __str__(self):
+        return self.symb
     def __hash__(self):
         x = (self.__class__, self.symb)
         return hash(x)
@@ -224,6 +225,8 @@ class Abs(Transform):
         return isinstance(x, Abs) and self.subexpr == x.subexpr
     def __repr__(self):
         return 'Abs(%s)' % (repr(self.subexpr))
+    def __str__(self):
+        return '|%s|' % (str(self.subexpr),)
     def __hash__(self):
         x = (self.__class__, self.subexpr)
         return hash(x)
@@ -253,6 +256,8 @@ class Radical(Injective):
     def __repr__(self):
         return 'Radical(degree=%s, %s)' \
             % (repr(self.degree), repr(self.subexpr))
+    def __str__(self):
+        return '(%s)**(1/%d)' % (str(self.subexpr), self.degree)
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.degree)
         return hash(x)
@@ -279,10 +284,12 @@ class Exp(Injective):
             and self.subexpr == x.subexpr \
             and self.base == x.base
     def __repr__(self):
-        if self.base == sympy.exp(1):
-            return 'ExpNat(%s)' % (repr(self.subexpr),)
         return 'Exp(base=%s, %s)' \
             % (repr(self.base), repr(self.subexpr))
+    def __str__(self):
+        if self.base == sympy.E:
+            return 'exp(%s)' % (str(self.subexpr),)
+        return '%s**(%s)' % (self.base, str(self.subexpr))
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.base)
         return hash(x)
@@ -309,10 +316,14 @@ class Log(Injective):
             and self.subexpr == x.subexpr \
             and self.base == x.base
     def __repr__(self):
-        if self.base == sympy.exp(1):
-            return 'LogNat(%s)' % (repr(self.subexpr),)
-        return 'Log(base=%s, %s)' \
+        return 'Log(base=%s, %s)'
             % (repr(self.base), repr(self.subexpr))
+    def __str__(self):
+        if self.base == sympy.E:
+            return 'ln(%s)' % (str(self.subexpr),)
+        if self.base == 2:
+            return 'log2(%s)' % (str(self.subexpr),)
+        return 'log(%s; %s)' % (str(self.subexpr), self.base)
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.base)
         return hash(x)
@@ -356,6 +367,21 @@ class Poly(Transform):
     def __repr__(self):
         return 'Poly(coeffs=%s, %s)' \
             % (repr(self.coeffs), repr(self.subexpr))
+    def __str__(self):
+        ss = str(self.subexpr)
+        def make_term(i, c):
+            if c == 0:
+                return ''
+            if i == 0:
+                return str(c)
+            if i == 1:
+                return '%s(%s)' % (str(c), ss) if c != 1 else ss
+            if i < len(self.coeffs):
+                return '%s*(%s)**%d' % (str(c), ss, i) if c != 1 \
+                    else '(%s)**%d' % (ss, i)
+            assert False
+        terms = [make_term(i, c)  for i, c in enumerate(self.coeffs)]
+        return ' + '.join([t for t in terms if t])
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.coeffs)
         return hash(x)
@@ -405,7 +431,7 @@ def sympify_number(x):
         if not sym.is_number:
             raise error
         return sym
-    except sympy.SympifyError:
+    except (sympy.SympifyError, TypeError):
         raise error
 
 def polyify(expr):
