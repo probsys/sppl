@@ -139,10 +139,6 @@ class Transform(object):
         interval = sympy.Interval(x_val, oo, left_open=True)
         return EventInterval(self, interval)
 
-    # Sympify.
-    def _sympy_(self):
-        raise NotImplementedError()
-
 class Injective(Transform):
     # Injective (one-to-one) transforms.
     def invert_finite(self, values):
@@ -190,8 +186,6 @@ class Identity(Injective):
     def __hash__(self):
         x = (self.__class__, self.symb)
         return hash(x)
-    def _sympy_(self):
-        return sympy.Symbol(self.symb)
 
 class Abs(Transform):
     def __init__(self, subexpr):
@@ -230,9 +224,6 @@ class Abs(Transform):
     def __hash__(self):
         x = (self.__class__, self.subexpr)
         return hash(x)
-    def _sympy_(self):
-        sub = sympify(self.subexpr)
-        return sympy.Abs(sub)
 
 class Radical(Injective):
     def __init__(self, subexpr, degree):
@@ -260,9 +251,6 @@ class Radical(Injective):
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.degree)
         return hash(x)
-    def _sympy_(self):
-        sub = sympify(self.subexpr)
-        return sympy.Pow(sub, sympy.Rational(1, self.degree))
 
 class Exp(Injective):
     def __init__(self, subexpr, base):
@@ -293,9 +281,6 @@ class Exp(Injective):
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.base)
         return hash(x)
-    def _sympy_(self):
-        sub = sympify(self.subexpr)
-        return sympy.Pow(self.base, sub)
 
 class Log(Injective):
     def __init__(self, subexpr, base):
@@ -326,9 +311,6 @@ class Log(Injective):
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.base)
         return hash(x)
-    def _sympy_(self):
-        sub = sympify(self.subexpr)
-        return sympy.log(sub, self.base)
 
 class Poly(Transform):
     def __init__(self, subexpr, coeffs):
@@ -372,9 +354,6 @@ class Poly(Transform):
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.coeffs)
         return hash(x)
-    def _sympy_(self):
-        sub = sympify(self.subexpr)
-        return self.symexpr.subs(symX, sub)
 
 # Some useful constructors.
 def ExpNat(subexpr):
