@@ -310,6 +310,11 @@ def test_event_inequality_parse():
     assert (5 <= (X <= 10)) \
         == ((5 <= X) <= 10) \
         == EventInterval(X, Interval(5, 10, left_open=False, right_open=False))
+    # GOTCHA: This expression is syntactically equivalent to
+    # (5 < X) and (X < 10)
+    # Since and short circuits and 5 < X is not False,
+    # return value of expression is X < 10
+    assert (5 < X < 10) == (X < 10)
 
 def test_event_inequality_parse_errors():
     with pytest.raises(ValueError):
