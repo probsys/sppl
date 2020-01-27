@@ -259,6 +259,16 @@ def test_errors():
     with pytest.raises(NotImplementedError):
         (2*LogNat(X)) - Rational(1, 10) * Abs(X)
 
+def test_add_polynomials_power_one():
+    # TODO: Update parser to handle this edge case.
+    Z = X**5
+    with pytest.raises(NotImplementedError):
+        # GOTCHA: The expression Z**2 is of type Poly(subexpr=Poly)
+        # But Z if of type Poly(subexpr=Id)
+        Z**2 + Z
+    # Raise Z to power one to embed in a polynomial.
+    Z**2 + Z**1
+
 def test_event_negation_de_morgan():
     A, B, C = (X**3 < 10), (X < 1), (X > 10)
 
@@ -286,13 +296,3 @@ def test_event_sequential_parse():
 
     assert (~C | D) & A & B == EventAnd([~C | D, A, B])
     assert (~C | D) & (A & B) == EventAnd([~C | D, A, B])
-
-def test_add_polynomials_power_one():
-    # TODO: Update parser to handle this edge case.
-    Z = X**5
-    with pytest.raises(NotImplementedError):
-        # GOTCHA: The expression Z**2 is of type Poly(subexpr=Poly)
-        # But Z if of type Poly(subexpr=Id)
-        Z**2 + Z
-    # Raise Z to power one to embed in a polynomial.
-    Z**2 + Z**1
