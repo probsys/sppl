@@ -269,6 +269,9 @@ def test_add_polynomials_power_one():
     # Raise Z to power one to embed in a polynomial.
     Z**2 + Z**1
 
+def test_negate_polynomial():
+    assert -(X**2 + 2) == Poly(X, [-2, 0, -1])
+
 def test_event_negation_de_morgan():
     A, B, C = (X**3 < 10), (X < 1), (X > 10)
 
