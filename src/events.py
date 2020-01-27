@@ -48,7 +48,8 @@ class EventInterval(Event):
     def dnf_list(self):
         return [[self]]
     def __eq__(self, event):
-        return (self.interval == event.interval) \
+        return isinstance(event, EventInterval) \
+            and (self.interval == event.interval) \
             and (self.expr == event.expr) \
             and (self.complement == event.complement)
     def __repr__(self):
@@ -67,7 +68,7 @@ class EventOr(Event):
         sub_dnf = [event.dnf_list() for event in self.events]
         return list(itertools.chain.from_iterable(sub_dnf))
     def __eq__(self, event):
-        return self.events == event.events
+        return isinstance(event, EventOr) and (self.events == event.events)
     def __repr__(self):
         return 'EventOr(%s)' % (repr(self.events,))
     def __invert__(self):
@@ -87,7 +88,7 @@ class EventAnd(Event):
             for cross in itertools.product(*sub_dnf)
         ]
     def __eq__(self, event):
-        return self.events == event.events
+        return isinstance(event, EventAnd) and (self.events == event.events)
     def __repr__(self):
         return 'EventAnd(%s)' % (repr(self.events,))
     def __invert__(self):
