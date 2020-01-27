@@ -6,7 +6,6 @@ from math import isinf
 import sympy
 
 from sympy import oo
-from sympy import sympify
 from sympy.abc import X as symX
 
 from sympy.calculus.util import function_range
@@ -21,6 +20,7 @@ from .sym_util import EmptySet
 from .sym_util import ExtReals
 from .sym_util import ExtRealsPos
 from .sym_util import Reals
+from .sym_util import sympify_number
 
 # ==============================================================================
 # Custom invertible function language.
@@ -409,16 +409,6 @@ def listify_interval(interval):
         assert all(isinstance(intv, sympy.Interval) for intv in intervals)
         return intervals
     assert False, 'Unknown interval: %s' % (interval,)
-
-def sympify_number(x):
-    msg = 'Expected a numeric term, not %s' % (x,)
-    try:
-        sym = sympify(x)
-        if not sym.is_number:
-            raise NotImplementedError(msg)
-        return sym
-    except (sympy.SympifyError, TypeError):
-        raise NotImplementedError(msg)
 
 def polyify(expr):
     if isinstance(expr, Poly):
