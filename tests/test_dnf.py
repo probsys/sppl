@@ -14,7 +14,52 @@ from sum_product_dsl.dnf import factor_dnf_symbols
 from sum_product_dsl.contains import Contains
 from sum_product_dsl.contains import NotContains
 
-(X0, X1, X2, X3, X4, X5) = symbols('X:6')
+from sum_product_dsl.transforms import Identity
+
+from sum_product_dsl.events import EventAnd
+
+(X0, X1, X2, X3, X4, X5) = [symbols("X%d" % (i,)) for i in range(6)]
+(Y0, Y1, Y2, Y3, Y4, Y5) = [Identity("X%d" % (i,)) for i in range(6)]
+
+def test_to_dnf_no_change():
+    event = Y0 < 0
+    assert event.to_dnf() == event
+
+    event = ((Y1<0) & (Y2<0))
+    assert event.to_dnf() == event
+
+    event = ((Y1<0) | (Y2<0))
+    assert event.to_dnf() == event
+
+    event = (Y0 < 0) | ((Y1<0) & (Y2<0))
+    assert event.to_dnf() == event
+
+def test_to_dnf_changes():
+    event = (Y0 < 0)  &  ((Y1<0) | (Y2<0))
+    result = event.to_dnf()
+    assert len(result.events) == 2
+    assert (Y0<0) & (Y1 < 0) in result.events
+    assert (Y0<0) & (Y2 < 0) in result.events
+
+    event = ((Y0 < 0)  &  ((Y1<0) | (Y2<0)))    |    (Y3 < 100)
+    result = event.to_dnf()
+    assert len(result.events) == 3
+    assert (Y0<0) & (Y1 < 0) in result.events
+    assert (Y0<0) & (Y2 < 0) in result.events
+    assert (Y3<100) in result.events
+
+    event = ((Y0 < 0)  &  ((Y1<0) | (Y2<0)))    |    ((Y3 < 100)  &  (Y5 < 10))
+    result = event.to_dnf()
+    assert len(result.events) == 3
+    assert (Y0<0) & (Y1 < 0) in result.events
+    assert (Y0<0) & (Y2 < 0) in result.events
+    assert ((Y3 <100) & (Y5 < 10)) in result.events
+
+    event = ((Y0 < 0)  |  ((Y1<0) | (Y2<0)))  & ((Y3 < 100)  &  (Y5 < 10))
+    result = event.to_dnf()
+    assert EventAnd([Y0 < 0, Y3 < 100, Y5 < 10]) in result.events
+    assert EventAnd([Y1 < 0, Y3 < 100, Y5 < 10]) in result.events
+    assert EventAnd([Y2 < 0, Y3 < 100, Y5 < 10]) in result.events
 
 def test_factor_dnf():
     expr = (

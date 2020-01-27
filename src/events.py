@@ -1,6 +1,8 @@
 # Copyright 2019 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+import itertools
+
 import sympy
 
 from .sym_util import Reals
@@ -10,6 +12,17 @@ from .sym_util import Reals
 
 class Event(object):
     def solve(self):
+        raise NotImplementedError
+    def to_dnf(self):
+        dnf = self.dnf_list()
+        for conjunction in dnf:
+            assert isinstance(conjunction, list)
+            for term in conjunction:
+                assert isinstance(term, EventInterval)
+        simplify_event = lambda x, construct: x[0] if len(x)==1 else construct(x)
+        events = [simplify_event(conjunction, EventAnd) for conjunction in dnf]
+        return simplify_event(events, EventOr)
+    def dnf_list(self):
         raise NotImplementedError
     def __and__(self, event):
         assert isinstance(event, Event)
@@ -29,6 +42,8 @@ class EventInterval(Event):
             # TODO Should complement range not Reals.
             return interval.complement(Reals)
         return interval
+    def dnf_list(self):
+        return [[self]]
     def __eq__(self, event):
         return (self.interval == event.interval) \
             and (self.expr == event.expr) \
@@ -45,6 +60,9 @@ class EventOr(Event):
     def solve(self):
         intervals = [event.solve() for event in self.events]
         return sympy.Union(*intervals)
+    def dnf_list(self):
+        sub_dnf = [event.dnf_list() for event in self.events]
+        return list(itertools.chain.from_iterable(sub_dnf))
     def __eq__(self, event):
         return self.events == event.events
     def __repr__(self):
@@ -59,6 +77,12 @@ class EventAnd(Event):
     def solve(self):
         intervals = [event.solve() for event in self.events]
         return sympy.Intersection(*intervals)
+    def dnf_list(self):
+        sub_dnf = [event.dnf_list() for event in self.events]
+        return [
+            list(itertools.chain.from_iterable(cross))
+            for cross in itertools.product(*sub_dnf)
+        ]
     def __eq__(self, event):
         return self.events == event.events
     def __repr__(self):
