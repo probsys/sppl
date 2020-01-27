@@ -100,6 +100,8 @@ class Transform(object):
         return self * x
     def __neg__(self):
         return -1 * self
+    def __abs__(self):
+        return Abs(self)
 
     # Exponentiation.
     def __pow__(self, x):
@@ -225,6 +227,8 @@ class Abs(Transform):
     def __hash__(self):
         x = (self.__class__, self.subexpr)
         return hash(x)
+    def __abs__(self):
+        return Abs(self.subexpr)
 
 class Radical(Injective):
     def __init__(self, subexpr, degree):
