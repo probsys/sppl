@@ -1,5 +1,6 @@
-*.egg-info
+egg-info
 .cache/
+.coverage
 .ipynb_checkpoints/
 .jupyter/
 /src/version.py
@@ -10,6 +11,7 @@ a
 build/
 clean.sh
 dist/
+htmlcov/
 notebooks/
 notes
 venv/
