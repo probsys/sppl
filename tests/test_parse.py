@@ -296,3 +296,27 @@ def test_event_sequential_parse():
 
     assert (~C | D) & A & B == EventAnd([~C | D, A, B])
     assert (~C | D) & (A & B) == EventAnd([~C | D, A, B])
+
+def test_event_inequality_parse():
+    assert (5 < (X < 10)) \
+        == ((5 < X) < 10) \
+        == EventInterval(X, Interval(5, 10, left_open=True, right_open=True))
+    assert (5 <= (X < 10)) \
+        == ((5 <= X) < 10) \
+        == EventInterval(X, Interval(5, 10, left_open=False, right_open=True))
+    assert (5 < (X <= 10)) \
+        == ((5 < X) <= 10) \
+        == EventInterval(X, Interval(5, 10, left_open=True, right_open=False))
+    assert (5 <= (X <= 10)) \
+        == ((5 <= X) <= 10) \
+        == EventInterval(X, Interval(5, 10, left_open=False, right_open=False))
+
+def test_event_inequality_parse_errors():
+    with pytest.raises(ValueError):
+        (X <= 10) < 5
+    with pytest.raises(ValueError):
+        (X <= 10) <= 5
+    with pytest.raises(ValueError):
+        5 < (10 <= X)
+    with pytest.raises(ValueError):
+        5 <= (10 <= X)

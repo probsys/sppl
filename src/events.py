@@ -3,9 +3,12 @@
 
 import itertools
 
+from math import isinf
+
 import sympy
 
 from .sym_util import Reals
+from .sym_util import sympify_number
 
 # ==============================================================================
 # Custom event language.
@@ -69,6 +72,34 @@ class EventInterval(Event):
             and (self.interval == event.interval) \
             and (self.expr == event.expr) \
             and (self.complement == event.complement)
+    def __compute_gte__(self, x, left_open):
+        # 5 < (X < number)
+        if not (isinf(self.interval.left) and self.interval.left < 0):
+            raise ValueError('cannot compute %s < %s' % (x, str(self)))
+        if self.complement:
+            raise ValueError('cannot compute < with complement')
+        xn = sympify_number(x)
+        interval = sympy.Interval(xn, self.interval.right,
+            left_open=left_open, right_open=self.interval.right_open)
+        return EventInterval(self.expr, interval, complement=self.complement)
+    def __compute_lte__(self, x, right_open):
+        # 5 < (X < number)
+        if not (isinf(self.interval.right) and 0 < self.interval.right):
+            raise ValueError('cannot compute %s < %s' % (str(self), x))
+        if self.complement:
+            raise ValueError('cannot compute < with complement')
+        xn = sympify_number(x)
+        interval = sympy.Interval(self.interval.left, xn,
+            left_open=self.interval.left_open, right_open=right_open)
+        return EventInterval(self.expr, interval, complement=self.complement)
+    def __gt__(self, x):
+        return self.__compute_gte__(x, True)
+    def __ge__(self, x):
+        return self.__compute_gte__(x, False)
+    def __lt__(self, x):
+        return self.__compute_lte__(x, True)
+    def __le__(self, x):
+        return self.__compute_lte__(x, False)
     def __repr__(self):
         return 'EventInterval(%s, %s, complement=%s)' \
             % (repr(self.expr), repr(self.interval), repr(self.complement))
