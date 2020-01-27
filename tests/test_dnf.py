@@ -14,7 +14,7 @@ from sum_product_dsl.dnf import factor_dnf_symbols
 from sum_product_dsl.contains import Contains
 from sum_product_dsl.contains import NotContains
 
-(X0, X1, X2, X3, X4, X5, X6, X7, X8, X9) = symbols('X:10')
+(X0, X1, X2, X3, X4, X5) = symbols('X:6')
 
 def test_factor_dnf():
     expr = (
