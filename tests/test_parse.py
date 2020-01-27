@@ -259,11 +259,30 @@ def test_errors():
     with pytest.raises(NotImplementedError):
         (2*LogNat(X)) - Rational(1, 10) * Abs(X)
 
-def test_negation_de_morgan():
-    expr_a = ~((X**3 < 10) & ((X < 1) | (X > 10)))
-    expr_b = (~(X**3 < 10) | (~(X < 1) & ~(X > 10)))
+def test_event_negation_de_morgan():
+    A, B, C = (X**3 < 10), (X < 1), (X > 10)
+
+    expr_a = ~(A & (B | C))
+    expr_b = (~A | (~B & ~C))
     assert expr_a == expr_b
 
-    expr_a = ~((X**3 < 10) | ((X < 1) & (X > 10)))
-    expr_b = (~(X**3 < 10) & (~(X < 1) | ~(X > 10)))
+    expr_a = ~(A | (B & C))
+    expr_b = (~A & (~B | ~C))
     assert expr_a == expr_b
+
+def test_event_sequential_parse():
+    A, B, C , D = (X > 10), (X < 5), (X < 0), (X < 7)
+    assert A & B & ~C == EventAnd([A, B, ~C])
+    assert A & (B & ~C) == EventAnd([A, B, ~C])
+
+    assert A | B | ~C == EventOr([A, B, ~C])
+    assert A | (B | ~C) == EventOr([A, B, ~C])
+
+    assert A | B | (~C & D) == EventOr([A, B, ~C & D])
+    assert A & B & (~C | D) == EventAnd([A, B, ~C | D])
+
+    assert (~C & D) | A | B == EventOr([~C & D, A, B])
+    assert (~C & D) | (A | B) == EventOr([~C & D, A, B])
+
+    assert (~C | D) & A & B == EventAnd([~C | D, A, B])
+    assert (~C | D) & (A & B) == EventAnd([~C | D, A, B])
