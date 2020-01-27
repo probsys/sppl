@@ -36,7 +36,6 @@ class Event(object):
     def __or__(self, event):
         raise NotImplementedError()
         # return EventOr([self, event])
-    # TODO: Implement __str__.
 
 class EventInterval(Event):
     def __init__(self, expr, interval, complement=None):
@@ -105,6 +104,16 @@ class EventInterval(Event):
             % (repr(self.expr), repr(self.interval), repr(self.complement))
     def __invert__(self):
         return EventInterval(self.expr, self.interval, not self.complement)
+    def __str__(self):
+        sym = str(self.expr)
+        (x_l, x_r) = (self.interval.left, self.interval.right)
+        comp_l = '<' if self.interval.left_open else '<='
+        comp_r = '<' if self.interval.right_open else '<='
+        if x_l < 0 and isinf(x_l):
+            return '%s %s %s' % (sym, comp_r, x_r)
+        if 0 < x_r and isinf(x_r):
+            return '%s %s %s' % (x_l, comp_l, sym)
+        return '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
 
 class EventOr(Event):
     def __init__(self, events):
@@ -142,6 +151,9 @@ class EventOr(Event):
         return EventAnd(sub_events)
     def __repr__(self):
         return 'EventOr(%s)' % (repr(self.events,))
+    def __str__(self):
+        sub_events = ['(%s)' % (str(event),) for event in self.events]
+        return ' | '.join(sub_events)
     def __hash__(self):
         x = (self.__class__, self.events)
         return hash(x)
@@ -185,6 +197,9 @@ class EventAnd(Event):
         return EventOr(sub_events)
     def __repr__(self):
         return 'EventAnd(%s)' % (repr(self.events,))
+    def __str__(self):
+        sub_events = ['(%s)' % (str(event),) for event in self.events]
+        return ' & '.join(sub_events)
     def __hash__(self):
         x = (self.__class__, self.events)
         return hash(x)

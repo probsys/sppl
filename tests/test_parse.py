@@ -320,3 +320,15 @@ def test_event_inequality_parse_errors():
         5 < (10 <= X)
     with pytest.raises(ValueError):
         5 <= (10 <= X)
+
+def test_event_inequality_string():
+    assert str(5 < X) == '5 < X'
+    assert str(5 <= X) == '5 <= X'
+    assert str(X < 10) == str(10 > X) == 'X < 10'
+    assert str(X <= 10) == str(10 >= X) == 'X <= 10'
+    assert str(5 < (X < 10)) == '5 < X < 10'
+    assert str(5 <= (X < 10)) == '5 <= X < 10'
+    assert str(5 < (X <= 10)) == '5 < X <= 10'
+    assert str(5 <= (X <= 10)) == '5 <= X <= 10'
+    assert str((X < 10) & (X < 5)) == '(X < 10) & (X < 5)'
+    assert str((X < 10) | (X < 5)) == '(X < 10) | (X < 5)'
