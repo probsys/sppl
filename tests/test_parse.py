@@ -287,9 +287,11 @@ def test_event_sequential_parse():
     A, B, C , D = (X > 10), (X < 5), (X < 0), (X < 7)
     assert A & B & ~C == EventAnd([A, B, ~C])
     assert A & (B & ~C) == EventAnd([A, B, ~C])
+    assert (A & B) & (~C & D) == EventAnd([A, B, ~C, D])
 
     assert A | B | ~C == EventOr([A, B, ~C])
     assert A | (B | ~C) == EventOr([A, B, ~C])
+    assert (A | B) | (~C | D) == EventOr([A, B, ~C, D])
 
     assert A | B | (~C & D) == EventOr([A, B, ~C & D])
     assert A & B & (~C | D) == EventAnd([A, B, ~C | D])
