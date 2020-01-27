@@ -411,14 +411,14 @@ def listify_interval(interval):
     assert False, 'Unknown interval: %s' % (interval,)
 
 def sympify_number(x):
-    error = NotImplementedError('Expected a numeric term, not %s' % (x,))
+    msg = 'Expected a numeric term, not %s' % (x,)
     try:
         sym = sympify(x)
         if not sym.is_number:
-            raise error
+            raise NotImplementedError(msg)
         return sym
     except (sympy.SympifyError, TypeError):
-        raise error
+        raise NotImplementedError(msg)
 
 def polyify(expr):
     if isinstance(expr, Poly):
