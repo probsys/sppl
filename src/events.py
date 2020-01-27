@@ -17,20 +17,27 @@ class Event(object):
     def __or__(self, event):
         assert isinstance(event, Event)
         return EventOr([self, event])
-    def __invert__(self):
-        return EventNot(self)
 
 class EventInterval(Event):
-    def __init__(self, expr, interval):
+    def __init__(self, expr, interval, complement=None):
         self.interval = interval
         self.expr = expr
+        self.complement = complement
     def solve(self):
-        return self.expr.invert(self.interval)
+        interval = self.expr.invert(self.interval)
+        if self.complement:
+            # TODO Should complement range not Reals.
+            return interval.complement(Reals)
+        return interval
     def __eq__(self, event):
-        return (self.interval == event.interval) and (self.expr == event.expr)
+        return (self.interval == event.interval) \
+            and (self.expr == event.expr) \
+            and (self.complement == event.complement)
     def __repr__(self):
-        return 'EventInterval(%s, %s)' \
-            % (repr(self.expr), repr(self.interval))
+        return 'EventInterval(%s, %s, complement=%s)' \
+            % (repr(self.expr), repr(self.interval), repr(self.complement))
+    def __invert__(self):
+        return EventInterval(self.expr, self.interval, not self.complement)
 
 class EventOr(Event):
     def __init__(self, events):
@@ -42,6 +49,9 @@ class EventOr(Event):
         return self.events == event.events
     def __repr__(self):
         return 'EventOr(%s)' % (repr(self.events,))
+    def __invert__(self):
+        sub_events = [~event for event in self.events]
+        return EventAnd(sub_events)
 
 class EventAnd(Event):
     def __init__(self, events):
@@ -53,17 +63,6 @@ class EventAnd(Event):
         return self.events == event.events
     def __repr__(self):
         return 'EventAnd(%s)' % (repr(self.events,))
-
-class EventNot(Event):
-    def __init__(self, event):
-        self.event = event
-    def solve(self):
-        # TODO Should complement range not Reals.
-        interval = self.event.solve()
-        return interval.complement(Reals)
     def __invert__(self):
-        return self.event
-    def __eq__(self, event):
-        return event == self.event
-    def __repr__(self):
-        return 'EventNot(%s)' % (repr(self.event,))
+        sub_events = [~event for event in self.events]
+        return EventOr(sub_events)

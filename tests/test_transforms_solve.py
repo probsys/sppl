@@ -26,7 +26,6 @@ from sum_product_dsl.transforms import Sqrt
 
 from sum_product_dsl.events import EventAnd
 from sum_product_dsl.events import EventInterval
-from sum_product_dsl.events import EventNot
 from sum_product_dsl.events import EventOr
 
 X = sympy.symbols("X")
