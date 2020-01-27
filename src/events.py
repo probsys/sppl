@@ -26,10 +26,13 @@ class Event(object):
         raise NotImplementedError
     def __and__(self, event):
         assert isinstance(event, Event)
+        # TODO: If event is and, concatenate the event list.
         return EventAnd([self, event])
     def __or__(self, event):
         assert isinstance(event, Event)
+        # TODO: If event is and, concatenate the event list.
         return EventOr([self, event])
+    # TODO: Implement __str__.
 
 class EventInterval(Event):
     def __init__(self, expr, interval, complement=None):

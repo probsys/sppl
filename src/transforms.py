@@ -54,6 +54,7 @@ class Transform(object):
         raise NotImplementedError()
     def invert_interval(self, interval):
         raise NotImplementedError()
+    # TODO: Implement __str__.
 
     # Addition.
     def __add__(self, x):
