@@ -21,7 +21,6 @@ from sum_product_dsl.transforms import Sqrt
 
 from sum_product_dsl.events import EventAnd
 from sum_product_dsl.events import EventInterval
-from sum_product_dsl.events import EventNot
 from sum_product_dsl.events import EventOr
 
 X = Identity("X")
@@ -200,7 +199,9 @@ def test_parse_18():
 
     event = EventInterval(expr_prime, Interval(-oo, 9))
     assert (expr <= 9) == event
-    assert ~(expr <= 9) == EventNot(event)
+
+    event_not = EventInterval(expr_prime, Interval(-oo, 9), complement=True)
+    assert ~(expr <= 9) == event_not
 
     expr = (3*Abs(Z))**4 - (3*Abs(Z))**2
     expr_prime = Poly(Poly(Abs(Z), [0, 3]), [0, 0, -1, 0, 3])
@@ -223,8 +224,7 @@ def test_parse_19():
         EventOr([
             EventInterval(expr, Interval(-oo, 9)),
             EventInterval(expr, Interval.open(11, oo))]),
-        EventNot(
-            EventInterval(expr, Interval.open(-oo, 10)))
+        EventInterval(expr, Interval.open(-oo, 10), complement=True)
     ])
     assert event == event_prime
 
@@ -258,3 +258,12 @@ def test_errors():
         LogNat(X) * X
     with pytest.raises(NotImplementedError):
         (2*LogNat(X)) - Rational(1, 10) * Abs(X)
+
+def test_negation_de_morgan():
+    expr_a = ~((X**3 < 10) & ((X < 1) | (X > 10)))
+    expr_b = (~(X**3 < 10) | (~(X < 1) & ~(X > 10)))
+    assert expr_a == expr_b
+
+    expr_a = ~((X**3 < 10) | ((X < 1) & (X > 10)))
+    expr_b = (~(X**3 < 10) & (~(X < 1) | ~(X > 10)))
+    assert expr_a == expr_b
