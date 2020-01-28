@@ -7,8 +7,11 @@ from math import isinf
 
 import sympy
 
+from .sym_util import ContainersFinite
 from .sym_util import Reals
 from .sym_util import sympify_number
+
+ContainersBasic = (sympy.Interval,) + ContainersFinite
 
 # ==============================================================================
 # Custom event language.
@@ -37,15 +40,16 @@ class Event(object):
         raise NotImplementedError()
         # return EventOr([self, event])
 
-class EventInterval(Event):
-    def __init__(self, expr, interval, complement=None):
-        self.interval = interval
+class EventBasic(Event):
+    def __init__(self, expr, values, complement=None):
+        assert isinstance(values, ContainersBasic)
+        self.values = values
         self.expr = expr
         self.complement = complement
     def symbols(self):
         return [self.expr.symbol()]
     def solve(self):
-        solution = self.expr.invert(self.interval)
+        solution = self.expr.invert(self.values)
         if self.complement:
             # TODO Should complement range not Reals.
             return solution.complement(Reals)
@@ -56,40 +60,42 @@ class EventInterval(Event):
         if isinstance(event, EventAnd):
             events = (self,) + event.events
             return EventAnd(events)
-        if isinstance(event, (EventInterval, EventOr)):
+        if isinstance(event, (EventBasic, EventOr)):
             return EventAnd([self, event])
         raise NotImplementedError()
     def __or__(self, event):
         if isinstance(event, EventOr):
             events = (self,) + event.events
             return EventOr(events)
-        if isinstance(event, (EventInterval, EventAnd)):
+        if isinstance(event, (EventBasic, EventAnd)):
             return EventOr([self, event])
         raise NotImplementedError()
     def __eq__(self, event):
-        return isinstance(event, EventInterval) \
-            and (self.interval == event.interval) \
+        return isinstance(event, type(self)) \
+            and (self.values == event.values) \
             and (self.expr == event.expr) \
             and (self.complement == event.complement)
+
+class EventInterval(EventBasic):
     def __compute_gte__(self, x, left_open):
         # 5 < (X < number)
-        if not (isinf(self.interval.left) and self.interval.left < 0):
+        if not (isinf(self.values.left) and self.values.left < 0):
             raise ValueError('cannot compute %s < %s' % (x, str(self)))
         if self.complement:
             raise ValueError('cannot compute < with complement')
         xn = sympify_number(x)
-        interval = sympy.Interval(xn, self.interval.right,
-            left_open=left_open, right_open=self.interval.right_open)
+        interval = sympy.Interval(xn, self.values.right,
+            left_open=left_open, right_open=self.values.right_open)
         return EventInterval(self.expr, interval, complement=self.complement)
     def __compute_lte__(self, x, right_open):
         # 5 < (X < number)
-        if not (isinf(self.interval.right) and 0 < self.interval.right):
+        if not (isinf(self.values.right) and 0 < self.values.right):
             raise ValueError('cannot compute %s < %s' % (str(self), x))
         if self.complement:
             raise ValueError('cannot compute < with complement')
         xn = sympify_number(x)
-        interval = sympy.Interval(self.interval.left, xn,
-            left_open=self.interval.left_open, right_open=right_open)
+        interval = sympy.Interval(self.values.left, xn,
+            left_open=self.values.left_open, right_open=right_open)
         return EventInterval(self.expr, interval, complement=self.complement)
     def __gt__(self, x):
         return self.__compute_gte__(x, True)
@@ -100,20 +106,29 @@ class EventInterval(Event):
     def __le__(self, x):
         return self.__compute_lte__(x, False)
     def __invert__(self):
-        return EventInterval(self.expr, self.interval, not self.complement)
+        return EventInterval(self.expr, self.values, not self.complement)
     def __repr__(self):
         return 'EventInterval(%s, %s, complement=%s)' \
-            % (repr(self.expr), repr(self.interval), repr(self.complement))
+            % (repr(self.expr), repr(self.values), repr(self.complement))
     def __str__(self):
         sym = str(self.expr)
-        (x_l, x_r) = (self.interval.left, self.interval.right)
-        comp_l = '<' if self.interval.left_open else '<='
-        comp_r = '<' if self.interval.right_open else '<='
+        (x_l, x_r) = (self.values.left, self.values.right)
+        comp_l = '<' if self.values.left_open else '<='
+        comp_r = '<' if self.values.right_open else '<='
         if x_l < 0 and isinf(x_l):
             return '%s %s %s' % (sym, comp_r, x_r)
         if 0 < x_r and isinf(x_r):
             return '%s %s %s' % (x_l, comp_l, sym)
         return '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
+
+class EventFinite(EventBasic):
+    def __repr__(self):
+        return 'EventFinite(%s, %s, complement=%s)' \
+            % (repr(self.expr), repr(self.values), repr(self.complement))
+    def __str__(self):
+        return '%s << %s' % (str(self.expr), str(self.values))
+    def __invert__(self):
+        return EventFinite(self.expr, self.values, not self.complement)
 
 class EventOr(Event):
     def __init__(self, events):
@@ -132,7 +147,7 @@ class EventOr(Event):
         if isinstance(event, EventAnd):
             events = (self,) + event.events
             return EventAnd(events)
-        if isinstance(event, (EventInterval, EventOr)):
+        if isinstance(event, (EventBasic, EventOr)):
             events = (self, event)
             return EventAnd(events)
         raise NotImplementedError()
@@ -140,7 +155,7 @@ class EventOr(Event):
         if isinstance(event, EventOr):
             events = self.events + event.events
             return EventOr(events)
-        if isinstance(event, (EventInterval, EventAnd)):
+        if isinstance(event, (EventBasic, EventAnd)):
             events = self.events + (event,)
             return EventOr(events)
         raise NotImplementedError()
@@ -178,7 +193,7 @@ class EventAnd(Event):
         if isinstance(event, EventAnd):
             events = self.events + event.events
             return EventAnd(events)
-        if isinstance(event, (EventInterval, EventOr)):
+        if isinstance(event, (EventBasic, EventOr)):
             events = self.events + (event,)
             return EventAnd(events)
         raise NotImplementedError()
@@ -186,7 +201,7 @@ class EventAnd(Event):
         if isinstance(event, EventOr):
             events = (self,) + event.events
             return EventOr(events)
-        if isinstance(event, (EventInterval, EventAnd)):
+        if isinstance(event, (EventBasic, EventAnd)):
             events = (self, event)
             return EventOr(events)
         raise NotImplementedError()

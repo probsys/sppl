@@ -20,6 +20,7 @@ from sum_product_dsl.transforms import LogNat
 from sum_product_dsl.transforms import Sqrt
 
 from sum_product_dsl.events import EventAnd
+from sum_product_dsl.events import EventFinite
 from sum_product_dsl.events import EventInterval
 from sum_product_dsl.events import EventOr
 
@@ -273,7 +274,7 @@ def test_negate_polynomial():
     assert -(X**2 + 2) == Poly(X, [-2, 0, -1])
 
 def test_event_negation_de_morgan():
-    A, B, C = (X**3 < 10), (X < 1), (X > 10)
+    A, B, C = (X**3 < 10), (X < 1), ((3*X**2-100) << [10, -10])
 
     expr_a = ~(A & (B | C))
     expr_b = (~A | (~B & ~C))
@@ -322,6 +323,7 @@ def test_event_inequality_parse():
     assert (5 < X < 10) == (X < 10)
 
 def test_event_inequality_parse_errors():
+    # EventInterval.
     with pytest.raises(ValueError):
         (X <= 10) < 5
     with pytest.raises(ValueError):
@@ -330,6 +332,11 @@ def test_event_inequality_parse_errors():
         5 < (10 <= X)
     with pytest.raises(ValueError):
         5 <= (10 <= X)
+    # EventSet.
+    with pytest.raises(TypeError):
+        5 < (X << (10, 12))
+    with pytest.raises(TypeError):
+        (X << (10, 12)) < 5
 
 def test_event_inequality_string():
     assert str(5 < X) == '5 < X'
@@ -343,7 +350,12 @@ def test_event_inequality_string():
     assert str((X < 10) & (X < 5)) == '(X < 10) & (X < 5)'
     assert str((X < 10) | (X < 5)) == '(X < 10) | (X < 5)'
 
+def test_event_containment_string():
+    assert str(X << [10, 1]) == 'X << [10, 1]'
+    assert str(X << {1, 2}) == 'X << {1, 2}'
+    assert str(X << sympy.FiniteSet(1, 11)) == 'X << {1, 11}'
+
 def test_event_containment():
     assert (X << Interval(0, 10)) == EventInterval(X, Interval(0, 10))
     for values in [sympy.FiniteSet(0, 10), [0, 10], {0, 10}]:
-        assert (X << values) == EventInterval(X, values)
+        assert (X << values) == EventFinite(X, values)

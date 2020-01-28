@@ -12,6 +12,7 @@ from sympy.abc import X as symX
 from sympy.calculus.util import function_range
 from sympy.calculus.util import limit
 
+from .events import EventFinite
 from .events import EventInterval
 
 from .poly import solve_poly_equality
@@ -141,9 +142,11 @@ class Transform(object):
         return EventInterval(self, interval)
     # Containment
     def __lshift__(self, x):
-        if not isinstance(x, ContainersFinite + (sympy.Interval,)):
-            raise NotImplementedError()
-        return EventInterval(self, x)
+        if isinstance(x, ContainersFinite):
+            return EventFinite(self, x)
+        if isinstance(x, sympy.Interval):
+            return EventInterval(self, x)
+        raise NotImplementedError()
 
 class Injective(Transform):
     # Injective (one-to-one) transforms.
