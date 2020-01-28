@@ -1,6 +1,7 @@
 # Copyright 2019 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from itertools import chain
 from math import isinf
 
 import sympy
@@ -46,7 +47,7 @@ class Transform(object):
     def invert(self, x):
         if x is EmptySet:
             return EmptySet
-        if isinstance(x, sympy.FiniteSet):
+        if isinstance(x, FiniteContainers):
             return self.invert_finite(x)
         if isinstance(x, sympy.Interval):
             return self.invert_interval(x)
@@ -161,6 +162,14 @@ class Injective(Transform):
         interval_prime = transform_interval(intersection, a_prime, b_prime)
         return self.subexpr.invert(interval_prime)
 
+class NonInjective(Transform):
+    # Non-injective (many-to-one) transforms.
+    def invert_finite(self, values):
+        # pylint: disable=no-member
+        values_prime_list = [self.finv(x) for x in values]
+        values_prime = list(chain.from_iterable(values_prime_list))
+        return self.subexpr.invert(values_prime)
+
 class Identity(Injective):
     def __init__(self, symbol):
         assert isinstance(symbol, str)
@@ -194,7 +203,7 @@ class Identity(Injective):
         x = (self.__class__, self.symb)
         return hash(x)
 
-class Abs(Transform):
+class Abs(NonInjective):
     def __init__(self, subexpr):
         self.subexpr = make_subexpr(subexpr)
     def domain(self):
@@ -323,7 +332,7 @@ class Log(Injective):
         x = (self.__class__, self.subexpr, self.base)
         return hash(x)
 
-class Poly(Transform):
+class Poly(NonInjective):
     def __init__(self, subexpr, coeffs):
         assert len(coeffs) > 1
         self.subexpr = make_subexpr(subexpr)

@@ -14,6 +14,7 @@ from sum_product_dsl.math_util import allclose
 from sum_product_dsl.solver import solver
 from sum_product_dsl.transforms import ExpNat
 from sum_product_dsl.transforms import Identity
+from sum_product_dsl.transforms import Log
 from sum_product_dsl.transforms import LogNat
 from sum_product_dsl.transforms import Sqrt
 
@@ -371,3 +372,53 @@ def test_solver_21__ci_():
     assert answer.args[1].right_open
     assert allclose(float(answer.args[1].inf), float(solution.args[1].inf))
     assert allclose(float(answer.args[1].sup), float(solution.args[1].sup))
+
+def test_solver_finite_injective():
+    sqrt3 = sympy.sqrt(3)
+    # Identity.
+    solution = [2, 4, -10, sqrt3]
+    event = Y << [2, 4, -10, sqrt3]
+    assert event.solve() == solution
+    # ExpNat.
+    solution = [sympy.log(10), sympy.log(3), sympy.log(sqrt3)]
+    event = ExpNat(Y) << [10, 3, sqrt3]
+    assert event.solve() == solution
+    # Exp2.
+    solution = [sympy.log(10, 2), 4, sympy.log(sqrt3, 2)]
+    event = (2**Y) << [10, 16, sqrt3]
+    assert event.solve() == solution
+    # LogNat.
+    solution = [sympy.exp(10), sympy.exp(-3), sympy.exp(sqrt3)]
+    event = LogNat(Y) << [10, -3, sqrt3]
+    assert event.solve() == solution
+    # Log2
+    solution = [sympy.Pow(2, 10), sympy.Pow(2, -3), sympy.Pow(2, sqrt3)]
+    event = Log(Y, 2) << [10, -3, sqrt3]
+    assert event.solve() == solution
+    # Radical.
+    solution = [7**4, 12**4, sqrt3**4]
+    event = Y**Rational(1, 4) << [7, 12, sqrt3]
+    assert event.solve() == solution
+
+def test_solver_finite_non_injective():
+    sqrt2 = sympy.sqrt(2)
+    # Abs.
+    solution = [-10, -3, 3, 10]
+    event = abs(Y) << (10, 3)
+    assert sorted(event.solve()) == solution
+    # Abs(Poly).
+    solution = [-5, -Rational(3,2), Rational(3,2), 5]
+    event = abs(2*Y) << (10, 3)
+    assert sorted(event.solve()) == solution
+    # Poly order 2.
+    solution = [-sqrt2, sqrt2]
+    event = (Y**2) << [2]
+    assert sorted(event.solve()) == solution
+    # Poly order 3.
+    solution = [1, 3]
+    event = Y**3 << [1, 27]
+    assert sorted(event.solve()) == solution
+    # Poly Abs.
+    solution = [-3, -1, 1, 3]
+    event = (abs(Y))**3 << [1, 27]
+    assert sorted(event.solve()) == solution
