@@ -22,7 +22,7 @@ from .sym_util import ExtReals
 from .sym_util import ExtRealsPos
 from .sym_util import Reals
 
-from .sym_util import FiniteContainers
+from .sym_util import ContainersFinite
 from .sym_util import sympify_number
 
 # ==============================================================================
@@ -47,7 +47,7 @@ class Transform(object):
     def invert(self, x):
         if x is EmptySet:
             return EmptySet
-        if isinstance(x, FiniteContainers):
+        if isinstance(x, ContainersFinite):
             return self.invert_finite(x)
         if isinstance(x, sympy.Interval):
             return self.invert_interval(x)
@@ -141,7 +141,7 @@ class Transform(object):
         return EventInterval(self, interval)
     # Containment
     def __lshift__(self, x):
-        if not isinstance(x, FiniteContainers + (sympy.Interval,)):
+        if not isinstance(x, ContainersFinite + (sympy.Interval,)):
             raise NotImplementedError()
         return EventInterval(self, x)
 
