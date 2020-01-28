@@ -99,11 +99,11 @@ class EventInterval(Event):
         return self.__compute_lte__(x, True)
     def __le__(self, x):
         return self.__compute_lte__(x, False)
+    def __invert__(self):
+        return EventInterval(self.expr, self.interval, not self.complement)
     def __repr__(self):
         return 'EventInterval(%s, %s, complement=%s)' \
             % (repr(self.expr), repr(self.interval), repr(self.complement))
-    def __invert__(self):
-        return EventInterval(self.expr, self.interval, not self.complement)
     def __str__(self):
         sym = str(self.expr)
         (x_l, x_r) = (self.interval.left, self.interval.right)
