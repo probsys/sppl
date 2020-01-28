@@ -20,6 +20,8 @@ from .sym_util import EmptySet
 from .sym_util import ExtReals
 from .sym_util import ExtRealsPos
 from .sym_util import Reals
+
+from .sym_util import FiniteContainers
 from .sym_util import sympify_number
 
 # ==============================================================================
@@ -136,6 +138,11 @@ class Transform(object):
         x_val = sympify_number(x)
         interval = sympy.Interval(x_val, oo, left_open=True)
         return EventInterval(self, interval)
+    # Containment
+    def __lshift__(self, x):
+        if not isinstance(x, FiniteContainers + (sympy.Interval,)):
+            raise NotImplementedError()
+        return EventInterval(self, x)
 
 class Injective(Transform):
     # Injective (one-to-one) transforms.

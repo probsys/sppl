@@ -17,6 +17,8 @@ ExtReals = sympy.Union(Reals, Infinities)
 ExtRealsPos = sympy.Union(RealsPos, sympy.FiniteSet(sympy.oo))
 ExtRealsNeg = sympy.Union(RealsNeg, sympy.FiniteSet(-sympy.oo))
 
+FiniteContainers = (sympy.FiniteSet, frozenset, set, list, tuple)
+
 def get_symbols(expr):
     atoms = expr.atoms()
     return [a for a in atoms if isinstance(a, sympy.Symbol)]

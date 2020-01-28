@@ -342,3 +342,8 @@ def test_event_inequality_string():
     assert str(5 <= (X <= 10)) == '5 <= X <= 10'
     assert str((X < 10) & (X < 5)) == '(X < 10) & (X < 5)'
     assert str((X < 10) | (X < 5)) == '(X < 10) | (X < 5)'
+
+def test_event_containment():
+    assert (X << Interval(0, 10)) == EventInterval(X, Interval(0, 10))
+    for values in [sympy.FiniteSet(0, 10), [0, 10], {0, 10}]:
+        assert (X << values) == EventInterval(X, values)
