@@ -3,9 +3,6 @@
 
 import sympy
 
-from .contains import Contains
-from .contains import NotContains
-
 EmptySet = sympy.S.EmptySet
 Infinities = sympy.FiniteSet(-sympy.oo, sympy.oo)
 
@@ -46,26 +43,3 @@ def sympify_number(x):
         return sym
     except (sympy.SympifyError, TypeError):
         raise NotImplementedError(msg)
-
-def simplify_nominal_event(event, support):
-    if isinstance(event, sympy.Eq):
-        a, b = event.args
-        value = b if isinstance(a, sympy.Symbol) else a
-        return support.intersection({value})
-    elif isinstance(event, Contains):
-        a, b = event.args
-        assert isinstance(a, sympy.Symbol)
-        return support.intersection(b)
-    elif isinstance(event, NotContains):
-        a, b = event.args
-        assert isinstance(a, sympy.Symbol)
-        return support.difference(b)
-    elif isinstance(event, sympy.And):
-        sets = [simplify_nominal_event(e, support) for e in event.args]
-        return get_intersection(sets)
-    elif isinstance(event, sympy.Or):
-        sets = [simplify_nominal_event(e, support) for e in event.args]
-        return get_union(sets)
-    else:
-        raise ValueError('Event "%s" does not apply to nominal variable'
-            % (event,))

@@ -9,6 +9,8 @@ import sympy
 
 from .sym_util import ContainersFinite
 from .sym_util import Reals
+from .sym_util import get_intersection
+from .sym_util import get_union
 from .sym_util import sympify_number
 
 ContainersBasic = (sympy.Interval,) + ContainersFinite

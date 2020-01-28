@@ -22,12 +22,20 @@ from .math_util import logflip
 from .math_util import lognorm
 from .math_util import logsumexp
 
+from .events import EventAnd
+from .events import EventFinite
+from .events import EventInterval
+from .events import EventOr
+
 from .solver import solver
 
 from .sym_util import are_disjoint
 from .sym_util import are_identical
+from .sym_util import get_intersection
 from .sym_util import get_symbols
-from .sym_util import simplify_nominal_event
+from .sym_util import get_union
+
+from .transforms import Identity
 
 EmptySet = Singletons.EmptySet
 inf = float('inf')
@@ -288,3 +296,20 @@ class NominalDistribution(Distribution):
     def sample_expr(self, expr, N, rng):
         samples = self.sample(N, rng)
         return [expr.xreplace({self.symbol: sample}) for sample in samples]
+
+def simplify_nominal_event(event, support):
+    if isinstance(event, EventInterval):
+        raise ValueError('Event is an interval not finite: %s' % (event,))
+    if isinstance(event, EventFinite):
+        if not isinstance(event.expr, Identity):
+            raise ValueError('Simplify nominal requires Identity, not %s'
+                % (event.expr,))
+        return support.difference(event.values) if event.complement \
+            else support.intersection(event.values)
+    if isinstance(event, EventAnd):
+        values = [simplify_nominal_event(e, support) for e in event.events]
+        return get_intersection(values)
+    if isinstance(event, EventOr):
+        values = [simplify_nominal_event(e, support) for e in event.events]
+        return get_union(values)
+    assert False, 'Unknown event %s' % (event,)
