@@ -45,11 +45,11 @@ class EventInterval(Event):
     def symbols(self):
         return [self.expr.symbol()]
     def solve(self):
-        interval = self.expr.invert(self.interval)
+        solution = self.expr.invert(self.interval)
         if self.complement:
             # TODO Should complement range not Reals.
-            return interval.complement(Reals)
-        return interval
+            return solution.complement(Reals)
+        return solution
     def to_dnf_list(self):
         return [[self]]
     def __and__(self, event):
