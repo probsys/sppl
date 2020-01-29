@@ -23,6 +23,8 @@ class Event(object):
         raise NotImplementedError()
     def solve(self):
         raise NotImplementedError()
+    def evaluate(self, assignment):
+        raise NotImplementedError()
     def to_dnf(self):
         dnf = self.to_dnf_list()
         # Verifying result is in DNF.
@@ -56,6 +58,17 @@ class EventBasic(Event):
             # TODO Should complement range not Reals.
             return solution.complement(Reals)
         return solution
+    def evaluate(self, assignment):
+        sym = self.expr.symbol()
+        if sym not in assignment:
+            raise ValueError('Cannot evaluate %s on %s' % (self, assignment))
+        x_val = self.expr.evaluate(assignment[sym])
+        return (x_val in self.values) ^ bool(self.complement)
+        # In    Complement
+        # T     F               T
+        # F     F               F
+        # T     T               F
+        # F     T               T
     def to_dnf_list(self):
         return [[self]]
     def __and__(self, event):
@@ -142,6 +155,9 @@ class EventOr(Event):
     def solve(self):
         intervals = [event.solve() for event in self.events]
         return sympy.Union(*intervals)
+    def evaluate(self, assignment):
+        values = [event.evaluate(assignment) for event in self.events]
+        return any(values)
     def to_dnf_list(self):
         sub_dnf = [event.to_dnf_list() for event in self.events]
         return list(itertools.chain.from_iterable(sub_dnf))
@@ -185,6 +201,9 @@ class EventAnd(Event):
     def solve(self):
         intervals = [event.solve() for event in self.events]
         return sympy.Intersection(*intervals)
+    def evaluate(self, assignment):
+        values = [event.evaluate(assignment) for event in self.events]
+        return all(values)
     def to_dnf_list(self):
         sub_dnf = [event.to_dnf_list() for event in self.events]
         return [
