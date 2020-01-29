@@ -10,9 +10,9 @@ Reals = sympy.S.Reals
 RealsPos = sympy.Interval(0, sympy.oo)
 RealsNeg = sympy.Interval(-sympy.oo, 0)
 
-ExtReals = sympy.Union(Reals, Infinities)
-ExtRealsPos = sympy.Union(RealsPos, sympy.FiniteSet(sympy.oo))
-ExtRealsNeg = sympy.Union(RealsNeg, sympy.FiniteSet(-sympy.oo))
+ExtReals = Reals + Infinities
+ExtRealsPos = RealsPos + sympy.FiniteSet(sympy.oo)
+ExtRealsNeg = RealsNeg + sympy.FiniteSet(-sympy.oo)
 
 ContainersFinite = (sympy.FiniteSet, frozenset, set, list, tuple)
 
