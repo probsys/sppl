@@ -99,6 +99,11 @@ class Transform(object):
         return poly_mul(poly_self, poly_x)
     def __rmul__(self, x):
         return self * x
+    # Division.
+    def __truediv__(self, x):
+        x_val = sympify_number(x)
+        return sympy.Rational(1, x_val) * self
+    # Negation.
     def __neg__(self):
         return -1 * self
     def __abs__(self):
