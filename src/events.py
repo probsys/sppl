@@ -19,9 +19,9 @@ ContainersBasic = (sympy.Interval,) + ContainersFinite
 # Custom event language.
 
 class Event(object):
-    def solve(self):
-        raise NotImplementedError()
     def symbols(self):
+        raise NotImplementedError()
+    def solve(self):
         raise NotImplementedError()
     def to_dnf(self):
         dnf = self.to_dnf_list()
