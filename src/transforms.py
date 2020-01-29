@@ -187,7 +187,8 @@ class Identity(Injective):
         assert x in self.domain()
         return x
     def finv(self, x):
-        assert x in self.range()
+        if not x in self.range():
+            return EmptySet
         return x
     def evaluate(self, x):
         assert x in self.domain()
@@ -217,7 +218,8 @@ class Abs(NonInjective):
         assert x in self.domain()
         return x if x > 0 else -x
     def finv(self, x):
-        assert x in self.range()
+        if not x in self.range():
+            return EmptySet
         return (x, -x)
     def invert_interval(self, interval):
         intersection = sympy.Intersection(self.range(), interval)
@@ -259,6 +261,8 @@ class Radical(Injective):
         assert x in self.domain()
         return sympy.Pow(x, sympy.Rational(1, self.degree))
     def finv(self, x):
+        if x not in self.range():
+            return EmptySet
         return sympy.Pow(x, sympy.Rational(self.degree, 1))
     def __eq__(self, x):
         return isinstance(x, Radical) \
@@ -286,7 +290,8 @@ class Exp(Injective):
         assert x in self.domain()
         return sympy.Pow(self.base, x)
     def finv(self, x):
-        assert x in self.range()
+        if not x in self.range():
+            return EmptySet
         return sympy.log(x, self.base) if x > 0 else -oo
     def __eq__(self, x):
         return isinstance(x, Exp) \
@@ -316,7 +321,8 @@ class Log(Injective):
         assert x in self.domain()
         return sympy.log(x, self.base) if x > 0 else -oo
     def finv(self, x):
-        assert x in self.range()
+        if not x in self.range():
+            return EmptySet
         return sympy.Pow(self.base, x)
     def __eq__(self, x):
         return isinstance(x, Log) \
@@ -354,7 +360,8 @@ class Poly(NonInjective):
         return self.symexpr.subs(symX, x) \
             if not isinf(x) else limit(self.symexpr, symX, x)
     def finv(self, x):
-        assert x in self.range()
+        if not x in self.range():
+            return EmptySet
         return solve_poly_equality(self.symexpr, x)
     def invert_interval(self, interval):
         (a, b) = (interval.left, interval.right)
