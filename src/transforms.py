@@ -106,6 +106,7 @@ class Transform(object):
     # Negation.
     def __neg__(self):
         return -1 * self
+    # Absolute value.
     def __abs__(self):
         return Abs(self)
     # Exponentiation.
