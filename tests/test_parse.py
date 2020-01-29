@@ -27,6 +27,10 @@ from sum_product_dsl.events import EventOr
 X = Identity("X")
 Y = X
 
+# Avoid reporting tests which raise errors:
+# pylint: disable=pointless-statement
+# pylint: disable=expression-not-assigned
+
 def test_parse_1_open():
     # log(x) > 2
     expr = LogNat(X) > 2
