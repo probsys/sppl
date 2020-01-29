@@ -299,10 +299,11 @@ class NominalDistribution(Distribution):
 
 def simplify_nominal_event(event, support):
     if isinstance(event, EventInterval):
-        raise ValueError('Event is an interval not finite: %s' % (event,))
+        raise ValueError('Nominal variables cannot be in real intervals: %s'
+            % (event,))
     if isinstance(event, EventFinite):
         if not isinstance(event.expr, Identity):
-            raise ValueError('Simplify nominal requires Identity, not %s'
+            raise ValueError('Nominal variables cannot be transformed: %s'
                 % (event.expr,))
         return support.difference(event.values) if event.complement \
             else support.intersection(event.values)
