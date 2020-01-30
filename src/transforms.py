@@ -78,9 +78,15 @@ class Transform(object):
             pass
         # Add polynomial terms only if subexpressions match.
         poly_x = polyify(x)
-        if poly_x.subexpr != poly_self.subexpr:
-            raise NotImplementedError('Invalid addition %s + %s' % (self, x))
-        return poly_add(poly_self, poly_x)
+        if poly_x.subexpr == poly_self.subexpr:
+            # Alternative implementation.
+            # sym_poly_a = sympy.Poly(poly_a.symexpr)
+            # sym_poly_b = sympy.Poly(poly_b.symexpr)
+            # sym_poly_c = sym_poly_a + sym_poly_b
+            # assert sym_poly_c.all_coeffs()[::-1] == coeffs
+            coeffs = add_coeffs(poly_self.coeffs, poly_x.coeffs)
+            return Poly(poly_self.subexpr, coeffs)
+        raise NotImplementedError('Invalid addition %s + %s' % (self, x))
     def __radd__(self, x):
         return self + x
     # Subtraction.
@@ -98,12 +104,16 @@ class Transform(object):
             return Poly(poly_self.subexpr, coeffs)
         except NotImplementedError:
             pass
-        # Multiply polynomial terms only if subexpressions match.
         poly_x = polyify(x)
-        if poly_x.subexpr != poly_self.subexpr:
-            raise NotImplementedError('Invalid multiplication %s + %s'
+        if poly_x.subexpr == poly_self.subexpr:
+            # Multiply polynomial terms whenever subexpressions match.
+            sym_poly_a = sympy.Poly(poly_self.symexpr, symX)
+            sym_poly_b = sympy.Poly(poly_x.symexpr, symX)
+            sym_poly_c = sym_poly_a * sym_poly_b
+            coeffs = sym_poly_c.all_coeffs()[::-1]
+            return Poly(poly_self.subexpr, coeffs)
+        raise NotImplementedError('Invalid multiplication %s + %s'
                 % (self, x))
-        return poly_mul(poly_self, poly_x)
     def __rmul__(self, x):
         return self * x
     # Division.
@@ -488,21 +498,3 @@ def add_coeffs(a, b):
     b_prime = b + (0,) * (length - len(b))
     assert len(a_prime) == len(b_prime)
     return [xa + xb for (xa, xb) in zip(a_prime, b_prime)]
-
-def poly_add(poly_a, poly_b):
-    assert poly_a.subexpr == poly_b.subexpr
-    # Alternative implementation.
-    # sym_poly_a = sympy.Poly(poly_a.symexpr)
-    # sym_poly_b = sympy.Poly(poly_b.symexpr)
-    # sym_poly_c = sym_poly_a + sym_poly_b
-    # assert sym_poly_c.all_coeffs()[::-1] == coeffs
-    coeffs = add_coeffs(poly_a.coeffs, poly_b.coeffs)
-    return Poly(poly_a.subexpr, coeffs)
-
-def poly_mul(poly_a, poly_b):
-    assert poly_a.subexpr == poly_b.subexpr
-    sym_poly_a = sympy.Poly(poly_a.symexpr, symX)
-    sym_poly_b = sympy.Poly(poly_b.symexpr, symX)
-    sym_poly_c = sym_poly_a * sym_poly_b
-    coeffs = sym_poly_c.all_coeffs()[::-1]
-    return Poly(poly_a.subexpr, coeffs)
