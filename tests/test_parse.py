@@ -344,6 +344,11 @@ def test_event_inequality_parse_errors():
         5 < (X << (10, 12))
     with pytest.raises(TypeError):
         (X << (10, 12)) < 5
+    # Complement.
+    with pytest.raises(ValueError):
+        5 < (~(X < 10))
+    with pytest.raises(ValueError):
+        (~(X < 5)) < 10
 
 def test_event_inequality_string():
     assert str(5 < X) == '5 < X'
