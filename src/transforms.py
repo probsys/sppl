@@ -109,6 +109,9 @@ class Transform(object):
     def __truediv__(self, x):
         x_val = sympify_number(x)
         return sympy.Rational(1, x_val) * self
+    def __rtruediv__(self, x):
+        x_val = sympify_number(x)
+        return Reciprocal(self) if (x_val == 1) else x_val * Reciprocal(self)
     # Negation.
     def __neg__(self):
         return -1 * self
@@ -249,6 +252,48 @@ class Abs(NonInjective):
         return hash(x)
     def __abs__(self):
         return Abs(self.subexpr)
+
+class Reciprocal(NonInjective):
+    def __init__(self, subexpr):
+        self.subexpr = make_subexpr(subexpr)
+    def domain(self):
+        return ExtReals - sympy.FiniteSet(0)
+    def range(self):
+        return Reals - sympy.FiniteSet(0)
+    def ffwd(self, x):
+        assert x in self.domain()
+        return 0 if isinf(x) else sympy.Rational(1, x)
+    def finv(self, x):
+        if x not in self.range():
+            return EmptySet
+        if x == 0:
+            return {-oo, oo}
+        return {sympy.Rational(1, x)}
+    def invert_interval(self, interval):
+        (a, b) = (interval.left, interval.right)
+        if (0 <= a < b):
+            assert 0 < a or interval.left_open
+            a_inv = sympy.Rational(1, a) if 0 < a else oo
+            b_inv = sympy.Rational(1, b) if (not isinf(b)) else 0
+            interval_inv = transform_interval(interval, b_inv, a_inv, flip=True)
+            return self.subexpr.invert(interval_inv)
+        if (a < b <= 0):
+            assert b < 0 or interval.right_open
+            a_inv = sympy.Rational(1, a) if (not isinf(a)) else 0
+            b_inv = sympy.Rational(1, b) if b < 0 else -oo
+            interval_inv = transform_interval(interval, b_inv, a_inv, flip=True)
+            return self.subexpr.invert(interval_inv)
+        assert False, 'Impossible Reciprocal interval: %s ' % (interval,)
+    def __eq__(self, x):
+        return isinstance(x, Reciprocal) \
+            and self.subexpr == x.subexpr
+    def __repr__(self):
+        return 'Reciprocal(%s)' % (repr(self.subexpr),)
+    def __str__(self):
+        return '(1/%s)' % (str(self.subexpr),)
+    def __hash__(self):
+        x = (self.__class__, self.subexpr)
+        return hash(x)
 
 class Radical(Injective):
     def __init__(self, subexpr, degree):

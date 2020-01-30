@@ -14,6 +14,7 @@ from sum_product_dsl.transforms import Identity
 from sum_product_dsl.transforms import Poly
 from sum_product_dsl.transforms import Pow
 from sum_product_dsl.transforms import Radical
+from sum_product_dsl.transforms import Reciprocal
 
 from sum_product_dsl.transforms import ExpNat
 from sum_product_dsl.transforms import LogNat
@@ -277,8 +278,19 @@ def test_add_polynomials_power_one():
 def test_negate_polynomial():
     assert -(X**2 + 2) == Poly(X, [-2, 0, -1])
 
-def test_divide():
+def test_divide_multiplication():
     assert (X**2 + 2) / 2 == Poly(X, [1, 0, Rational(1, 2)])
+
+def test_rdivide_reciprocal():
+    assert 1 / X == Reciprocal(X)
+    assert 1 / abs(X) == Reciprocal(abs(X))
+    assert 3 / abs(X) == Poly(Reciprocal(abs(X)), [0, 3])
+    assert 3 / abs(X) == Poly(Reciprocal(abs(X)), [0, 3])
+    assert 1 / (X**2 + 2) == Reciprocal(Poly(X, [2, 0, 1]))
+    assert 2 / (X**2 + 2) == Poly(Reciprocal(Poly(X, [2, 0, 1])), [0, 2])
+    assert -2 / (X**2 + 2) == Poly(Reciprocal(Poly(X, [2, 0, 1])), [0, -2])
+    assert 1 + 3 * (1/(abs(X))) + 10 * (1/abs(X))**2 \
+         == Poly(Reciprocal(abs(X)), [1, 3, 10])
 
 def test_event_negation_de_morgan():
     A, B, C = (X**3 < 10), (X < 1), ((3*X**2-100) << [10, -10])

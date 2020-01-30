@@ -408,6 +408,68 @@ def test_solver_22():
     solution = Interval(-5, 5)
     assert event.solve() == solution
 
+def test_solver_23_reciprocal_lte():
+    for c in [1, 3]:
+        # Positive
+        # 1 / X < 10
+        solution = Interval.Ropen(-oo, 0) + Interval.Lopen(Rational(c, 10), oo)
+        event = (c / Y) < 10
+        assert event.solve() == solution
+        # 1 / X <= 10
+        solution = Interval.Ropen(-oo, 0) + Interval(Rational(c, 10), oo)
+        event = (c / Y) <= 10
+        assert event.solve() == solution
+        # Negative.
+        # 1 / X < -10
+        solution = Interval.open(-Rational(c, 10), 0)
+        event = (c / Y) < -10
+        assert event.solve() == solution
+        # 1 / X <= -10
+        solution = Interval.Ropen(-Rational(c, 10), 0)
+        event = (c / Y) <= -10
+        assert event.solve() == solution
+
+def test_solver_23_reciprocal_gte():
+    for c in [1, 3]:
+        # Positive
+        # 10 < 1 / X
+        solution = Interval.open(0, Rational(c, 10))
+        event = 10 < (c / Y)
+        assert event.solve() == solution
+        # 10 <= 1 / X
+        solution = Interval.Lopen(0, Rational(c, 10))
+        event = 10 <= (c / Y)
+        assert event.solve() == solution
+        # Negative
+        # -10 < 1 / X
+        solution = Interval.Lopen(0, oo) + Interval.open(-oo, -Rational(c, 10))
+        event = -10 < (c / Y)
+        assert event.solve() == solution
+        # -10 <= 1 / X
+        solution = Interval.Lopen(0, oo) + Interval.Lopen(-oo, -Rational(c, 10))
+        event =  -10 <= (c / Y)
+        assert event.solve() == solution
+
+def test_solver_23_reciprocal_range():
+    solution = Interval.Ropen(-1, -Rational(1, 3))
+    event = ((-3 < 1/Y) <= -1)
+    assert event.solve() == solution
+
+    solution = Interval.open(0, Rational(1, 3))
+    event = ((-3 < 1/(2*Y-1)) < -1)
+    assert event.solve() == solution
+
+
+    solution = Interval.open(-1 / sympy.sqrt(3), 1 / sympy.sqrt(3))
+    event = ((-3 < 1/(2*(abs(Y)**2)-1)) <= -1)
+    assert event.solve() == solution
+
+    solution = sympy.Union(
+        Interval.open(-1 / sympy.sqrt(3), 0),
+        Interval.open(0, 1 / sympy.sqrt(3)))
+    event = ((-3 < 1/(2*(abs(Y)**2)-1)) < -1)
+    assert event.solve() == solution
+
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
     # Identity.
