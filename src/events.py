@@ -3,9 +3,10 @@
 
 import itertools
 
-from math import isinf
-
 import sympy
+
+from .math_util import isinf_pos
+from .math_util import isinf_neg
 
 from .sym_util import ContainersFinite
 from .sym_util import Reals
@@ -93,8 +94,8 @@ class EventBasic(Event):
 
 class EventInterval(EventBasic):
     def __compute_gte__(self, x, left_open):
-        # 5 < (X < number)
-        if not (isinf(self.values.left) and self.values.left < 0):
+        # x < (Y < b)
+        if not isinf_neg(self.values.left):
             raise ValueError('cannot compute %s < %s' % (x, str(self)))
         if self.complement:
             raise ValueError('cannot compute < with complement')
@@ -103,8 +104,8 @@ class EventInterval(EventBasic):
             left_open=left_open, right_open=self.values.right_open)
         return EventInterval(self.expr, interval, complement=self.complement)
     def __compute_lte__(self, x, right_open):
-        # 5 < (X < number)
-        if not (isinf(self.values.right) and 0 < self.values.right):
+        # (a < Y) < x
+        if not isinf_pos(self.values.right):
             raise ValueError('cannot compute %s < %s' % (str(self), x))
         if self.complement:
             raise ValueError('cannot compute < with complement')
@@ -130,9 +131,9 @@ class EventInterval(EventBasic):
         (x_l, x_r) = (self.values.left, self.values.right)
         comp_l = '<' if self.values.left_open else '<='
         comp_r = '<' if self.values.right_open else '<='
-        if x_l < 0 and isinf(x_l):
+        if isinf_neg(x_l):
             return '%s %s %s' % (sym, comp_r, x_r)
-        if 0 < x_r and isinf(x_r):
+        if isinf_pos(x_r):
             return '%s %s %s' % (x_l, comp_l, sym)
         return '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
 
