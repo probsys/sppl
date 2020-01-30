@@ -46,18 +46,21 @@ class Transform(object):
         y = self.subexpr.evaluate(x)
         return self.ffwd(y)
     def invert(self, x):
-        if x is EmptySet:
+        intersection = sympy.Intersection(self.range(), x)
+        if intersection is EmptySet:
             return EmptySet
-        if isinstance(x, ContainersFinite):
-            return self.invert_finite(x)
-        if isinstance(x, sympy.Interval):
-            return self.invert_interval(x)
-        if isinstance(x, sympy.Union):
-            intervals = [self.invert(y) for y in x.args]
+        if isinstance(intersection, ContainersFinite):
+            return self.invert_finite(intersection)
+        if isinstance(intersection, sympy.Interval):
+            return self.invert_interval(intersection)
+        if isinstance(intersection, sympy.Union):
+            intervals = [self.invert(y) for y in intersection.args]
             return sympy.Union(*intervals)
+        assert False, 'Unknown intersection: %s' % (intersection,)
     def invert_finite(self, values):
         raise NotImplementedError()
     def invert_interval(self, interval):
+        # Should be called on subset of range.
         raise NotImplementedError()
     # Addition.
     def __add__(self, x):
@@ -158,17 +161,15 @@ class Injective(Transform):
     # Injective (one-to-one) transforms.
     def invert_finite(self, values):
         # pylint: disable=no-member
-        values_prime = [self.finv(x) for x in values]
+        values_prime = {self.finv(x) for x in values}
         return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
-        # pylint: disable=no-member
-        intersection = sympy.Intersection(self.range(), interval)
-        if intersection == EmptySet:
-            return EmptySet
-        (a, b) = (intersection.left, intersection.right)
+        assert isinstance(interval, sympy.Interval)
+        (a, b) = (interval.left, interval.right)
         a_prime = self.finv(a)
         b_prime = self.finv(b)
-        interval_prime = transform_interval(intersection, a_prime, b_prime)
+        interval_prime = transform_interval(interval, a_prime, b_prime)
+        # pylint: disable=no-member
         return self.subexpr.invert(interval_prime)
 
 class NonInjective(Transform):
@@ -176,7 +177,7 @@ class NonInjective(Transform):
     def invert_finite(self, values):
         # pylint: disable=no-member
         values_prime_list = [self.finv(x) for x in values]
-        values_prime = list(chain.from_iterable(values_prime_list))
+        values_prime = set(chain.from_iterable(values_prime_list))
         return self.subexpr.invert(values_prime)
 
 class Identity(Injective):
@@ -226,19 +227,17 @@ class Abs(NonInjective):
     def finv(self, x):
         if not x in self.range():
             return EmptySet
-        return (x, -x)
+        return {x, -x}
     def invert_interval(self, interval):
-        intersection = sympy.Intersection(self.range(), interval)
-        if intersection == EmptySet:
-            return EmptySet
-        (a, b) = (intersection.left, intersection.right)
+        assert isinstance(interval, sympy.Interval)
+        (a, b) = (interval.left, interval.right)
         # Positive solution.
         (a_pos, b_pos) = (a, b)
-        interval_pos = transform_interval(intersection, a_pos, b_pos)
+        interval_pos = transform_interval(interval, a_pos, b_pos)
         xvals_pos = self.subexpr.invert(interval_pos)
         # Negative solution.
         (a_neg, b_neg) = (-b, -a)
-        interval_neg = transform_interval(intersection, a_neg, b_neg)
+        interval_neg = transform_interval(interval, a_neg, b_neg)
         xvals_neg = self.subexpr.invert(interval_neg)
         # Return the union.
         return sympy.Union(xvals_pos, xvals_neg)
@@ -370,6 +369,7 @@ class Poly(NonInjective):
             return EmptySet
         return solve_poly_equality(self.symexpr, x)
     def invert_interval(self, interval):
+        assert isinstance(interval, sympy.Interval)
         (a, b) = (interval.left, interval.right)
         (lo, ro) = (not interval.left_open, interval.right_open)
         xvals_a = solve_poly_inequality(self.symexpr, a, lo, extended=False)
