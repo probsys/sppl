@@ -76,15 +76,13 @@ class Transform(object):
             return Poly(poly_self.subexpr, coeffs_new)
         except NotImplementedError:
             pass
-        # Add polynomial terms only if subexpressions match.
         poly_x = polyify(x)
         if poly_x.subexpr == poly_self.subexpr:
-            # Alternative implementation.
-            # sym_poly_a = sympy.Poly(poly_a.symexpr)
-            # sym_poly_b = sympy.Poly(poly_b.symexpr)
-            # sym_poly_c = sym_poly_a + sym_poly_b
-            # assert sym_poly_c.all_coeffs()[::-1] == coeffs
-            coeffs = add_coeffs(poly_self.coeffs, poly_x.coeffs)
+            # Add polynomial terms whenever subexpressions match.
+            sym_poly_a = sympy.Poly(poly_self.symexpr)
+            sym_poly_b = sympy.Poly(poly_x.symexpr)
+            sym_poly_c = sym_poly_a + sym_poly_b
+            coeffs = sym_poly_c.all_coeffs()[::-1]
             return Poly(poly_self.subexpr, coeffs)
         raise NotImplementedError('Invalid addition %s + %s' % (self, x))
     def __radd__(self, x):
@@ -491,10 +489,3 @@ def polyify(expr):
     if isinstance(expr, Poly):
         return expr
     return Poly(expr, (0, 1))
-
-def add_coeffs(a, b):
-    length = max(len(a), len(b))
-    a_prime = a + (0,) * (length - len(a))
-    b_prime = b + (0,) * (length - len(b))
-    assert len(a_prime) == len(b_prime)
-    return [xa + xb for (xa, xb) in zip(a_prime, b_prime)]
