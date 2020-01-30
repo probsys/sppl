@@ -373,6 +373,41 @@ def test_solver_21__ci_():
     assert allclose(float(answer.args[1].inf), float(solution.args[1].inf))
     assert allclose(float(answer.args[1].sup), float(solution.args[1].sup))
 
+def test_solver_22():
+    # 2 < abs(X) < 5
+    event = (2 < abs(Y)) < 5
+    solution = Interval.open(2, 5) + Interval.open(-5, -2)
+    assert event.solve() == solution
+    # 2 <= abs(X) < 5
+    event = (2 <= abs(Y)) < 5
+    solution = Interval.Ropen(2, 5) + Interval.Lopen(-5, -2)
+    assert event.solve() == solution
+    # 2 < abs(X) <= 5
+    event = (2 <  abs(Y)) <= 5
+    solution = Interval.Lopen(2, 5) + Interval.Ropen(-5, -2)
+    assert event.solve() == solution
+    # 2 <= abs(X) <= 5
+    event = (2 <=  abs(Y)) <= 5
+    solution = Interval(2, 5) + Interval(-5, -2)
+    assert event.solve() == solution
+
+    # -2 < abs(X) < 5
+    event = (-2 < abs(Y)) < 5
+    solution = Interval.open(-5, 5)
+    assert event.solve() == solution
+    # # -2 <= abs(X) < 5
+    event = (-2 <= abs(Y)) < 5
+    solution = Interval.open(-5, 5)
+    assert event.solve() == solution
+    # -2 < abs(X) <= 5
+    event = (-2 <  abs(Y)) <= 5
+    solution = Interval(-5, 5)
+    assert event.solve() == solution
+    # 2 <= abs(X) <= 5
+    event = (-2 <=  abs(Y)) <= 5
+    solution = Interval(-5, 5)
+    assert event.solve() == solution
+
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
     # Identity.

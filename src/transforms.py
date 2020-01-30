@@ -15,6 +15,9 @@ from sympy.calculus.util import limit
 from .events import EventFinite
 from .events import EventInterval
 
+from .math_util import isinf_neg
+from .math_util import isinf_pos
+
 from .poly import solve_poly_equality
 from .poly import solve_poly_inequality
 
@@ -231,16 +234,10 @@ class Abs(NonInjective):
     def invert_interval(self, interval):
         assert isinstance(interval, sympy.Interval)
         (a, b) = (interval.left, interval.right)
-        # Positive solution.
-        (a_pos, b_pos) = (a, b)
-        interval_pos = transform_interval(interval, a_pos, b_pos)
-        xvals_pos = self.subexpr.invert(interval_pos)
-        # Negative solution.
-        (a_neg, b_neg) = (-b, -a)
-        interval_neg = transform_interval(interval, a_neg, b_neg)
-        xvals_neg = self.subexpr.invert(interval_neg)
-        # Return the union.
-        return sympy.Union(xvals_pos, xvals_neg)
+        interval_pos = transform_interval(interval, a, b)
+        interval_neg = transform_interval(interval, -b, -a, switch=True)
+        interval_inv = interval_pos + interval_neg
+        return self.subexpr.invert(interval_inv)
     def __eq__(self, x):
         return isinstance(x, Abs) and self.subexpr == x.subexpr
     def __repr__(self):
@@ -419,8 +416,11 @@ def Pow(subexpr, n):
 # ==============================================================================
 # Utilities.
 
-def transform_interval(interval, a, b):
-    return sympy.Interval(a, b, interval.left_open, interval.right_open)
+def transform_interval(interval, a, b, switch=None):
+    return \
+        sympy.Interval(a, b, interval.left_open, interval.right_open) \
+        if not switch else \
+        sympy.Interval(a, b, interval.right_open, interval.left_open) \
 
 def make_sympy_polynomial(coeffs):
     terms = [c*symX**i for (i,c) in enumerate(coeffs)]
