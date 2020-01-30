@@ -235,7 +235,7 @@ class Abs(NonInjective):
         assert isinstance(interval, sympy.Interval)
         (a, b) = (interval.left, interval.right)
         interval_pos = transform_interval(interval, a, b)
-        interval_neg = transform_interval(interval, -b, -a, switch=True)
+        interval_neg = transform_interval(interval, -b, -a, flip=True)
         interval_inv = interval_pos + interval_neg
         return self.subexpr.invert(interval_inv)
     def __eq__(self, x):
@@ -416,10 +416,10 @@ def Pow(subexpr, n):
 # ==============================================================================
 # Utilities.
 
-def transform_interval(interval, a, b, switch=None):
+def transform_interval(interval, a, b, flip=None):
     return \
         sympy.Interval(a, b, interval.left_open, interval.right_open) \
-        if not switch else \
+        if not flip else \
         sympy.Interval(a, b, interval.right_open, interval.left_open) \
 
 def make_sympy_polynomial(coeffs):
