@@ -101,7 +101,8 @@ class Transform(object):
         # Multiply polynomial terms only if subexpressions match.
         poly_x = polyify(x)
         if poly_x.subexpr != poly_self.subexpr:
-            raise NotImplementedError('Invalid addition %s + %s' % (self, x))
+            raise NotImplementedError('Invalid multiplication %s + %s'
+                % (self, x))
         return poly_mul(poly_self, poly_x)
     def __rmul__(self, x):
         return self * x
