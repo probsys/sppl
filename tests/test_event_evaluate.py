@@ -58,7 +58,12 @@ def test_event_basic_noninvertible():
     assert event.evaluate({X: sympy.Rational(1, 2), Y: 2})
 
     event = LogSym(X, Y)**2 << {1}
-    assert event.evaluate({X: sympy.Rational(1, 2), Y: 2})
+    assert event.evaluate({X: sympy.Rational(1, 2), Y: 2, Z:10})
+    # Missing variables in assignments list.
+    with pytest.raises(ValueError):
+        event.evaluate({X: sympy.Rational(1, 2)})
+    with pytest.raises(ValueError):
+        event.evaluate({Y: 1})
 
 def test_event_compound():
     expr0 = abs(X)**2 + 10*abs(X)
