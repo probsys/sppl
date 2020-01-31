@@ -37,10 +37,12 @@ class Event(object):
     def to_dnf_list(self):
         raise NotImplementedError()
     def __and__(self, event):
-        raise NotImplementedError()
+        # Basic implementation (no simplification):
         # return EventAnd([self, event])
+        raise NotImplementedError()
     def __or__(self, event):
         raise NotImplementedError()
+        # Basic implementation (no simplification):
         # return EventOr([self, event])
 
 class EventBasic(Event):
