@@ -2,7 +2,7 @@
 # See LICENSE.txt
 
 from sum_product_dsl.events import EventAnd
-from sum_product_dsl.events import EventInterval
+from sum_product_dsl.events import EventBasic
 from sum_product_dsl.events import EventOr
 
 def factor_dnf(event):
@@ -11,7 +11,7 @@ def factor_dnf(event):
     return factor_dnf_symbols(event, lookup)
 
 def factor_dnf_symbols(event, lookup):
-    if isinstance(event, EventInterval):
+    if isinstance(event, EventBasic):
         # Literal term.
         symbols = event.symbols()
         key = lookup[symbols[0]]
@@ -19,7 +19,7 @@ def factor_dnf_symbols(event, lookup):
 
     if isinstance(event, EventAnd):
         # Product term.
-        assert all(isinstance(e, EventInterval) for e in event.events)
+        assert all(isinstance(e, EventBasic) for e in event.events)
         mappings = [factor_dnf_symbols(e, lookup) for e in event.events]
         events = {}
         for mapping in mappings:

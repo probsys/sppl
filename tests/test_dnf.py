@@ -13,7 +13,7 @@ from sum_product_dsl.transforms import Sqrt
 
 (X0, X1, X2, X3, X4, X5) = [Identity("X%d" % (i,)) for i in range(6)]
 
-events = [X0<0, (X1<0) & (X2<0), (X1<0) | (X2<0), (X0<0) | ((X1<0) & (X2<0))]
+events = [X0<0, (X1<<(0,1)) & (X2<0), (X1<0) | (X2<0), (X0<0) | ((X1<0) & (X2<0))]
 @pytest.mark.parametrize('event', events)
 def test_to_dnf_no_change(event):
     assert event.to_dnf() == event
@@ -55,7 +55,7 @@ def test_factor_dnf():
         | (((X2**2 - X2*3) < 0)
             & ((10*LogNat(X5) + 9) > 5)
             & ((Sqrt(2*X3)) < 0)
-            & ~(X4 < 5))
+            & ~(X4 << [3, 1, 5]))
 
     expr_dnf = expr.to_dnf()
     dnf = factor_dnf(expr_dnf)
@@ -65,7 +65,7 @@ def test_factor_dnf():
     assert dnf[X1] == (X1 < 10)
     assert dnf[X2] == ((X2**2 - X2 * 3) < 0)
     assert dnf[X3] == (X3 > 10) | ((Sqrt(2*X3)) < 0)
-    assert dnf[X4] == (X4 > 0)  | ~(X4 < 5)
+    assert dnf[X4] == (X4 > 0)  | ~(X4 << [3, 1, 5])
     assert dnf[X5] == ((10*LogNat(X5) + 9) > 5)
 
 def test_factor_dnf_symbols_1():
@@ -94,7 +94,7 @@ def test_factor_dnf_symbols_2():
         & (X0 < 10)
         & (X1 < 10)
         & ~(X4 > 0)) \
-        | (((X2**2 - 3*X2) < 0)
+        | (((X2**2 - 3*X2) << (0, 10, 100))
             & ((10*LogNat(X5) + 9) > 5)
             & (X4 < 4))
 
@@ -106,7 +106,7 @@ def test_factor_dnf_symbols_2():
         (ExpNat(X0) > 0)
         & (X0 < 10)
         & (X1 < 10)) \
-        | ((X2**2 - 3*X2) < 0)
+        | ((X2**2 - 3*X2) << (0, 10, 100))
 
     assert dnf[1] == ~(X4 > 0) | (X4 < 4)
     assert dnf[2] == ((10*LogNat(X5) + 9) > 5)

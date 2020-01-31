@@ -22,12 +22,20 @@ from .math_util import logflip
 from .math_util import lognorm
 from .math_util import logsumexp
 
+from .events import EventAnd
+from .events import EventFinite
+from .events import EventInterval
+from .events import EventOr
+
 from .solver import solver
 
 from .sym_util import are_disjoint
 from .sym_util import are_identical
+from .sym_util import get_intersection
 from .sym_util import get_symbols
-from .sym_util import simplify_nominal_event
+from .sym_util import get_union
+
+from .transforms import Identity
 
 EmptySet = Singletons.EmptySet
 inf = float('inf')
@@ -158,7 +166,7 @@ class ProductDistribution(Distribution):
         return ProductDistribution(distributions)
 
 class NumericDistribution(Distribution):
-    """Univariate probability distribution on a real interval."""
+    """Univariate probability distribution on a single real interval."""
 
     def __init__(self, symbol, dist, support, conditioned):
         assert isinstance(support, Interval)
@@ -166,17 +174,17 @@ class NumericDistribution(Distribution):
         self.support = support
         self.conditioned = conditioned
         self.xl = float(support.start)
-        self.xh = float(support.end)
+        self.xu = float(support.end)
         if conditioned:
             logp_lower = dist.logcdf(self.xl)
-            logp_upper = dist.logcdf(self.xh)
-            self.lognorm = logdiffexp(logp_upper, logp_lower)
+            logp_upper = dist.logcdf(self.xu)
+            self.logZ = logdiffexp(logp_upper, logp_lower)
             self.Fl = dist.cdf(self.xl)
-            self.Fh = dist.cdf(self.xh)
+            self.Fu = dist.cdf(self.xu)
         else:
-            self.lognorm = 1
+            self.logZ = 1
             self.Fl = 0
-            self.Fh = 1
+            self.Fu = 1
         self.symbol = symbol
         self.symbols = frozenset({symbol})
 
@@ -184,7 +192,7 @@ class NumericDistribution(Distribution):
         if not self.conditioned:
             return self.dist.rvs(size=N, rng=rng)
         u = rng.uniform(size=N)
-        u_interval = u*self.Fl + (1-u) * self.Fh
+        u_interval = u*self.Fl + (1-u) * self.Fu
         return self.dist.ppf(u_interval)
 
     def sample_expr(self, expr, N, rng):
@@ -208,19 +216,19 @@ class NumericDistribution(Distribution):
     def logcdf(self, x):
         if not self.conditioned:
             return self.dist.logcdf(x)
-        if self.xh <= x:
+        if self.xu <= x:
             return 0
         elif x <= self.xl:
             return -inf
         p = logdiffexp(self.dist.logcdf(x), self.Fl)
-        return p - self.lognorm
+        return p - self.logZ
 
     def logpdf(self, x):
         if not self.conditioned:
             return self.dist.logpdf(x)
         if x not in self.support:
             return -inf
-        return self.dist.logpdf(x) - self.lognorm
+        return self.dist.logpdf(x) - self.logZ
 
     def _logcdf_interval(self, interval):
         if interval == EmptySet:
@@ -288,3 +296,21 @@ class NominalDistribution(Distribution):
     def sample_expr(self, expr, N, rng):
         samples = self.sample(N, rng)
         return [expr.xreplace({self.symbol: sample}) for sample in samples]
+
+def simplify_nominal_event(event, support):
+    if isinstance(event, EventInterval):
+        raise ValueError('Nominal variables cannot be in real intervals: %s'
+            % (event,))
+    if isinstance(event, EventFinite):
+        if not isinstance(event.expr, Identity):
+            raise ValueError('Nominal variables cannot be transformed: %s'
+                % (event.expr,))
+        return support.difference(event.values) if event.complement \
+            else support.intersection(event.values)
+    if isinstance(event, EventAnd):
+        values = [simplify_nominal_event(e, support) for e in event.events]
+        return get_intersection(values)
+    if isinstance(event, EventOr):
+        values = [simplify_nominal_event(e, support) for e in event.events]
+        return get_union(values)
+    assert False, 'Unknown event %s' % (event,)

@@ -2,6 +2,7 @@
 # See LICENSE.txt
 
 from math import exp
+from math import isinf
 from math import log
 
 import numpy
@@ -31,3 +32,9 @@ def normalize(p):
 
 def allclose(values, x):
     return numpy.allclose(values, x)
+
+def isinf_pos(x):
+    return isinf(x) and x > 0
+
+def isinf_neg(x):
+    return isinf(x) and x < 0

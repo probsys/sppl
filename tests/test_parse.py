@@ -6,7 +6,7 @@ import pytest
 import sympy
 
 from sympy import Interval
-from sympy import Rational
+from sympy import Rational as Rat
 from sympy import oo
 
 from sum_product_dsl.transforms import Abs
@@ -14,17 +14,27 @@ from sum_product_dsl.transforms import Identity
 from sum_product_dsl.transforms import Poly
 from sum_product_dsl.transforms import Pow
 from sum_product_dsl.transforms import Radical
+from sum_product_dsl.transforms import Reciprocal
+
+from sum_product_dsl.transforms import AddSym
+from sum_product_dsl.transforms import MulSym
+from sum_product_dsl.transforms import PowSym
 
 from sum_product_dsl.transforms import ExpNat
 from sum_product_dsl.transforms import LogNat
 from sum_product_dsl.transforms import Sqrt
 
 from sum_product_dsl.events import EventAnd
+from sum_product_dsl.events import EventFinite
 from sum_product_dsl.events import EventInterval
 from sum_product_dsl.events import EventOr
 
 X = Identity("X")
 Y = X
+
+# Avoid reporting tests which raise errors:
+# pylint: disable=pointless-statement
+# pylint: disable=expression-not-assigned
 
 def test_parse_1_open():
     # log(x) > 2
@@ -104,14 +114,18 @@ def test_parse_6():
     assert expr == event
 
 def test_parse_7():
-    # Illegal expression, cannot express in our custom DSL.
-    with pytest.raises(NotImplementedError):
-        (X**2 - 2*X + ExpNat(X)) > 10
+    expr = (X**2 - 2*X + ExpNat(X))
+    assert expr == AddSym(Poly(X, [0, -2, 1]), ExpNat(X))
+
+    expr = X**2 - (2*X + ExpNat(X))
+    assert expr == AddSym(
+        X**2, Poly(AddSym(Poly(X, [0, 2]), ExpNat(X)), [0, -1]))
 
 def test_parse_8():
     Z = Identity('Z')
-    with pytest.raises(NotImplementedError):
-        (X + Z) < 3
+    expr = (X + Z) < 3
+    event = EventInterval(AddSym(X, Z), Interval.open(-oo, 3))
+    assert expr == event
 
 def test_parse_9_open():
     # 2(log(x))**3 - log(x) -5 > 0
@@ -122,9 +136,14 @@ def test_parse_9_open():
     event = EventInterval(expr, Interval.open(0, oo))
     assert (expr > 0) == event
 
-    # In principle can be solved by simplification.
-    with pytest.raises(NotImplementedError):
-        (2*LogNat(X))**3 - LogNat(X) - 5
+    expr = (2*LogNat(X))**3 - LogNat(X) - 5
+    assert expr == Poly(
+        AddSym(
+            Poly(2*LogNat(X), [0, 0, 0, 1]),
+            Poly(LogNat(X), [0, -1])
+            ),
+        [-5, 1]
+    )
 
 def test_parse_10():
     # exp(sqrt(log(x))) > -5
@@ -159,7 +178,7 @@ def test_parse_14():
 
 def test_parse_15():
     # ((x**4)**(1/7)) < 9
-    expr = ((X**4))**(Rational(1, 7))
+    expr = ((X**4))**Rat(1, 7)
     expr_prime = Radical(Pow(Y, 4), 7)
     assert expr == expr_prime
 
@@ -168,7 +187,7 @@ def test_parse_15():
 
 def test_parse_16():
     # (x**(1/7))**4 < 9
-    expr = ((X**Rational(1,7)))**4
+    expr = ((X**Rat(1,7)))**4
     expr_prime = Pow(Radical(Y, 7), 4)
     assert expr == expr_prime
 
@@ -178,13 +197,13 @@ def test_parse_16():
 def test_parse_17():
     # https://www.wolframalpha.com/input/?i=Expand%5B%2810%2F7+%2B+X%29+%28-1%2F%285+Sqrt%5B2%5D%29+%2B+X%29+%28-Sqrt%5B5%5D+%2B+X%29%5D
     for Z in [X, LogNat(X), Abs(1+X**2)]:
-        expr = (Z - Rational(1, 10) * sympy.sqrt(2)) \
-            * (Z + Rational(10, 7)) \
+        expr = (Z - Rat(1, 10) * sympy.sqrt(2)) \
+            * (Z + Rat(10, 7)) \
             * (Z - sympy.sqrt(5))
         coeffs = [
             sympy.sqrt(10)/7,
             1/sympy.sqrt(10) - (10*sympy.sqrt(5))/7 - sympy.sqrt(2)/7,
-            (-sympy.sqrt(5) - 1/(5 * sympy.sqrt(2))) + Rational(10)/7,
+            (-sympy.sqrt(5) - 1/(5 * sympy.sqrt(2))) + Rat(10)/7,
             1,
         ]
         expr_prime = Poly(Z, coeffs)
@@ -192,7 +211,7 @@ def test_parse_17():
 
 def test_parse_18():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
-    Z = X**(Rational(1, 7))
+    Z = X**Rat(1, 7)
     expr = 3*Z**4 - 3*Z**2
     expr_prime = Poly(Radical(Y, 7), [0, 0, -3, 0, 3])
     assert expr == expr_prime
@@ -209,7 +228,7 @@ def test_parse_18():
 def test_parse_19():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
     #   or || 3*(x**(1/7))**4 - 3*(x**(1/7))**2 > 11
-    Z = X**(Rational(1, 7))
+    Z = X**Rat(1, 7)
     expr = 3*Z**4 - 3*Z**2
 
     event = (expr <= 9) | (expr > 11)
@@ -247,33 +266,92 @@ def test_parse_21__ci_():
         EventInterval(expr, Interval.open(-oo, 5)),
         ])
 
+def test_parse_24_negative_power():
+    assert X**(-3) == Reciprocal(Pow(X, 3))
+    assert X**(-Rat(1, 3)) == Reciprocal(Radical(X, 3))
+    with pytest.raises(ValueError):
+        X**0
+
+cases = [
+    [1 + LogNat(X) - ExpNat(X)              , AddSym],
+    [LogNat(X) * X                          , MulSym],
+    [LogNat(X) ** ExpNat(X)                 , PowSym],
+    [(2*LogNat(X)) - Rat(1, 10) * Abs(X)    , AddSym],
+    [((2*LogNat(X)) - Rat(1, 10)) * Abs(X)  , MulSym],
+]
+@pytest.mark.parametrize('expr, tp', cases)
+def test_non_invertible_types(expr, tp):
+    assert isinstance(expr, tp)
+
+def test_non_invertible_division():
+    assert X**2 / X == MulSym(X**2, Reciprocal(X))
+
+def test_non_invertible_wrap():
+    expr = (Abs(X)*X)**2
+    assert expr == Poly(MulSym(Abs(X), X), [0, 0, 1])
+
+    Z = Identity('Z')
+    expr = (abs(X+Z))**2 + .5*(abs(X+Z)) - 1
+    assert expr == Poly(Abs(AddSym(X, Z)), [-1, .5, 1])
+
+    expr = abs(X*Z)**Rat(-1, 2)
+    assert expr == Reciprocal(Radical(Abs(MulSym(X, Z)), 2))
+
 def test_errors():
-    with pytest.raises(NotImplementedError):
-        1 + LogNat(X) - ExpNat(X)
-    with pytest.raises(NotImplementedError):
-        LogNat(X) ** ExpNat(X)
-    with pytest.raises(NotImplementedError):
+    # Correct types but incorrect values.
+    with pytest.raises(ValueError):
         Abs(X) ** sympy.sqrt(10)
-    with pytest.raises(NotImplementedError):
-        LogNat(X) * X
-    with pytest.raises(NotImplementedError):
-        (2*LogNat(X)) - Rational(1, 10) * Abs(X)
+    with pytest.raises(ValueError):
+        X**(1.71)
+    with pytest.raises(ValueError):
+        (-3)**X
+
+    # TypeErrors from 'return NotImplemented'.
+    with pytest.raises(TypeError):
+        X + 'a'
+    with pytest.raises(TypeError):
+        X * 'a'
+    with pytest.raises(TypeError):
+        X / 'a'
+    with pytest.raises(TypeError):
+        X**'s'
+
 
 def test_add_polynomials_power_one():
     # TODO: Update parser to handle this edge case.
     Z = X**5
-    with pytest.raises(NotImplementedError):
-        # GOTCHA: The expression Z**2 is of type Poly(subexpr=Poly)
-        # But Z if of type Poly(subexpr=Id)
-        Z**2 + Z
+
+    # GOTCHA: The expression Z**2 is of type Poly(subexpr=Poly)
+    # But Z if of type Poly(subexpr=Id),
+    # Thus the resulting expression is AddSym
+    expr = Z**2 + Z
+    assert expr == AddSym(
+        Poly(Poly(X, [0, 0, 0, 0, 0, 1]), [0, 0, 1]),
+        Poly(X, [0, 0, 0, 0, 0, 1]))
+
     # Raise Z to power one to embed in a polynomial.
-    Z**2 + Z**1
+    expr = Z**2 + Z**1
+    assert expr == Poly(X**5, [0, 1, 1])
 
 def test_negate_polynomial():
     assert -(X**2 + 2) == Poly(X, [-2, 0, -1])
 
+def test_divide_multiplication():
+    assert (X**2 + 2) / 2 == Poly(X, [1, 0, Rat(1, 2)])
+
+def test_rdivide_reciprocal():
+    assert 1 / X == Reciprocal(X)
+    assert 1 / abs(X) == Reciprocal(abs(X))
+    assert 3 / abs(X) == Poly(Reciprocal(abs(X)), [0, 3])
+    assert 3 / abs(X) == Poly(Reciprocal(abs(X)), [0, 3])
+    assert 1 / (X**2 + 2) == Reciprocal(Poly(X, [2, 0, 1]))
+    assert 2 / (X**2 + 2) == Poly(Reciprocal(Poly(X, [2, 0, 1])), [0, 2])
+    assert -2 / (X**2 + 2) == Poly(Reciprocal(Poly(X, [2, 0, 1])), [0, -2])
+    assert 1 + 3 * (1/(abs(X))) + 10 * (1/abs(X))**2 \
+         == Poly(Reciprocal(abs(X)), [1, 3, 10])
+
 def test_event_negation_de_morgan():
-    A, B, C = (X**3 < 10), (X < 1), (X > 10)
+    A, B, C = (X**3 < 10), (X < 1), ((3*X**2-100) << [10, -10])
 
     expr_a = ~(A & (B | C))
     expr_b = (~A | (~B & ~C))
@@ -305,16 +383,16 @@ def test_event_sequential_parse():
 def test_event_inequality_parse():
     assert (5 < (X < 10)) \
         == ((5 < X) < 10) \
-        == EventInterval(X, Interval(5, 10, left_open=True, right_open=True))
+        == EventInterval(X, Interval.open(5, 10))
     assert (5 <= (X < 10)) \
         == ((5 <= X) < 10) \
-        == EventInterval(X, Interval(5, 10, left_open=False, right_open=True))
+        == EventInterval(X, Interval.Ropen(5, 10))
     assert (5 < (X <= 10)) \
         == ((5 < X) <= 10) \
-        == EventInterval(X, Interval(5, 10, left_open=True, right_open=False))
+        == EventInterval(X, Interval.Lopen(5, 10))
     assert (5 <= (X <= 10)) \
         == ((5 <= X) <= 10) \
-        == EventInterval(X, Interval(5, 10, left_open=False, right_open=False))
+        == EventInterval(X, Interval(5, 10))
     # GOTCHA: This expression is syntactically equivalent to
     # (5 < X) and (X < 10)
     # Since and short circuits and 5 < X is not False,
@@ -322,6 +400,7 @@ def test_event_inequality_parse():
     assert (5 < X < 10) == (X < 10)
 
 def test_event_inequality_parse_errors():
+    # EventInterval.
     with pytest.raises(ValueError):
         (X <= 10) < 5
     with pytest.raises(ValueError):
@@ -330,6 +409,16 @@ def test_event_inequality_parse_errors():
         5 < (10 <= X)
     with pytest.raises(ValueError):
         5 <= (10 <= X)
+    # EventSet.
+    with pytest.raises(TypeError):
+        5 < (X << (10, 12))
+    with pytest.raises(TypeError):
+        (X << (10, 12)) < 5
+    # Complement.
+    with pytest.raises(ValueError):
+        5 < (~(X < 10))
+    with pytest.raises(ValueError):
+        (~(X < 5)) < 10
 
 def test_event_inequality_string():
     assert str(5 < X) == '5 < X'
@@ -342,3 +431,13 @@ def test_event_inequality_string():
     assert str(5 <= (X <= 10)) == '5 <= X <= 10'
     assert str((X < 10) & (X < 5)) == '(X < 10) & (X < 5)'
     assert str((X < 10) | (X < 5)) == '(X < 10) | (X < 5)'
+
+def test_event_containment_string():
+    assert str(X << [10, 1]) == 'X << [10, 1]'
+    assert str(X << {1, 2}) == 'X << {1, 2}'
+    assert str(X << sympy.FiniteSet(1, 11)) == 'X << {1, 11}'
+
+def test_event_containment():
+    assert (X << Interval(0, 10)) == EventInterval(X, Interval(0, 10))
+    for values in [sympy.FiniteSet(0, 10), [0, 10], {0, 10}]:
+        assert (X << values) == EventFinite(X, values)

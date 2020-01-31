@@ -1,17 +1,13 @@
 egg-info
 .cache/
 .coverage
-.ipynb_checkpoints/
-.jupyter/
 /src/version.py
 
 __pycache__/
 
-a
 build/
 clean.sh
 dist/
 htmlcov/
 notebooks/
 notes
-venv/
