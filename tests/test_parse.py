@@ -6,7 +6,7 @@ import pytest
 import sympy
 
 from sympy import Interval
-from sympy import Rational
+from sympy import Rational as Rat
 from sympy import oo
 
 from sum_product_dsl.transforms import Abs
@@ -165,7 +165,7 @@ def test_parse_14():
 
 def test_parse_15():
     # ((x**4)**(1/7)) < 9
-    expr = ((X**4))**(Rational(1, 7))
+    expr = ((X**4))**Rat(1, 7)
     expr_prime = Radical(Pow(Y, 4), 7)
     assert expr == expr_prime
 
@@ -174,7 +174,7 @@ def test_parse_15():
 
 def test_parse_16():
     # (x**(1/7))**4 < 9
-    expr = ((X**Rational(1,7)))**4
+    expr = ((X**Rat(1,7)))**4
     expr_prime = Pow(Radical(Y, 7), 4)
     assert expr == expr_prime
 
@@ -184,13 +184,13 @@ def test_parse_16():
 def test_parse_17():
     # https://www.wolframalpha.com/input/?i=Expand%5B%2810%2F7+%2B+X%29+%28-1%2F%285+Sqrt%5B2%5D%29+%2B+X%29+%28-Sqrt%5B5%5D+%2B+X%29%5D
     for Z in [X, LogNat(X), Abs(1+X**2)]:
-        expr = (Z - Rational(1, 10) * sympy.sqrt(2)) \
-            * (Z + Rational(10, 7)) \
+        expr = (Z - Rat(1, 10) * sympy.sqrt(2)) \
+            * (Z + Rat(10, 7)) \
             * (Z - sympy.sqrt(5))
         coeffs = [
             sympy.sqrt(10)/7,
             1/sympy.sqrt(10) - (10*sympy.sqrt(5))/7 - sympy.sqrt(2)/7,
-            (-sympy.sqrt(5) - 1/(5 * sympy.sqrt(2))) + Rational(10)/7,
+            (-sympy.sqrt(5) - 1/(5 * sympy.sqrt(2))) + Rat(10)/7,
             1,
         ]
         expr_prime = Poly(Z, coeffs)
@@ -198,7 +198,7 @@ def test_parse_17():
 
 def test_parse_18():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
-    Z = X**(Rational(1, 7))
+    Z = X**Rat(1, 7)
     expr = 3*Z**4 - 3*Z**2
     expr_prime = Poly(Radical(Y, 7), [0, 0, -3, 0, 3])
     assert expr == expr_prime
@@ -215,7 +215,7 @@ def test_parse_18():
 def test_parse_19():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
     #   or || 3*(x**(1/7))**4 - 3*(x**(1/7))**2 > 11
-    Z = X**(Rational(1, 7))
+    Z = X**Rat(1, 7)
     expr = 3*Z**4 - 3*Z**2
 
     event = (expr <= 9) | (expr > 11)
@@ -255,7 +255,7 @@ def test_parse_21__ci_():
 
 def test_parse_24_negative_power():
     assert X**(-3) == Reciprocal(Pow(X, 3))
-    assert X**(-Rational(1, 3)) == Reciprocal(Radical(X, 3))
+    assert X**(-Rat(1, 3)) == Reciprocal(Radical(X, 3))
     with pytest.raises(NotImplementedError):
         X**0
 
@@ -269,7 +269,7 @@ def test_errors():
     with pytest.raises(NotImplementedError):
         LogNat(X) * X
     with pytest.raises(NotImplementedError):
-        (2*LogNat(X)) - Rational(1, 10) * Abs(X)
+        (2*LogNat(X)) - Rat(1, 10) * Abs(X)
 
 def test_add_polynomials_power_one():
     # TODO: Update parser to handle this edge case.
@@ -285,7 +285,7 @@ def test_negate_polynomial():
     assert -(X**2 + 2) == Poly(X, [-2, 0, -1])
 
 def test_divide_multiplication():
-    assert (X**2 + 2) / 2 == Poly(X, [1, 0, Rational(1, 2)])
+    assert (X**2 + 2) / 2 == Poly(X, [1, 0, Rat(1, 2)])
 
 def test_rdivide_reciprocal():
     assert 1 / X == Reciprocal(X)

@@ -6,7 +6,7 @@ import pytest
 import sympy
 
 from sympy import Interval
-from sympy import Rational
+from sympy import Rational as Rat
 from sympy import S as Singletons
 from sympy import oo
 
@@ -216,8 +216,8 @@ def test_solver_11_closed():
 def test_solver_12():
     # 2*sqrt(|x|) - 3 > 10
     solution = sympy.Union(
-        Interval.open(-oo, -Rational(169, 4)),
-        Interval.open(Rational(169, 4), oo))
+        Interval.open(-oo, -Rat(169, 4)),
+        Interval.open(Rat(169, 4), oo))
 
     expr = 2*sympy.sqrt(sympy.Abs(X)) - 3 > 10
     answer = solver(expr)
@@ -230,8 +230,8 @@ def test_solver_12():
 def test_solver_13():
     # 2*sqrt(|x|**2) - 3 > 10
     solution = sympy.Union(
-        Interval.open(-oo, -Rational(13, 2)),
-        Interval.open(Rational(13, 2), oo))
+        Interval.open(-oo, -Rat(13, 2)),
+        Interval.open(Rat(13, 2), oo))
 
     expr = 2*sympy.sqrt(sympy.Abs(X)**2) - 3 > 10
     answer = solver(expr)
@@ -259,14 +259,14 @@ def test_solver_15():
     # ((x**4)**(1/7)) < 9
     solution = Interval.open(-27*sympy.sqrt(3), 27*sympy.sqrt(3))
 
-    expr = ((X**4))**(Rational(1, 7)) < 9
+    expr = ((X**4))**(Rat(1, 7)) < 9
     answer = solver(expr)
     with pytest.raises(AssertionError):
         # SymPy handles exponents unclearly.
         # Exponent laws with negative numbers are subtle.
         assert answer == solution
 
-    event = ((Y**4))**(Rational(1, 7)) < 9
+    event = ((Y**4))**(Rat(1, 7)) < 9
     answer = event.solve()
     assert answer == solution
 
@@ -274,14 +274,14 @@ def test_solver_16():
     # (x**(1/7))**4 < 9
     solution = Interval.Ropen(0, 27*sympy.sqrt(3))
 
-    expr = ((X**Rational(1,7)))**4 < 9
+    expr = ((X**Rat(1,7)))**4 < 9
     answer = solver(expr)
     with pytest.raises(AssertionError):
         # SymPy handles exponents unclearly.
         # Exponent laws with negative numbers are subtle.
         assert answer == solution
 
-    event = ((Y**Rational(1,7)))**4 < 9
+    event = ((Y**Rat(1,7)))**4 < 9
     answer = event.solve()
     assert answer == solution
 
@@ -289,16 +289,16 @@ def test_solver_16():
 @pytest.mark.timeout(3)
 def test_solver_17():
     p = sympy.Poly(
-        (X - sympy.sqrt(2)/10) * (X+Rational(10, 7)) * (X - sympy.sqrt(5)),
+        (X - sympy.sqrt(2)/10) * (X+Rat(10, 7)) * (X - sympy.sqrt(5)),
         X)
     expr = p.args[0] < 1
     solver(expr)
 
 def test_solver_18():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
-    solution = Interval(0, (Rational(1, 2) + sympy.sqrt(13)/2)**(Rational(7, 2)))
+    solution = Interval(0, (Rat(1, 2) + sympy.sqrt(13)/2)**(Rat(7, 2)))
 
-    Z = Y**(Rational(1, 7))
+    Z = Y**(Rat(1, 7))
     expr = 3*Z**4 - 3*Z**2
     event = (expr <= 9)
     answer = event.solve()
@@ -313,10 +313,10 @@ def test_solver_19():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
     #   or || 3*(x**(1/7))**4 - 3*(x**(1/7))**2 > 11
     solution = sympy.Union(
-        Interval(0, (Rational(1, 2) + sympy.sqrt(13)/2)**(Rational(7, 2))),
-        Interval.open((Rational(1,2) + sympy.sqrt(141)/6)**(7/2), oo))
+        Interval(0, (Rat(1, 2) + sympy.sqrt(13)/2)**(Rat(7, 2))),
+        Interval.open((Rat(1,2) + sympy.sqrt(141)/6)**(7/2), oo))
 
-    Z = Y**(Rational(1, 7))
+    Z = Y**(Rat(1, 7))
     expr = 3*Z**4 - 3*Z**2
     event = (expr <= 9) | (expr > 11)
     answer = event.solve()
@@ -412,20 +412,20 @@ def test_solver_23_reciprocal_lte():
     for c in [1, 3]:
         # Positive
         # 1 / X < 10
-        solution = Interval.Ropen(-oo, 0) + Interval.Lopen(Rational(c, 10), oo)
+        solution = Interval.Ropen(-oo, 0) + Interval.Lopen(Rat(c, 10), oo)
         event = (c / Y) < 10
         assert event.solve() == solution
         # 1 / X <= 10
-        solution = Interval.Ropen(-oo, 0) + Interval(Rational(c, 10), oo)
+        solution = Interval.Ropen(-oo, 0) + Interval(Rat(c, 10), oo)
         event = (c / Y) <= 10
         assert event.solve() == solution
         # Negative.
         # 1 / X < -10
-        solution = Interval.open(-Rational(c, 10), 0)
+        solution = Interval.open(-Rat(c, 10), 0)
         event = (c / Y) < -10
         assert event.solve() == solution
         # 1 / X <= -10
-        solution = Interval.Ropen(-Rational(c, 10), 0)
+        solution = Interval.Ropen(-Rat(c, 10), 0)
         event = (c / Y) <= -10
         assert event.solve() == solution
 
@@ -433,29 +433,29 @@ def test_solver_23_reciprocal_gte():
     for c in [1, 3]:
         # Positive
         # 10 < 1 / X
-        solution = Interval.open(0, Rational(c, 10))
+        solution = Interval.open(0, Rat(c, 10))
         event = 10 < (c / Y)
         assert event.solve() == solution
         # 10 <= 1 / X
-        solution = Interval.Lopen(0, Rational(c, 10))
+        solution = Interval.Lopen(0, Rat(c, 10))
         event = 10 <= (c / Y)
         assert event.solve() == solution
         # Negative
         # -10 < 1 / X
-        solution = Interval.Lopen(0, oo) + Interval.open(-oo, -Rational(c, 10))
+        solution = Interval.Lopen(0, oo) + Interval.open(-oo, -Rat(c, 10))
         event = -10 < (c / Y)
         assert event.solve() == solution
         # -10 <= 1 / X
-        solution = Interval.Lopen(0, oo) + Interval.Lopen(-oo, -Rational(c, 10))
+        solution = Interval.Lopen(0, oo) + Interval.Lopen(-oo, -Rat(c, 10))
         event =  -10 <= (c / Y)
         assert event.solve() == solution
 
 def test_solver_23_reciprocal_range():
-    solution = Interval.Ropen(-1, -Rational(1, 3))
+    solution = Interval.Ropen(-1, -Rat(1, 3))
     event = ((-3 < 1/Y) <= -1)
     assert event.solve() == solution
 
-    solution = Interval.open(0, Rational(1, 3))
+    solution = Interval.open(0, Rat(1, 3))
     event = ((-3 < 1/(2*Y-1)) < -1)
     assert event.solve() == solution
 
@@ -475,32 +475,32 @@ def test_solver_24_negative_power_integer():
     event = Y**(-3) < 6
     assert event.solve() == sympy.Union(
         Interval.open(-oo, 0),
-        Interval.open(6**Rational(-1, 3), oo))
+        Interval.open(6**Rat(-1, 3), oo))
     # Case 2.
     event = (-1 < Y**(-3)) < 6
     assert event.solve() == sympy.Union(
         Interval.open(-oo, -1),
-        Interval.open(6**Rational(-1, 3), oo))
+        Interval.open(6**Rat(-1, 3), oo))
     # Case 3.
     event = 5 <= Y**(-3)
-    assert event.solve() == Interval.Lopen(0, 5**Rational(-1, 3))
+    assert event.solve() == Interval.Lopen(0, 5**Rat(-1, 3))
     # Case 4.
     event = (5 <= Y**(-3)) < 6
-    assert event.solve() == Interval.Lopen(6**Rational(-1, 3), 5**Rational(-1, 3))
+    assert event.solve() == Interval.Lopen(6**Rat(-1, 3), 5**Rat(-1, 3))
 
-def test_solver_24_negative_power_rational():
+def test_solver_24_negative_power_Rat():
     # Case 1.
-    event = Y**Rational(-1, 3) < 6
-    assert event.solve() == Interval.Lopen(Rational(1, 216), oo)
+    event = Y**Rat(-1, 3) < 6
+    assert event.solve() == Interval.Lopen(Rat(1, 216), oo)
     # Case 2.
-    event = (-1 < Y**Rational(-1, 3)) < 6
-    assert event.solve() == Interval.Lopen(Rational(1, 216), oo)
+    event = (-1 < Y**Rat(-1, 3)) < 6
+    assert event.solve() == Interval.Lopen(Rat(1, 216), oo)
     # Case 3.
-    event = 5 <= Y**Rational(-1, 3)
-    assert event.solve() == Interval.Lopen(0, Rational(1, 125))
+    event = 5 <= Y**Rat(-1, 3)
+    assert event.solve() == Interval.Lopen(0, Rat(1, 125))
     # Case 4.
-    event = (5 <= Y**Rational(-1, 3)) < 6
-    assert event.solve() == Interval.Lopen(Rational(1, 216), Rational(1, 125))
+    event = (5 <= Y**Rat(-1, 3)) < 6
+    assert event.solve() == Interval.Lopen(Rat(1, 216), Rat(1, 125))
 
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
@@ -526,7 +526,7 @@ def test_solver_finite_injective():
     assert event.solve() == solution
     # Radical.
     solution = {7**4, 12**4, sqrt3**4}
-    event = Y**Rational(1, 4) << {7, 12, sqrt3}
+    event = Y**Rat(1, 4) << {7, 12, sqrt3}
     assert event.solve() == solution
 
 def test_solver_finite_non_injective():
@@ -536,7 +536,7 @@ def test_solver_finite_non_injective():
     event = abs(Y) << {10, 3}
     assert event.solve() == solution
     # Abs(Poly).
-    solution = {-5, -Rational(3,2), Rational(3,2), 5}
+    solution = {-5, -Rat(3,2), Rat(3,2), 5}
     event = abs(2*Y) << {10, 3}
     assert event.solve() == solution
     # Poly order 2.
