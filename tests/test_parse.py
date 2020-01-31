@@ -253,6 +253,12 @@ def test_parse_21__ci_():
         EventInterval(expr, Interval.open(-oo, 5)),
         ])
 
+def test_parse_24_negative_power():
+    assert X**(-3) == Reciprocal(Pow(X, 3))
+    assert X**(-Rational(1, 3)) == Reciprocal(Radical(X, 3))
+    with pytest.raises(NotImplementedError):
+        X**0
+
 def test_errors():
     with pytest.raises(NotImplementedError):
         1 + LogNat(X) - ExpNat(X)

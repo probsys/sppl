@@ -470,6 +470,38 @@ def test_solver_23_reciprocal_range():
     event = ((-3 < 1/(2*(abs(Y)**2)-1)) < -1)
     assert event.solve() == solution
 
+def test_solver_24_negative_power_integer():
+    # Case 1.
+    event = Y**(-3) < 6
+    assert event.solve() == sympy.Union(
+        Interval.open(-oo, 0),
+        Interval.open(6**Rational(-1, 3), oo))
+    # Case 2.
+    event = (-1 < Y**(-3)) < 6
+    assert event.solve() == sympy.Union(
+        Interval.open(-oo, -1),
+        Interval.open(6**Rational(-1, 3), oo))
+    # Case 3.
+    event = 5 <= Y**(-3)
+    assert event.solve() == Interval.Lopen(0, 5**Rational(-1, 3))
+    # Case 4.
+    event = (5 <= Y**(-3)) < 6
+    assert event.solve() == Interval.Lopen(6**Rational(-1, 3), 5**Rational(-1, 3))
+
+def test_solver_24_negative_power_rational():
+    # Case 1.
+    event = Y**Rational(-1, 3) < 6
+    assert event.solve() == Interval.Lopen(Rational(1, 216), oo)
+    # Case 2.
+    event = (-1 < Y**Rational(-1, 3)) < 6
+    assert event.solve() == Interval.Lopen(Rational(1, 216), oo)
+    # Case 3.
+    event = 5 <= Y**Rational(-1, 3)
+    assert event.solve() == Interval.Lopen(0, Rational(1, 125))
+    # Case 4.
+    event = (5 <= Y**Rational(-1, 3)) < 6
+    assert event.solve() == Interval.Lopen(Rational(1, 216), Rational(1, 125))
+
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
     # Identity.
