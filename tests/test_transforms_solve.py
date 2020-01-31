@@ -459,7 +459,6 @@ def test_solver_23_reciprocal_range():
     event = ((-3 < 1/(2*Y-1)) < -1)
     assert event.solve() == solution
 
-
     solution = Interval.open(-1 / sympy.sqrt(3), 1 / sympy.sqrt(3))
     event = ((-3 < 1/(2*(abs(Y)**2)-1)) <= -1)
     assert event.solve() == solution
