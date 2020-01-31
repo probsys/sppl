@@ -50,7 +50,7 @@ class EventBasic(Event):
         self.expr = expr
         self.complement = complement
     def symbols(self):
-        return [self.expr.symbol()]
+        return self.expr.symbols()
     def solve(self):
         solution = self.expr.invert(self.values)
         if self.complement:
@@ -147,7 +147,7 @@ class EventOr(Event):
     def symbols(self):
         sub_symbols = [event.symbols() for event in self.events]
         symbols = itertools.chain.from_iterable(sub_symbols)
-        return list(set(symbols))
+        return tuple(set(symbols))
     def solve(self):
         intervals = [event.solve() for event in self.events]
         return sympy.Union(*intervals)
@@ -193,7 +193,7 @@ class EventAnd(Event):
     def symbols(self):
         sub_symbols = [event.symbols() for event in self.events]
         symbols = itertools.chain.from_iterable(sub_symbols)
-        return list(set(symbols))
+        return tuple(set(symbols))
     def solve(self):
         intervals = [event.solve() for event in self.events]
         return sympy.Intersection(*intervals)

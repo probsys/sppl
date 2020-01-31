@@ -30,9 +30,8 @@ from .sym_util import sympify_number
 # Custom invertible function language.
 
 class Transform(object):
-    def symbol(self):
-        # pylint: disable=no-member
-        return self.subexpr.symbol()
+    def symbols(self):
+        raise NotImplementedError()
     def domain(self):
         raise NotImplementedError()
     def range(self):
@@ -273,6 +272,9 @@ class Transform(object):
 
 class Invertible(Transform):
     # Transforms which can be forward evaluated and back-solved.
+    def symbols(self):
+        # pylint: disable=no-member
+        return self.subexpr.symbols()
     def ffwd(self, x):
         raise NotImplementedError()
     def finv(self, x):
@@ -329,8 +331,8 @@ class Identity(Injective):
     def __init__(self, token):
         assert isinstance(token, str)
         self.token = token
-    def symbol(self):
-        return self
+    def symbols(self):
+        return (self,)
     def domain(self):
         return ExtReals
     def range(self):
@@ -603,6 +605,11 @@ class NonInvertible(Transform):
     def __init__(self, subexpr_a, subexpr_b):
         self.subexpr_a = subexpr_a
         self.subexpr_b = subexpr_b
+    def symbols(self):
+        symbols_a = self.subexpr_a.symbols()
+        symbols_b = self.subexpr_b.symbols()
+        symbols = symbols_a + symbols_b
+        return tuple(set(symbols))
     def evaluate(self, assignment):
         a = self.subexpr_a.evaluate(assignment)
         b = self.subexpr_b.evaluate(assignment)
