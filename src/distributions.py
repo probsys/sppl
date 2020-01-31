@@ -27,7 +27,7 @@ from .events import EventFinite
 from .events import EventInterval
 from .events import EventOr
 
-from .solver import solver
+from .sym_util import sympy_solver
 
 from .sym_util import are_disjoint
 from .sym_util import are_identical
@@ -200,7 +200,7 @@ class NumericDistribution(Distribution):
         return [expr.xreplace({self.symbol: sample}) for sample in samples]
 
     def logprob(self, event):
-        expression = solver(event)
+        expression = sympy_solver(event)
         values = Intersection(self.support, expression)
         if values == EmptySet:
             return -inf
@@ -238,7 +238,7 @@ class NumericDistribution(Distribution):
         return logdiffexp(self.logcdf(xh), self.logcdf(xl))
 
     def condition(self, event):
-        expression = solver(event)
+        expression = sympy_solver(event)
         support = Intersection(self.support, expression)
         if support == EmptySet:
             raise ValueError('Event "%s" does overlap with support "%s"'

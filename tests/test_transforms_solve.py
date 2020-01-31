@@ -11,7 +11,7 @@ from sympy import S as Singletons
 from sympy import oo
 
 from sum_product_dsl.math_util import allclose
-from sum_product_dsl.solver import solver
+from sum_product_dsl.sym_util import sympy_solver
 from sum_product_dsl.transforms import ExpNat
 from sum_product_dsl.transforms import Identity
 from sum_product_dsl.transforms import Log
@@ -26,7 +26,7 @@ def test_solver_1_open():
     solution = Interval.open(sympy.exp(2), oo)
 
     expr = sympy.log(X) > 2
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = LogNat(Y) > 2
@@ -38,7 +38,7 @@ def test_solver_1_closed():
     solution = Interval(sympy.exp(2), oo)
 
     expr = sympy.log(X) >= 2
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = LogNat(Y) >= 2
@@ -50,7 +50,7 @@ def test_solver_2_open():
     solution = Singletons.EmptySet
 
     expr = (sympy.log(X) > 2) & (X < sympy.exp(2))
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = (LogNat(Y) > 2) & (Y < sympy.exp(2))
@@ -62,7 +62,7 @@ def test_solver_2_closed():
     solution = sympy.FiniteSet(sympy.exp(2))
 
     expr = (sympy.log(X) >= 2) & (X <= sympy.exp(2))
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = (LogNat(Y) >= 2) & (Y <= sympy.exp(2))
@@ -74,7 +74,7 @@ def test_solver_4():
     solution = Singletons.Reals
 
     expr = (X >= 0) | (X <= 0)
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = (Y >= 0) | (Y <= 0)
@@ -86,7 +86,7 @@ def test_solver_5_open():
     solution = Interval.open(3-10, (4-10)/2)
 
     expr = ((2*X + 10) < 4) & (X + 10 > 3)
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = ((2*Y + 10) < 4) & (Y + 10 > 3)
@@ -98,7 +98,7 @@ def test_solver_5_ropen():
     solution = Interval.Ropen(3-10, (4-10)/2)
 
     expr = ((2*X + 10) < 4) & (X + 10 >= 3)
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = ((2*Y + 10) < 4) & (Y + 10 >= 3)
@@ -110,7 +110,7 @@ def test_solver_5_lopen():
     solution =Interval.Lopen(3-10, (4-10)/2)
 
     expr = ((2*X + 10) <= 4) & (X + 10 > 3)
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = ((2*Y + 10) <= 4) & (Y + 10 > 3)
@@ -124,7 +124,7 @@ def test_solver_6():
         Interval.open(1 + sympy.sqrt(11), oo))
 
     expr = (X**2 - 2*X) > 10
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = (Y**2 - 2*Y) > 10
@@ -135,13 +135,13 @@ def test_solver_7():
     # Illegal expression, cannot express in our custom DSL.
     expr = (X**2 - 2*X + sympy.exp(X)) > 10
     with pytest.raises(ValueError):
-        solver(expr)
+        sympy_solver(expr)
 
 def test_solver_8():
     Z = sympy.symbols('Z')
     expr = (X + Z < 3)
     with pytest.raises(ValueError):
-        solver(expr)
+        sympy_solver(expr)
 
     Z = Identity('Z')
     event = (Y + Z) < 3
@@ -157,14 +157,14 @@ def test_solver_9_open():
 
     expr = 2*(sympy.log(X))**3 - sympy.log(X) - 5 > 0
     with pytest.raises(ValueError):
-        assert solver(expr) == solution
+        assert sympy_solver(expr) == solution
 
     # Our solver handles this case as follows
     # expr' = 2*Z**3 - Z - 5 > 0 [[subst. Z=log(X)]]
-    # [Z_low, Z_high] = solver(expr')
+    # [Z_low, Z_high] = sympy_solver(expr')
     #       Z_low < Z iff Z_low < log(X) iff exp(Z_low) < X
     #       Z < Z_high iff log(X) < Z_high iff X < exp(Z_high)
-    # solver(expr) = [exp(Z_low), exp(Z_high)]
+    # sympy_solver(expr) = [exp(Z_low), exp(Z_high)]
     # For F invertible, can thus solve Poly(coeffs, F) > 0 using this method.
     event = 2*(LogNat(Y))**3 - LogNat(Y) - 5 > 0
     answer = event.solve()
@@ -179,7 +179,7 @@ def test_solver_9_closed():
 
     expr = 2*(sympy.log(X))**3 - sympy.log(X) -5 > 0
     with pytest.raises(ValueError):
-        assert solver(expr) == solution
+        assert sympy_solver(expr) == solution
 
     event = 2*(LogNat(Y))**3 - LogNat(Y) - 5 >= 0
     answer = event.solve()
@@ -225,7 +225,7 @@ def test_solver_12():
         Interval.open(Rat(169, 4), oo))
 
     expr = 2*sympy.sqrt(sympy.Abs(X)) - 3 > 10
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = (2*Sqrt(abs(Y)) - 3) > 10
@@ -239,7 +239,7 @@ def test_solver_13():
         Interval.open(Rat(13, 2), oo))
 
     expr = 2*sympy.sqrt(sympy.Abs(X)**2) - 3 > 10
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = (2*Sqrt(abs(Y)**2) - 3) > 10
@@ -253,7 +253,7 @@ def test_solver_14():
         Interval.open(sympy.sqrt(10), oo))
 
     expr = X**2 > 10
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = Y**2 > 10
@@ -265,7 +265,7 @@ def test_solver_15():
     solution = Interval.open(-27*sympy.sqrt(3), 27*sympy.sqrt(3))
 
     expr = ((X**4))**(Rat(1, 7)) < 9
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     with pytest.raises(AssertionError):
         # SymPy handles exponents unclearly.
         # Exponent laws with negative numbers are subtle.
@@ -280,7 +280,7 @@ def test_solver_16():
     solution = Interval.Ropen(0, 27*sympy.sqrt(3))
 
     expr = ((X**Rat(1,7)))**4 < 9
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     with pytest.raises(AssertionError):
         # SymPy handles exponents unclearly.
         # Exponent laws with negative numbers are subtle.
@@ -297,7 +297,7 @@ def test_solver_17():
         (X - sympy.sqrt(2)/10) * (X+Rat(10, 7)) * (X - sympy.sqrt(5)),
         X)
     expr = p.args[0] < 1
-    solver(expr)
+    sympy_solver(expr)
 
 def test_solver_18():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
@@ -339,7 +339,7 @@ def test_solver_20():
         Interval.open(sympy.sqrt(3), sympy.sqrt(3 + sympy.exp(5))))
 
     expr = sympy.log(X**2 - 3) < 5
-    answer = solver(expr)
+    answer = sympy_solver(expr)
     assert answer == solution
 
     event = LogNat(Y**2 - 3) < 5
@@ -361,7 +361,7 @@ def test_solver_21__ci_():
     with pytest.raises(ValueError):
         term = sympy.log(X**3 - 3*X + 3)
         expr = (1 < term) & (term < 5)
-        answer = solver(expr)
+        answer = sympy_solver(expr)
 
     expr = LogNat(Y**3 - 3*Y + 3)
     event = ((1 <= expr) & (expr < 5))

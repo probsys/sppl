@@ -3,6 +3,8 @@
 
 import sympy
 
+from sympy.core.relational import Relational
+
 EmptySet = sympy.S.EmptySet
 Infinities = sympy.FiniteSet(-sympy.oo, sympy.oo)
 
@@ -43,3 +45,31 @@ def sympify_number(x):
         return sym
     except (sympy.SympifyError, TypeError):
         raise TypeError(msg)
+
+def sympy_solver(expr):
+    # Sympy is buggy and slow.  Use Transforms.
+    symbols = get_symbols(expr)
+    if len(symbols) != 1:
+        raise ValueError('Expression "%s" needs exactly one symbol.' % (expr,))
+
+    if isinstance(expr, Relational):
+        result = sympy.solveset(expr, domain=Reals)
+    elif isinstance(expr, sympy.Or):
+        subexprs = expr.args
+        intervals = [sympy_solver(e) for e in subexprs]
+        result = sympy.Union(*intervals)
+    elif isinstance(expr, sympy.And):
+        subexprs = expr.args
+        intervals = [sympy_solver(e) for e in subexprs]
+        result = sympy.Intersection(*intervals)
+    elif isinstance(expr, sympy.Not):
+        (notexpr,) = expr.args
+        interval = sympy_solver(notexpr)
+        result = interval.complement(Reals)
+    else:
+        raise ValueError('Expression "%s" has unknown type.' % (expr,))
+
+    if isinstance(result, sympy.ConditionSet):
+        raise ValueError('Expression "%s" is not invertible.' % (expr,))
+
+    return result
