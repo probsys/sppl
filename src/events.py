@@ -75,14 +75,14 @@ class EventBasic(Event):
             return EventAnd(events)
         if isinstance(event, (EventBasic, EventOr)):
             return EventAnd([self, event])
-        raise NotImplementedError()
+        return NotImplemented
     def __or__(self, event):
         if isinstance(event, EventOr):
             events = (self,) + event.events
             return EventOr(events)
         if isinstance(event, (EventBasic, EventAnd)):
             return EventOr([self, event])
-        raise NotImplementedError()
+        return NotImplemented
     def __eq__(self, event):
         return isinstance(event, type(self)) \
             and (self.values == event.values) \
@@ -166,7 +166,7 @@ class EventOr(Event):
         if isinstance(event, (EventBasic, EventOr)):
             events = (self, event)
             return EventAnd(events)
-        raise NotImplementedError()
+        return NotImplemented
     def __or__(self, event):
         if isinstance(event, EventOr):
             events = self.events + event.events
@@ -174,7 +174,7 @@ class EventOr(Event):
         if isinstance(event, (EventBasic, EventAnd)):
             events = self.events + (event,)
             return EventOr(events)
-        raise NotImplementedError()
+        return NotImplemented
     def __eq__(self, event):
         return isinstance(event, EventOr) and (self.events == event.events)
     def __invert__(self):
@@ -215,7 +215,7 @@ class EventAnd(Event):
         if isinstance(event, (EventBasic, EventOr)):
             events = self.events + (event,)
             return EventAnd(events)
-        raise NotImplementedError()
+        return NotImplemented
     def __or__(self, event):
         if isinstance(event, EventOr):
             events = (self,) + event.events
@@ -223,7 +223,7 @@ class EventAnd(Event):
         if isinstance(event, (EventBasic, EventAnd)):
             events = (self, event)
             return EventOr(events)
-        raise NotImplementedError()
+        return NotImplemented
     def __eq__(self, event):
         return isinstance(event, EventAnd) and (self.events == event.events)
     def __invert__(self):
