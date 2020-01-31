@@ -84,7 +84,7 @@ class Transform(object):
             sym_poly_c = sym_poly_a + sym_poly_b
             coeffs = sym_poly_c.all_coeffs()[::-1]
             return Poly(poly_self.subexpr, coeffs)
-        raise NotImplementedError('Invalid addition %s + %s' % (self, x))
+        raise NotImplementedError('Invalid addition %s + %s' % (str(self), x))
     def __radd__(self, x):
         return self + x
     # Subtraction.
@@ -110,8 +110,7 @@ class Transform(object):
             sym_poly_c = sym_poly_a * sym_poly_b
             coeffs = sym_poly_c.all_coeffs()[::-1]
             return Poly(poly_self.subexpr, coeffs)
-        raise NotImplementedError('Invalid multiplication %s + %s'
-                % (self, x))
+        raise NotImplementedError('Invalid multiply %s + %s' % (str(self), x))
     def __rmul__(self, x):
         return self * x
     # Division.
