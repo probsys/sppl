@@ -15,9 +15,6 @@ from sympy.calculus.util import limit
 from .events import EventFinite
 from .events import EventInterval
 
-from .math_util import isinf_neg
-from .math_util import isinf_pos
-
 from .poly import solve_poly_equality
 from .poly import solve_poly_inequality
 
