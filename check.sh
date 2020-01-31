@@ -20,7 +20,7 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         ./pythenv.sh "$PYTHON" -m pytest -k 'not __ci_' --pyargs sum_product_dsl
     elif [ ${1} = 'ci' ]; then
         ./pythenv.sh "$PYTHON" -m pytest --pyargs sum_product_dsl
-    elif [ {$1} = 'coverage' ]; then
+    elif [ ${1} = 'coverage' ]; then
         ./pythenv.sh coverage run --source=build/ -m pytest --pyargs sum_product_dsl
         coverage html
         coverage report
