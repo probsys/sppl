@@ -14,8 +14,12 @@ def factor_dnf_symbols(event, lookup):
     if isinstance(event, EventBasic):
         # Literal term.
         symbols = event.symbols()
-        key = lookup[symbols[0]]
-        return {key: event}
+        keys = [lookup[s] for s in symbols if s in lookup]
+        if len(keys) == 0:
+            raise ValueError('No key for event: %s' % (str(event),))
+        if len(set(keys)) > 1:
+            raise ValueError('Multiple keys for event %s' % (str(event),))
+        return {keys[0]: event}
 
     if isinstance(event, EventAnd):
         # Product term.
