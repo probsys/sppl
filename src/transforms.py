@@ -194,6 +194,7 @@ class Transform(object):
             return Radical(self, denom)
         if numer == -1:
             return 1 / Radical(self, denom)
+        # TODO: Consider default choice x**(a/b) = (x**(a))**(1/b)
         return NotImplemented
     def __pow__number(self, x):
         x_val = sympify_number(x)
@@ -201,6 +202,10 @@ class Transform(object):
             return self.__pow__integer(x_val)
         if isinstance(x_val, sympy.Rational):
             return self.__pow__rational(x_val)
+        # TODO: Convert floating-point power to rational.
+        # if isinstance(x_val, sympy.Float):
+        #     x_val_rat = sympy.Rational(x_val)
+        #     return self.__pow__rational(x_val_rat)
         raise ValueError(
             'Cannot raise %s to irrational or floating-point power %s'
             % (str(self), x))
