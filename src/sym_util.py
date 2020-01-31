@@ -39,7 +39,7 @@ def sympify_number(x):
     try:
         sym = sympy.sympify(x)
         if not sym.is_number:
-            raise NotImplementedError(msg)
+            raise TypeError(msg)
         return sym
     except (sympy.SympifyError, TypeError):
-        raise NotImplementedError(msg)
+        raise TypeError(msg)

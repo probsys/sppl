@@ -62,26 +62,36 @@ class Transform(object):
     def invert_interval(self, interval):
         # Should be called on subset of range.
         raise NotImplementedError()
+
     # Addition.
-    def __add__(self, x):
+    def __add__number(self, x):
         poly_self = polyify(self)
-        # Is x a constant?
-        try:
-            x_val = sympify_number(x)
-            coeffs_new = list(poly_self.coeffs)
-            coeffs_new[0] += x_val
-            return Poly(poly_self.subexpr, coeffs_new)
-        except NotImplementedError:
-            if not isinstance(x, Transform):
-                raise NotImplementedError('Multiply by scalar or Transform.')
-        # Add polynomial terms whenever subexpressions match.
+        x_val = sympify_number(x)
+        coeffs_new = list(poly_self.coeffs)
+        coeffs_new[0] += x_val
+        return Poly(poly_self.subexpr, coeffs_new)
+    def __add__poly(self, x):
+        poly_self = polyify(self)
         poly_x = polyify(x)
-        if poly_x.subexpr == poly_self.subexpr:
-            sym_poly_a = sympy.Poly(poly_self.symexpr)
-            sym_poly_b = sympy.Poly(poly_x.symexpr)
-            sym_poly_c = sym_poly_a + sym_poly_b
-            coeffs = sym_poly_c.all_coeffs()[::-1]
-            return Poly(poly_self.subexpr, coeffs)
+        if poly_x.subexpr != poly_self.subexpr:
+            raise TypeError('Cannot add %s + %s' % (str(self), x))
+        sym_poly_a = sympy.Poly(poly_self.symexpr)
+        sym_poly_b = sympy.Poly(poly_x.symexpr)
+        sym_poly_c = sym_poly_a + sym_poly_b
+        coeffs = sym_poly_c.all_coeffs()[::-1]
+        return Poly(poly_self.subexpr, coeffs)
+    def __add__(self, x):
+        # Try to add x as a number.
+        try:
+            return self.__add__number(x)
+        except TypeError:
+            pass
+        # Try to add x as a polynomial.
+        try:
+            return self.__add__poly(x)
+        except TypeError:
+            pass
+        # Failed to add.
         raise NotImplementedError('Invalid addition %s + %s' % (str(self), x))
     def __radd__(self, x):
         return self + x
@@ -90,29 +100,39 @@ class Transform(object):
         return self + (-1 * x)
     def __rsub__(self, x):
         return self - x
+
     # Multiplication.
-    def __mul__(self, x):
+    def __mul__number(self, x):
         poly_self = polyify(self)
-        # Is x a constant?
-        try:
-            x_val = sympify_number(x)
-            coeffs = [x_val*c for c in poly_self.coeffs]
-            return Poly(poly_self.subexpr, coeffs)
-        except NotImplementedError:
-            if not isinstance(x, Transform):
-                raise NotImplementedError('Multiply by scalar or Transform.')
-        # Multiply polynomial terms whenever subexpressions match.
+        x_val = sympify_number(x)
+        coeffs = [x_val*c for c in poly_self.coeffs]
+        return Poly(poly_self.subexpr, coeffs)
+    def __mul__poly(self, x):
+        poly_self = polyify(self)
         poly_x = polyify(x)
-        if poly_x.subexpr == poly_self.subexpr:
-            # Multiply polynomial terms whenever subexpressions match.
-            sym_poly_a = sympy.Poly(poly_self.symexpr, symX)
-            sym_poly_b = sympy.Poly(poly_x.symexpr, symX)
-            sym_poly_c = sym_poly_a * sym_poly_b
-            coeffs = sym_poly_c.all_coeffs()[::-1]
-            return Poly(poly_self.subexpr, coeffs)
+        if poly_x.subexpr != poly_self.subexpr:
+            raise TypeError('Cannot multiply %s * %s' % (str(self), x))
+        sym_poly_a = sympy.Poly(poly_self.symexpr, symX)
+        sym_poly_b = sympy.Poly(poly_x.symexpr, symX)
+        sym_poly_c = sym_poly_a * sym_poly_b
+        coeffs = sym_poly_c.all_coeffs()[::-1]
+        return Poly(poly_self.subexpr, coeffs)
+    def __mul__(self, x):
+        # Try to multiply x as a number.
+        try:
+            return self.__mul__number(x)
+        except TypeError:
+            pass
+        # Try to multiply x as a polynomial.
+        try:
+            return self.__mul__poly(x)
+        except TypeError:
+            pass
+        # Failed to multiply
         raise NotImplementedError('Invalid multiply %s + %s' % (str(self), x))
     def __rmul__(self, x):
         return self * x
+
     # Division.
     def __truediv__(self, x):
         x_val = sympify_number(x)
@@ -126,37 +146,53 @@ class Transform(object):
     # Absolute value.
     def __abs__(self):
         return Abs(self)
-    # Exponentiation.
+
+    # Power (self**x).
+    def __pow__integer(self, x):
+        if 0 < x:
+            return Pow(self, x)
+        if x < 0:
+            return 1 / Pow(self, -x)
+        raise NotImplementedError('Cannot raise %s to %s' % (str(self), x))
+    def __pow__rational(self, x):
+        (numer, denom) = x.as_numer_denom()
+        if numer == 1:
+            return Radical(self, denom)
+        if numer == -1:
+            return 1 / Radical(self, denom)
+        raise NotImplementedError('Cannot raise %s to fractional power %s'
+            % (str(self), x,))
+    def __pow__number(self, x):
+        x_val = sympify_number(x)
+        if isinstance(x_val, sympy.Integer):
+            return self.__pow__integer(x_val)
+        if isinstance(x_val, sympy.Rational):
+            return self.__pow__rational(x_val)
+        raise NotImplementedError(
+            'Cannot raise %s to irrational or floating-point power %s'
+            % (str(self), x))
     def __pow__(self, x):
         try:
-            x_val = sympify_number(x)
-            if isinstance(x_val, sympy.Integer):
-                if 0 < x:
-                    return Pow(self, x_val)
-                if x < 0:
-                    return 1 / Pow(self, -x_val)
-                raise NotImplementedError('Cannot raise %s to %s' % (str(self), x))
-            if isinstance(x_val, sympy.Rational):
-                (numer, denom) = x_val.as_numer_denom()
-                if numer == 1:
-                    return Radical(self, denom)
-                if numer == -1:
-                    return 1 / Radical(self, denom)
-                raise NotImplementedError(
-                    'Cannot raise %s to fractional power %s' % (str(self), x,))
-            raise NotImplementedError(
-                'Cannot raise %s to irrational or floating-point power %s'
-                % (str(self), x))
-        except NotImplementedError:
-            if not isinstance(x, Transform):
-                raise NotImplementedError('Divide by scalar or Transform.')
-        # Return a non-invertible power.
-        return PowSym(self, x)
-    def __rpow__(self, x):
+            return self.__pow__number(x)
+        except TypeError:
+            pass
+        # Failed to exponentiate.
+        raise NotImplementedError('Cannot raise %s to %s' % (str(self), x))
+
+    # Exponentiation (x**self)
+    def __rpow__number(self, x):
         x_val = sympify_number(x)
         if x_val <= 0:
             raise NotImplementedError('Base must be positive, not %s' % (x,))
         return Exp(self, x_val)
+    def __rpow__(self, x):
+        try:
+            return self.__rpow__number(x)
+        except TypeError:
+            pass
+        # Failed to exponentiate.
+        raise NotImplementedError('Cannot raise %s to %s' % (x, str(self)))
+
     # Comparison.
     def __le__(self, x):
         # self <= x
@@ -178,6 +214,7 @@ class Transform(object):
         x_val = sympify_number(x)
         interval = sympy.Interval(x_val, oo, left_open=True)
         return EventInterval(self, interval)
+
     # Containment
     def __lshift__(self, x):
         if isinstance(x, ContainersFinite):
