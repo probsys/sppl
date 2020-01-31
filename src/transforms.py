@@ -265,15 +265,15 @@ class Identity(Injective):
         return ExtReals
     def range(self):
         return ExtReals
+    def evaluate(self, x):
+        assert x in self.domain()
+        return x
     def ffwd(self, x):
         assert x in self.domain()
         return x
     def finv(self, x):
         if not x in self.range():
             return EmptySet
-        return x
-    def evaluate(self, x):
-        assert x in self.domain()
         return x
     def invert_finite(self, values):
         return values
