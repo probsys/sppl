@@ -16,6 +16,10 @@ from sum_product_dsl.transforms import Pow
 from sum_product_dsl.transforms import Radical
 from sum_product_dsl.transforms import Reciprocal
 
+from sum_product_dsl.transforms import AddSym
+from sum_product_dsl.transforms import MulSym
+from sum_product_dsl.transforms import PowSym
+
 from sum_product_dsl.transforms import ExpNat
 from sum_product_dsl.transforms import LogNat
 from sum_product_dsl.transforms import Sqrt
@@ -110,14 +114,18 @@ def test_parse_6():
     assert expr == event
 
 def test_parse_7():
-    # Illegal expression, cannot express in our custom DSL.
-    with pytest.raises(NotImplementedError):
-        (X**2 - 2*X + ExpNat(X)) > 10
+    expr = (X**2 - 2*X + ExpNat(X))
+    assert expr == AddSym(Poly(X, [0, -2, 1]), ExpNat(X))
+
+    expr = X**2 - (2*X + ExpNat(X))
+    assert expr == AddSym(
+        X**2, Poly(AddSym(Poly(X, [0, 2]), ExpNat(X)), [0, -1]))
 
 def test_parse_8():
     Z = Identity('Z')
-    with pytest.raises(NotImplementedError):
-        (X + Z) < 3
+    expr = (X + Z) < 3
+    event = EventInterval(AddSym(X, Z), Interval.open(-oo, 3))
+    assert expr == event
 
 def test_parse_9_open():
     # 2(log(x))**3 - log(x) -5 > 0
@@ -128,9 +136,14 @@ def test_parse_9_open():
     event = EventInterval(expr, Interval.open(0, oo))
     assert (expr > 0) == event
 
-    # In principle can be solved by simplification.
-    with pytest.raises(NotImplementedError):
-        (2*LogNat(X))**3 - LogNat(X) - 5
+    expr = (2*LogNat(X))**3 - LogNat(X) - 5
+    assert expr == Poly(
+        AddSym(
+            Poly(2*LogNat(X), [0, 0, 0, 1]),
+            Poly(LogNat(X), [0, -1])
+            ),
+        [-5, 1]
+    )
 
 def test_parse_10():
     # exp(sqrt(log(x))) > -5
@@ -256,34 +269,69 @@ def test_parse_21__ci_():
 def test_parse_24_negative_power():
     assert X**(-3) == Reciprocal(Pow(X, 3))
     assert X**(-Rat(1, 3)) == Reciprocal(Radical(X, 3))
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError):
         X**0
 
+cases = [
+    [1 + LogNat(X) - ExpNat(X)              , AddSym],
+    [LogNat(X) * X                          , MulSym],
+    [LogNat(X) ** ExpNat(X)                 , PowSym],
+    [(2*LogNat(X)) - Rat(1, 10) * Abs(X)    , AddSym],
+    [((2*LogNat(X)) - Rat(1, 10)) * Abs(X)  , MulSym],
+]
+@pytest.mark.parametrize('expr, tp', cases)
+def test_non_invertible_types(expr, tp):
+    assert isinstance(expr, tp)
+
+def test_non_invertible_division():
+    assert X**2 / X == MulSym(X**2, Reciprocal(X))
+
+def test_non_invertible_wrap():
+    expr = (Abs(X)*X)**2
+    assert expr == Poly(MulSym(Abs(X), X), [0, 0, 1])
+
+    Z = Identity('Z')
+    expr = (abs(X+Z))**2 + .5*(abs(X+Z)) - 1
+    assert expr == Poly(Abs(AddSym(X, Z)), [-1, .5, 1])
+
+    expr = abs(X*Z)**Rat(-1, 2)
+    assert expr == Reciprocal(Radical(Abs(MulSym(X, Z)), 2))
+
 def test_errors():
-    with pytest.raises(NotImplementedError):
-        1 + LogNat(X) - ExpNat(X)
-    with pytest.raises(NotImplementedError):
-        LogNat(X) ** ExpNat(X)
-    with pytest.raises(NotImplementedError):
+    # Correct types but incorrect values.
+    with pytest.raises(ValueError):
         Abs(X) ** sympy.sqrt(10)
-    with pytest.raises(NotImplementedError):
-        LogNat(X) * X
-    with pytest.raises(NotImplementedError):
-        (2*LogNat(X)) - Rat(1, 10) * Abs(X)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError):
         X**(1.71)
-    with pytest.raises(NotImplementedError):
+    with pytest.raises(ValueError):
         (-3)**X
+
+    # TypeErrors from 'return NotImplemented'.
+    with pytest.raises(TypeError):
+        X + 'a'
+    with pytest.raises(TypeError):
+        X * 'a'
+    with pytest.raises(TypeError):
+        X / 'a'
+    with pytest.raises(TypeError):
+        X**'s'
+
 
 def test_add_polynomials_power_one():
     # TODO: Update parser to handle this edge case.
     Z = X**5
-    with pytest.raises(NotImplementedError):
-        # GOTCHA: The expression Z**2 is of type Poly(subexpr=Poly)
-        # But Z if of type Poly(subexpr=Id)
-        Z**2 + Z
+
+    # GOTCHA: The expression Z**2 is of type Poly(subexpr=Poly)
+    # But Z if of type Poly(subexpr=Id),
+    # Thus the resulting expression is AddSym
+    expr = Z**2 + Z
+    assert expr == AddSym(
+        Poly(Poly(X, [0, 0, 0, 0, 0, 1]), [0, 0, 1]),
+        Poly(X, [0, 0, 0, 0, 0, 1]))
+
     # Raise Z to power one to embed in a polynomial.
-    Z**2 + Z**1
+    expr = Z**2 + Z**1
+    assert expr == Poly(X**5, [0, 1, 1])
 
 def test_negate_polynomial():
     assert -(X**2 + 2) == Poly(X, [-2, 0, -1])

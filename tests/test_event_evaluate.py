@@ -5,12 +5,8 @@ import pytest
 
 import sympy
 
-from sympy import oo
-
 from sum_product_dsl.transforms import Identity
-from sum_product_dsl.transforms import ExpNat
-from sum_product_dsl.transforms import LogNat
-from sum_product_dsl.transforms import Identity
+from sum_product_dsl.transforms import LogSym
 
 
 X = Identity('X')
@@ -18,7 +14,7 @@ Y = Identity('Y')
 W = Identity('W')
 Z = Identity('Z')
 
-def test_event_basic():
+def test_event_basic_invertible():
     expr = X**2 + 10*X
 
     event = (0 < expr)
@@ -48,6 +44,21 @@ def test_event_basic():
 
     with pytest.raises(ValueError):
         event.evaluate({Y: 10})
+
+def test_event_basic_noninvertible():
+    event = (0 < abs(X + Y)) < 10
+    assert event.evaluate({X: 1, Y: 1})
+    assert not event.evaluate({X: 0, Y: 0})
+
+    event = (0 < (X + Y)**2 + (X+Y)) < 10
+    assert event.evaluate({X: 1, Y: 1})
+    assert not event.evaluate({X: 0, Y: 0})
+
+    event = LogSym(X, Y) << {-1}
+    assert event.evaluate({X: sympy.Rational(1, 2), Y: 2})
+
+    event = LogSym(X, Y)**2 << {1}
+    assert event.evaluate({X: sympy.Rational(1, 2), Y: 2})
 
 def test_event_compound():
     expr0 = abs(X)**2 + 10*abs(X)
