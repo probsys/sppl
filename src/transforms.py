@@ -75,10 +75,11 @@ class Transform(object):
             coeffs_new[0] += x_val
             return Poly(poly_self.subexpr, coeffs_new)
         except NotImplementedError:
-            pass
+            if not isinstance(x, Transform):
+                raise NotImplementedError('Multiply by scalar or Transform.')
+        # Add polynomial terms whenever subexpressions match.
         poly_x = polyify(x)
         if poly_x.subexpr == poly_self.subexpr:
-            # Add polynomial terms whenever subexpressions match.
             sym_poly_a = sympy.Poly(poly_self.symexpr)
             sym_poly_b = sympy.Poly(poly_x.symexpr)
             sym_poly_c = sym_poly_a + sym_poly_b
@@ -101,7 +102,9 @@ class Transform(object):
             coeffs = [x_val*c for c in poly_self.coeffs]
             return Poly(poly_self.subexpr, coeffs)
         except NotImplementedError:
-            pass
+            if not isinstance(x, Transform):
+                raise NotImplementedError('Multiply by scalar or Transform.')
+        # Multiply polynomial terms whenever subexpressions match.
         poly_x = polyify(x)
         if poly_x.subexpr == poly_self.subexpr:
             # Multiply polynomial terms whenever subexpressions match.
