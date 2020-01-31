@@ -241,26 +241,40 @@ class Transform(object):
         return NotImplemented
 
     # Comparison.
+    # TODO: Considering (X < Y) to mean (X - Y < 0)
+    # Complication: X and Y may not have a natural ordering.
     def __le__(self, x):
         # self <= x
-        x_val = sympify_number(x)
-        interval = sympy.Interval(-oo, x_val)
-        return EventInterval(self, interval)
+        try:
+            x_val = sympify_number(x)
+            interval = sympy.Interval(-oo, x_val)
+            return EventInterval(self, interval)
+        except TypeError:
+            return NotImplemented
     def __lt__(self, x):
         # self < x
-        x_val = sympify_number(x)
-        interval = sympy.Interval(-oo, x_val, right_open=True)
-        return EventInterval(self, interval)
+        try:
+            x_val = sympify_number(x)
+            interval = sympy.Interval(-oo, x_val, right_open=True)
+            return EventInterval(self, interval)
+        except TypeError:
+            return NotImplemented
     def __ge__(self, x):
         # self >= x
-        x_val = sympify_number(x)
-        interval = sympy.Interval(x_val, oo)
-        return EventInterval(self, interval)
+        try:
+            x_val = sympify_number(x)
+            interval = sympy.Interval(x_val, oo)
+            return EventInterval(self, interval)
+        except TypeError:
+            return NotImplemented
     def __gt__(self, x):
         # self > x
-        x_val = sympify_number(x)
-        interval = sympy.Interval(x_val, oo, left_open=True)
-        return EventInterval(self, interval)
+        try:
+            x_val = sympify_number(x)
+            interval = sympy.Interval(x_val, oo, left_open=True)
+            return EventInterval(self, interval)
+        except TypeError:
+            return NotImplemented
 
     # Containment
     def __lshift__(self, x):

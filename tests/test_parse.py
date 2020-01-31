@@ -419,6 +419,15 @@ def test_event_inequality_parse_errors():
         5 < (~(X < 10))
     with pytest.raises(ValueError):
         (~(X < 5)) < 10
+    # Type mismatch.
+    with pytest.raises(TypeError):
+        X < 'a'
+    with pytest.raises(TypeError):
+        X <= 'a'
+    with pytest.raises(TypeError):
+        X > 'a'
+    with pytest.raises(TypeError):
+        X >= 'a'
 
 def test_event_inequality_string():
     assert str(5 < X) == '5 < X'
