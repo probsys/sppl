@@ -37,7 +37,7 @@ class Transform(object):
         raise NotImplementedError()
     def range(self):
         raise NotImplementedError()
-    def evaluate(self, x):
+    def evaluate(self, assignment):
         raise NotImplementedError()
 
     # Addition.
@@ -207,9 +207,9 @@ class Invertible(Transform):
         raise NotImplementedError()
     def finv(self, x):
         raise NotImplementedError()
-    def evaluate(self, x):
+    def evaluate(self, assignment):
         # pylint: disable=no-member
-        y = self.subexpr.evaluate(x)
+        y = self.subexpr.evaluate(assignment)
         return self.ffwd(y)
     def invert(self, x):
         intersection = sympy.Intersection(self.range(), x)
@@ -265,9 +265,10 @@ class Identity(Injective):
         return ExtReals
     def range(self):
         return ExtReals
-    def evaluate(self, x):
-        assert x in self.domain()
-        return x
+    def evaluate(self, assignment):
+        if self not in assignment:
+            raise ValueError('Cannot evaluate %s on %s' % (str(self), assignment))
+        return self.ffwd(assignment[self])
     def ffwd(self, x):
         assert x in self.domain()
         return x

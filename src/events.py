@@ -60,10 +60,7 @@ class EventBasic(Event):
             return solution.complement(Reals)
         return solution
     def evaluate(self, assignment):
-        sym = self.expr.symbol()
-        if sym not in assignment:
-            raise ValueError('Cannot evaluate %s on %s' % (self, assignment))
-        x_val = self.expr.evaluate(assignment[sym])
+        x_val = self.expr.evaluate(assignment)
         return (x_val in self.values) ^ bool(self.complement)
         # In    Complement
         # T     F               T
