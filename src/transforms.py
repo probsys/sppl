@@ -37,30 +37,7 @@ class Transform(object):
         raise NotImplementedError()
     def range(self):
         raise NotImplementedError()
-    def ffwd(self, x):
-        raise NotImplementedError()
-    def finv(self, x):
-        raise NotImplementedError()
     def evaluate(self, x):
-        # pylint: disable=no-member
-        y = self.subexpr.evaluate(x)
-        return self.ffwd(y)
-    def invert(self, x):
-        intersection = sympy.Intersection(self.range(), x)
-        if intersection is EmptySet:
-            return EmptySet
-        if isinstance(intersection, ContainersFinite):
-            return self.invert_finite(intersection)
-        if isinstance(intersection, sympy.Interval):
-            return self.invert_interval(intersection)
-        if isinstance(intersection, sympy.Union):
-            intervals = [self.invert(y) for y in intersection.args]
-            return sympy.Union(*intervals)
-        assert False, 'Unknown intersection: %s' % (intersection,)
-    def invert_finite(self, values):
-        raise NotImplementedError()
-    def invert_interval(self, interval):
-        # Should be called on subset of range.
         raise NotImplementedError()
 
     # Addition.
@@ -224,7 +201,35 @@ class Transform(object):
             return EventInterval(self, x)
         raise NotImplementedError()
 
-class Injective(Transform):
+class Invertible(Transform):
+    # Transforms which can be forward evaluated and back-solved.
+    def ffwd(self, x):
+        raise NotImplementedError()
+    def finv(self, x):
+        raise NotImplementedError()
+    def evaluate(self, x):
+        # pylint: disable=no-member
+        y = self.subexpr.evaluate(x)
+        return self.ffwd(y)
+    def invert(self, x):
+        intersection = sympy.Intersection(self.range(), x)
+        if intersection is EmptySet:
+            return EmptySet
+        if isinstance(intersection, ContainersFinite):
+            return self.invert_finite(intersection)
+        if isinstance(intersection, sympy.Interval):
+            return self.invert_interval(intersection)
+        if isinstance(intersection, sympy.Union):
+            intervals = [self.invert(y) for y in intersection.args]
+            return sympy.Union(*intervals)
+        assert False, 'Unknown intersection: %s' % (intersection,)
+    def invert_finite(self, values):
+        raise NotImplementedError()
+    def invert_interval(self, interval):
+        # Should be called on subset of range.
+        raise NotImplementedError()
+
+class Injective(Invertible):
     # Injective (one-to-one) transforms.
     def invert_finite(self, values):
         # pylint: disable=no-member
@@ -239,13 +244,16 @@ class Injective(Transform):
         # pylint: disable=no-member
         return self.subexpr.invert(interval_prime)
 
-class NonInjective(Transform):
+class NonInjective(Invertible):
     # Non-injective (many-to-one) transforms.
     def invert_finite(self, values):
         # pylint: disable=no-member
         values_prime_list = [self.finv(x) for x in values]
         values_prime = set(chain.from_iterable(values_prime_list))
         return self.subexpr.invert(values_prime)
+    def invert_interval(self, interval):
+        # Should be called on subset of range.
+        raise NotImplementedError()
 
 class Identity(Injective):
     def __init__(self, token):
