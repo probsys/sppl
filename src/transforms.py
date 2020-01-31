@@ -95,11 +95,6 @@ class Transform(object):
         raise NotImplementedError('Invalid addition %s + %s' % (str(self), x))
     def __radd__(self, x):
         return self + x
-    # Subtraction.
-    def __sub__(self, x):
-        return self + (-1 * x)
-    def __rsub__(self, x):
-        return self - x
 
     # Multiplication.
     def __mul__number(self, x):
@@ -140,6 +135,12 @@ class Transform(object):
     def __rtruediv__(self, x):
         x_val = sympify_number(x)
         return Reciprocal(self) if (x_val == 1) else x_val * Reciprocal(self)
+
+    # Subtraction.
+    def __sub__(self, x):
+        return self + (-1 * x)
+    def __rsub__(self, x):
+        return self - x
     # Negation.
     def __neg__(self):
         return -1 * self
