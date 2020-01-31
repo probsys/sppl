@@ -569,7 +569,7 @@ class Poly(NonInjective):
             % (repr(self.coeffs), repr(self.subexpr))
     def __str__(self):
         ss = str(self.subexpr)
-        def make_term(i, c):
+        def term_to_str(i, c):
             if c == 0:
                 return ''
             if i == 0:
@@ -580,7 +580,7 @@ class Poly(NonInjective):
                 return '%s*(%s)**%d' % (str(c), ss, i) if c != 1 \
                     else '(%s)**%d' % (ss, i)
             assert False
-        terms = [make_term(i, c)  for i, c in enumerate(self.coeffs)]
+        terms = [term_to_str(i, c)  for i, c in enumerate(self.coeffs)]
         return ' + '.join([t for t in terms if t])
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.coeffs)
