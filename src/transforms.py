@@ -203,9 +203,9 @@ class NonInjective(Transform):
         return self.subexpr.invert(values_prime)
 
 class Identity(Injective):
-    def __init__(self, symbol):
-        assert isinstance(symbol, str)
-        self.symb = symbol
+    def __init__(self, token):
+        assert isinstance(token, str)
+        self.token = token
     def symbol(self):
         return self
     def domain(self):
@@ -227,13 +227,13 @@ class Identity(Injective):
     def invert_interval(self, interval):
         return interval
     def __eq__(self, x):
-        return isinstance(x, Identity) and self.symb == x.symb
+        return isinstance(x, Identity) and self.token == x.token
     def __repr__(self):
-        return 'Identity(%s)' % (repr(self.symb),)
+        return 'Identity(%s)' % (repr(self.token),)
     def __str__(self):
-        return self.symb
+        return self.token
     def __hash__(self):
-        x = (self.__class__, self.symb)
+        x = (self.__class__, self.token)
         return hash(x)
 
 class Abs(NonInjective):
