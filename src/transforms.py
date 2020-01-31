@@ -146,7 +146,9 @@ class Transform(object):
                 return 1 / Radical(self, denom)
             raise NotImplementedError(
                 'Cannot raise %s to fractional power %s' % (str(self), x,))
-        raise NotImplementedError('Cannot raise %s to %s' % (str(self), x))
+        raise NotImplementedError(
+            'Cannot raise %s to irrational or floating-point power %s'
+            % (str(self), x))
     def __rpow__(self, x):
         x_val = sympify_number(x)
         return Exp(self, x_val)
