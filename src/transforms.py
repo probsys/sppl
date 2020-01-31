@@ -128,26 +128,34 @@ class Transform(object):
         return Abs(self)
     # Exponentiation.
     def __pow__(self, x):
-        x_val = sympify_number(x)
-        if isinstance(x_val, sympy.Integer):
-            if 0 < x:
-                return Pow(self, x_val)
-            if x < 0:
-                return 1 / Pow(self, -x_val)
-            raise NotImplementedError('Cannot raise %s to %s' % (str(self), x))
-        if isinstance(x_val, sympy.Rational):
-            (numer, denom) = x_val.as_numer_denom()
-            if numer == 1:
-                return Radical(self, denom)
-            if numer == -1:
-                return 1 / Radical(self, denom)
+        try:
+            x_val = sympify_number(x)
+            if isinstance(x_val, sympy.Integer):
+                if 0 < x:
+                    return Pow(self, x_val)
+                if x < 0:
+                    return 1 / Pow(self, -x_val)
+                raise NotImplementedError('Cannot raise %s to %s' % (str(self), x))
+            if isinstance(x_val, sympy.Rational):
+                (numer, denom) = x_val.as_numer_denom()
+                if numer == 1:
+                    return Radical(self, denom)
+                if numer == -1:
+                    return 1 / Radical(self, denom)
+                raise NotImplementedError(
+                    'Cannot raise %s to fractional power %s' % (str(self), x,))
             raise NotImplementedError(
-                'Cannot raise %s to fractional power %s' % (str(self), x,))
-        raise NotImplementedError(
-            'Cannot raise %s to irrational or floating-point power %s'
-            % (str(self), x))
+                'Cannot raise %s to irrational or floating-point power %s'
+                % (str(self), x))
+        except NotImplementedError:
+            if not isinstance(x, Transform):
+                raise NotImplementedError('Divide by scalar or Transform.')
+        # Return a non-invertible power.
+        return PowSym(self, x)
     def __rpow__(self, x):
         x_val = sympify_number(x)
+        if x_val <= 0:
+            raise NotImplementedError('Base must be positive, not %s' % (x,))
         return Exp(self, x_val)
     # Comparison.
     def __le__(self, x):

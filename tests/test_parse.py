@@ -272,6 +272,8 @@ def test_errors():
         (2*LogNat(X)) - Rat(1, 10) * Abs(X)
     with pytest.raises(NotImplementedError):
         X**(1.71)
+    with pytest.raises(NotImplementedError):
+        (-3)**X
 
 def test_add_polynomials_power_one():
     # TODO: Update parser to handle this edge case.
