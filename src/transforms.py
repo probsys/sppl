@@ -356,7 +356,7 @@ class Identity(Injective):
             raise ValueError('Cannot evaluate %s on %s' % (str(self), assignment))
         return self.ffwd(assignment[self])
     def ffwd(self, x):
-        assert x in self.domain()
+        # assert x in self.domain()
         return x
     def finv(self, x):
         if not x in self.range():
