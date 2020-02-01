@@ -1,4 +1,4 @@
-# Copyright 2019 MIT Probabilistic Computing Project.
+# Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
 from collections import Counter

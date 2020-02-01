@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2019 MIT Probabilistic Computing Project.
+# Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
 import os
