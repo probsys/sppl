@@ -2,6 +2,7 @@
 # See LICENSE.txt
 
 from collections import Counter
+from fractions import Fraction
 from functools import reduce
 from itertools import chain
 
@@ -17,6 +18,8 @@ from sympy import to_dnf
 from .dnf import factor_dnf_symbols
 
 from .math_util import allclose
+from .math_util import flip
+from .math_util import isinf_neg
 from .math_util import logdiffexp
 from .math_util import logflip
 from .math_util import lognorm
@@ -34,6 +37,7 @@ from .sym_util import are_identical
 from .sym_util import get_intersection
 from .sym_util import get_symbols
 from .sym_util import get_union
+from .sym_util import sym_log
 
 from .transforms import Identity
 
@@ -238,64 +242,69 @@ class NumericDistribution(Distribution):
         return logdiffexp(self.logcdf(xh), self.logcdf(xl))
 
     def condition(self, event):
-        expression = sympy_solver(event)
-        support = Intersection(self.support, expression)
-        if support == EmptySet:
+        interval = event.solve()
+        values = Intersection(self.support, interval)
+        if values is EmptySet:
             raise ValueError('Event "%s" does overlap with support "%s"'
                 % (event, self.support))
 
-        if isinstance(expression, Interval):
-            return NumericDistribution(self.symbol, self.dist, support, True)
-        elif isinstance(expression, Union):
-            intervals = expression.args
+        if isinstance(values, Interval):
+            return NumericDistribution(self.symbol, self.dist, values, True)
+
+        if isinstance(values, Union):
             distributions = [
-                NumericDistribution(self.symbol, self.dist, interval, True)
-                for interval in intervals
+                NumericDistribution(self.symbol, self.dist, v, True)
+                for v in values.args
             ]
-            weights_unorm = [self._logcdf_interval(i) for i in intervals]
+            weights_unorm = [self.logcdf_interval(v) for v in values.args]
             weights = lognorm(weights_unorm)
             return MixtureDistribution(distributions, weights)
-        else:
-            assert False, 'Unknown expression type: %s' % (expression,)
+
+        assert False, 'Unknown set type: %s' % (interval,)
 
 class NominalDistribution(Distribution):
     """Probability distribution on set of unordered, non-numeric atoms."""
 
     def __init__(self, symbol, dist):
+        assert isinstance(symbol, Identity)
         self.symbol = symbol
-        self.symbols = frozenset({symbol})
-        self.dist = dict(dist)
-        self.support = frozenset(dist.keys())
-        self.outcomes = list(dist.keys())
-        self.weights = list(dist.values())
-        assert allclose(sum(self.weights),  1)
+        self.dist = {x: Fraction(w) for x, w in dist.items()}
+        # Derived attributes.
+        self.support = frozenset(self.dist)
+        self.outcomes = list(self.dist.keys())
+        self.weights = [float(x) for x in self.dist.values()]
+        assert allclose(float(sum(self.weights)),  1)
+
+    def get_symbols(self):
+        return {self.symbol}
 
     def logpdf(self, x):
-        return self.dist.get(x, -inf)
+        return sym_log(self.dist[x]) if x in self.dist else -inf
 
     def logprob(self, event):
-        _, logp = self._logprob(event)
-        return logp
-
-    def _logprob(self, event):
         values = simplify_nominal_event(event, self.support)
-        logp = sum(self.logpdf(x) for x in values)
-        return (values, logp)
+        p_event = sum(self.dist[x] for x in values)
+        return sym_log(p_event)
 
     def condition(self, event):
-        values, logp = self._logprob(event)
-        if logp == -inf:
+        values = simplify_nominal_event(event, self.support)
+        p_event = sum([self.dist[x] for x in values])
+        if isinf_neg(p_event):
             raise ValueError('Cannot condition on zero probability event: %s'
-                % (event,))
-        dist = {x: self.logpdf(x) - logp for x in values}
+                % (str(event),))
+        dist = {
+            x : (self.dist[x] / p_event) if x in values else 0
+            for x in self.outcomes
+        }
         return NominalDistribution(self.symbol, dist)
 
     def sample(self, N, rng):
-        return logflip(self.weights, self.support, N, rng)
+        # TODO: Replace with FLDR.
+        return flip(self.weights, self.outcomes, N, rng)
 
     def sample_expr(self, expr, N, rng):
         samples = self.sample(N, rng)
-        return [expr.xreplace({self.symbol: sample}) for sample in samples]
+        return [expr.evaluate({self.symbol: sample}) for sample in samples]
 
 def simplify_nominal_event(event, support):
     if isinstance(event, EventInterval):
@@ -313,4 +322,4 @@ def simplify_nominal_event(event, support):
     if isinstance(event, EventOr):
         values = [simplify_nominal_event(e, support) for e in event.events]
         return get_union(values)
-    assert False, 'Unknown event %s' % (event,)
+    assert False, 'Unknown event %s' % (str(event),)

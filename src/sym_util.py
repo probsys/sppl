@@ -1,6 +1,8 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from math import isinf
+
 import sympy
 
 from sympy.core.relational import Relational
@@ -45,6 +47,14 @@ def sympify_number(x):
         return sym
     except (sympy.SympifyError, TypeError):
         raise TypeError(msg)
+
+def sym_log(x):
+    assert 0 <= x
+    if x == 0:
+        return -float('inf')
+    if isinf(x):
+        return float('inf')
+    return sympy.log(x)
 
 def sympy_solver(expr):
     # Sympy is buggy and slow.  Use Transforms.
