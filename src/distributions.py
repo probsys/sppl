@@ -20,6 +20,7 @@ from .dnf import factor_dnf_symbols
 from .math_util import allclose
 from .math_util import flip
 from .math_util import isinf_neg
+from .math_util import isinf_pos
 from .math_util import logdiffexp
 from .math_util import logflip
 from .math_util import lognorm
@@ -30,8 +31,7 @@ from .events import EventFinite
 from .events import EventInterval
 from .events import EventOr
 
-from .sym_util import sympy_solver
-
+from .sym_util import ContainersFinite
 from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_intersection
@@ -72,7 +72,10 @@ class MixtureDistribution(Distribution):
         symbols = [d.get_symbols() for d in distributions]
         assert are_identical(symbols), \
             'Distributions in Mixture must have identical symbols.'
-        self.symbols = distributions[0].symbols
+        self.symbols = self.distributions[0].get_symbols()
+
+    def get_symbols(self):
+        return self.symbols
 
     def sample(self, N, rng):
         selections = logflip(self.weights, self.indexes, N, rng)
@@ -172,50 +175,60 @@ class ProductDistribution(Distribution):
 class NumericDistribution(Distribution):
     """Univariate probability distribution on a single real interval."""
 
-    def __init__(self, symbol, dist, support, conditioned):
-        assert isinstance(support, Interval)
+    def __init__(self, symbol, dist, support, conditioned=None):
+        assert isinstance(symbol, Identity)
+        self.symbol = symbol
         self.dist = dist
         self.support = support
         self.conditioned = conditioned
+        # Derived attributes.
         self.xl = float(support.start)
         self.xu = float(support.end)
         if conditioned:
-            logp_lower = dist.logcdf(self.xl)
-            logp_upper = dist.logcdf(self.xu)
-            self.logZ = logdiffexp(logp_upper, logp_lower)
-            self.Fl = dist.cdf(self.xl)
-            self.Fu = dist.cdf(self.xu)
+            self.Fl = self.dist.cdf(self.xl)
+            self.Fu = self.dist.cdf(self.xu)
+            self.logFl = self.dist.logcdf(self.xl)
+            self.logFu = self.dist.logcdf(self.xu)
+            self.logZ = logdiffexp(self.logFu, self.logFl)
         else:
-            self.logZ = 1
+            self.logFl = -inf
+            self.logFu = 0
             self.Fl = 0
             self.Fu = 1
-        self.symbol = symbol
-        self.symbols = frozenset({symbol})
+            self.logZ = 1
+
+    def get_symbols(self):
+        return frozenset({self.symbol})
 
     def sample(self, N, rng):
         if not self.conditioned:
-            return self.dist.rvs(size=N, rng=rng)
+            return self.dist.rvs(size=N, random_state=rng)
+        # XXX Method not guaranteed to be numerically stable, see e.g,.
+        # https://www.iro.umontreal.ca/~lecuyer/myftp/papers/truncated-normal-book-chapter.pdf
+        # Also consider using CDF for left tail and SF for right tail.
+        # Example: X ~ N(0,1) can sample X | (X < -10) but not X | (X > 10).
         u = rng.uniform(size=N)
         u_interval = u*self.Fl + (1-u) * self.Fu
         return self.dist.ppf(u_interval)
 
     def sample_expr(self, expr, N, rng):
         samples = self.sample(N, rng)
-        return [expr.xreplace({self.symbol: sample}) for sample in samples]
+        return [expr.evaluate({self.symbol: sample}) for sample in samples]
 
     def logprob(self, event):
-        expression = sympy_solver(event)
-        values = Intersection(self.support, expression)
-        if values == EmptySet:
+        interval = event.solve()
+        values = Intersection(self.support, interval)
+        if values is EmptySet:
+            return -inf
+        if isinstance(values, ContainersFinite):
+            # XXX Assuming no atoms.
             return -inf
         if isinstance(values, Interval):
-            return self._logcdf_interval(values)
-        elif isinstance(values, Union):
-            intervals = values.args
-            logps = [self._logcdf_interval(v) for v in intervals]
+            return self.logcdf_interval(values)
+        if isinstance(values, Union):
+            logps = [self.logcdf_interval(v) for v in values.args]
             return logsumexp(logps)
-        else:
-            assert False, 'Unknown event type: %s' % (event,)
+        assert False, 'Unknown set type: %s' % (values,)
 
     def logcdf(self, x):
         if not self.conditioned:
@@ -234,7 +247,7 @@ class NumericDistribution(Distribution):
             return -inf
         return self.dist.logpdf(x) - self.logZ
 
-    def _logcdf_interval(self, interval):
+    def logcdf_interval(self, interval):
         if interval == EmptySet:
             return -inf
         xl = float(interval.start)
@@ -244,11 +257,18 @@ class NumericDistribution(Distribution):
     def condition(self, event):
         interval = event.solve()
         values = Intersection(self.support, interval)
+
         if values is EmptySet:
-            raise ValueError('Event "%s" does overlap with support "%s"'
+            raise ValueError('Conditioning event "%s" is empty "%s"'
                 % (event, self.support))
 
+        if isinstance(values, ContainersFinite):
+            raise ValueError('Conditioning event "%s" has probability zero' %
+                (event,))
+
         if isinstance(values, Interval):
+            weight = self.logcdf_interval(values)
+            assert -inf < weight
             return NumericDistribution(self.symbol, self.dist, values, True)
 
         if isinstance(values, Union):
@@ -257,6 +277,8 @@ class NumericDistribution(Distribution):
                 for v in values.args
             ]
             weights_unorm = [self.logcdf_interval(v) for v in values.args]
+            # TODO: Normalize the weights with greater precision, e.g.,
+            # https://stats.stackexchange.com/questions/66616/converting-normalizing-very-small-likelihood-values-to-probability
             weights = lognorm(weights_unorm)
             return MixtureDistribution(distributions, weights)
 
