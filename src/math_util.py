@@ -1,19 +1,22 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from math import exp
 from math import isinf
-from math import log
 
 import numpy
 
 from scipy.special import logsumexp
 
-def logdiffexp(x1, x2):
-    M = x1
-    xx1 = x1 - M
-    xx2 = x2 - M
-    return log(exp(xx1) - exp(xx2)) + M
+# Implementation of log1mexp and logdiffexp from PyMC3 math module.
+# https://github.com/pymc-devs/pymc3/blob/master/pymc3/math.py
+def log1mexp(x):
+    if x < 0.683:
+        return numpy.log(-numpy.expm1(-x))
+    else:
+        return numpy.log1p(-numpy.exp(-x))
+
+def logdiffexp(a, b):
+    return a + log1mexp(a - b)
 
 def lognorm(array):
     M = logsumexp(array)

@@ -276,7 +276,7 @@ class NominalDistribution(Distribution):
         assert allclose(float(sum(self.weights)),  1)
 
     def get_symbols(self):
-        return {self.symbol}
+        return frozenset({self.symbol})
 
     def logpdf(self, x):
         return sym_log(self.dist[x]) if x in self.dist else -inf
