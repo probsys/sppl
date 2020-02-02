@@ -36,7 +36,7 @@ def are_disjoint(sets):
 
 def are_identical(sets):
     intersection = get_intersection(sets)
-    assert all(len(s) == len(intersection) for s in sets)
+    return all(len(s) == len(intersection) for s in sets)
 
 def sympify_number(x):
     msg = 'Expected a numeric term, not %s' % (x,)
