@@ -222,6 +222,10 @@ class NumericDistribution(Distribution):
         samples = self.sample(N, rng)
         return [expr.evaluate({self.symbol: sample}) for sample in samples]
 
+    def sample_func(self, func, N, rng):
+        samples = self.sample(N, rng)
+        return sample_func(self, func, samples)
+
     def logprob(self, event):
         interval = event.solve()
         values = Intersection(self.support, interval)
@@ -335,6 +339,10 @@ class NominalDistribution(Distribution):
         samples = self.sample(N, rng)
         return [expr.evaluate({self.symbol: sample}) for sample in samples]
 
+    def sample_func(self, func, N, rng):
+        samples = self.sample(N, rng)
+        return sample_func(self, func, samples)
+
 def simplify_nominal_event(event, support):
     if isinstance(event, EventInterval):
         raise ValueError('Nominal variables cannot be in real intervals: %s'
@@ -352,3 +360,13 @@ def simplify_nominal_event(event, support):
         values = [simplify_nominal_event(e, support) for e in event.events]
         return get_union(values)
     assert False, 'Unknown event %s' % (str(event),)
+
+def sample_func(dist, func, samples):
+    from inspect import getfullargspec
+    args = getfullargspec(func).args
+    tokens = {symbol.token for symbol in dist.get_symbols()}
+    unknown = [a for a in args if a not in tokens]
+    if unknown:
+        raise ValueError('Unknown function arguments "%s" (allowed %s)'
+            % (unknown, tokens))
+    return [func(sample) for sample in samples]

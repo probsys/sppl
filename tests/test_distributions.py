@@ -47,6 +47,14 @@ def test_nominal_distribution():
     samples = dist.sample_expr(predicate, 100, rng)
     assert not any(samples)
 
+    func = lambda X: 1 if X in {'a'} else None
+    samples = dist.sample_func(func, 100, rng)
+    assert sum(1 for s in samples if s == 1) > 12
+    assert sum(1 for s in samples if s is None) > 70
+
+    with pytest.raises(ValueError):
+        dist.sample_func(lambda Y: Y, 100, rng)
+
     dist_condition = dist.condition(X<<{'a', 'b'})
     assert dist_condition.support == {'a', 'b', 'c'}
     assert dist_condition.logprob(X << {'a'}) \
@@ -72,6 +80,7 @@ def test_numeric_distribution_normal():
 
     dist.sample_expr(X**2, 1, rng)
     dist.sample_expr(abs(X)+X**2, 1, rng)
+    dist.sample_func(lambda X: X**2 if X > 0 else X**3, 100, rng)
 
     dist_condition_a = dist.condition((X < 2) | (X > 10))
     samples = dist_condition_a.sample(100, rng)
@@ -94,6 +103,9 @@ def test_numeric_distribution_normal():
 
     with pytest.raises(ValueError):
         dist.condition(X << {1})
+
+    with pytest.raises(ValueError):
+        dist.sample_func(lambda Z: Z**2, 1, rng)
 
 def test_mixture_distribution_normal_gamma():
     X = Identity('X')
