@@ -49,19 +49,18 @@ class Transform(object):
         coeffs_new[0] += x_val
         return Poly(poly_self.subexpr, coeffs_new)
     def __add__poly(self, x):
+        if not isinstance(x, Transform):
+            raise TypeError
         poly_self = polyify(self)
         poly_x = polyify(x)
         if poly_x.subexpr != poly_self.subexpr:
-            raise TypeError('Cannot add %s + %s' % (str(self), x))
+            raise ValueError('Incompatible subexpressions in "%s + %s"'
+                % (str(self), x))
         sym_poly_a = sympy.Poly(poly_self.symexpr)
         sym_poly_b = sympy.Poly(poly_x.symexpr)
         sym_poly_c = sym_poly_a + sym_poly_b
         coeffs = sym_poly_c.all_coeffs()[::-1]
         return Poly(poly_self.subexpr, coeffs)
-    def __add__sym(self, x):
-        if not isinstance(x, Transform):
-            raise TypeError
-        return AddSym(self, x)
     def __add__(self, x):
         # Try to add x as a number.
         try:
@@ -73,15 +72,13 @@ class Transform(object):
             return self.__add__poly(x)
         except TypeError:
             pass
-        # Try to add x as a transform.
-        try:
-            return self.__add__sym(x)
-        except TypeError:
-            pass
         # Failed.
         return NotImplemented
     def __radd__(self, x):
-        return self + x
+        # Prevent infinite recursion from polymorphism.
+        if not isinstance(x, Transform):
+            return self + x
+        return NotImplemented
 
     # Multiplication.
     def __mul__number(self, x):
@@ -90,19 +87,18 @@ class Transform(object):
         coeffs = [x_val*c for c in poly_self.coeffs]
         return Poly(poly_self.subexpr, coeffs)
     def __mul__poly(self, x):
+        if not isinstance(x, Transform):
+            raise TypeError
         poly_self = polyify(self)
         poly_x = polyify(x)
         if poly_x.subexpr != poly_self.subexpr:
-            raise TypeError('Cannot multiply %s * %s' % (str(self), x))
+            raise ValueError('Incompatible subexpressions in "%s * %s"'
+                % (str(self), x))
         sym_poly_a = sympy.Poly(poly_self.symexpr, symX)
         sym_poly_b = sympy.Poly(poly_x.symexpr, symX)
         sym_poly_c = sym_poly_a * sym_poly_b
         coeffs = sym_poly_c.all_coeffs()[::-1]
         return Poly(poly_self.subexpr, coeffs)
-    def __mul__sym(self, x):
-        if not isinstance(x, Transform):
-            raise TypeError
-        return MulSym(self, x)
     def __mul__(self, x):
         # Try to multiply x as a number.
         try:
@@ -114,33 +110,22 @@ class Transform(object):
             return self.__mul__poly(x)
         except TypeError:
             pass
-        # Try to multiply x as a transform.
-        try:
-            return self.__mul__sym(x)
-        except TypeError:
-            pass
         # Failed.
         return NotImplemented
     def __rmul__(self, x):
-        return self * x
+        # Prevent infinite recursion from polymorphism.
+        if not isinstance(x, Transform):
+            return self * x
+        return NotImplemented
 
     # Division by x.
     def __truediv__number(self, x):
         x_val = sympify_number(x)
         return sympy.Rational(1, x_val) * self
-    def __truediv__sym(self, x):
-        if not isinstance(x, Transform):
-            raise TypeError
-        return self * Reciprocal(x)
     def __truediv__(self, x):
         # Try to divide by x as a number.
         try:
             return self.__truediv__number(x)
-        except TypeError:
-            pass
-        # Try to divide by x as a transform.
-        try:
-            return self.__truediv__sym(x)
         except TypeError:
             pass
         # Failed.
@@ -150,19 +135,10 @@ class Transform(object):
     def __rtruediv__number(self, x):
         x_val = sympify_number(x)
         return Reciprocal(self) if (x_val == 1) else x_val * Reciprocal(self)
-    def __rtruediv__sym(self, x):
-        if not isinstance(x, Transform):
-            raise TypeError
-        return x * Reciprocal(self)
     def __rtruediv__(self, x):
         # Try to divide by x as a number.
         try:
             return self.__rtruediv__number(x)
-        except TypeError:
-            pass
-        # Try to divide by x as a transform.
-        try:
-            return self.__rtruediv__sym(x)
         except TypeError:
             pass
         # Failed.
@@ -208,19 +184,10 @@ class Transform(object):
         raise ValueError(
             'Cannot raise %s to irrational or floating-point power %s'
             % (str(self), x))
-    def __pow__sym(self, x):
-        if not isinstance(x, Transform):
-            raise TypeError
-        return PowSym(self, x)
     def __pow__(self, x):
         # Try to raise to x as a number.
         try:
             return self.__pow__number(x)
-        except TypeError:
-            pass
-        # Try to raise to x as a transform.
-        try:
-            return self.__pow__sym(x)
         except TypeError:
             pass
         # Failed.
@@ -613,66 +580,6 @@ def Pow(subexpr, n):
     assert 0 <= n
     coeffs = [0]*n + [1]
     return Poly(subexpr, coeffs)
-
-class NonInvertible(Transform):
-    # Transforms which can be forward evaluated but not back-solved.
-    def __init__(self, subexpr_a, subexpr_b):
-        self.subexpr_a = subexpr_a
-        self.subexpr_b = subexpr_b
-    def symbols(self):
-        symbols_a = self.subexpr_a.symbols()
-        symbols_b = self.subexpr_b.symbols()
-        symbols = symbols_a + symbols_b
-        return tuple(set(symbols))
-    def evaluate(self, assignment):
-        a = self.subexpr_a.evaluate(assignment)
-        b = self.subexpr_b.evaluate(assignment)
-        return self.ffwd(a, b)
-    def invert(self, x):
-        raise NotImplementedError('Cannot invert %s' % (str(self),))
-    def ffwd(self, a, b):
-        raise NotImplementedError()
-    def __eq__(self, x):
-        return isinstance(x, type(self)) \
-            and self.subexpr_a == x.subexpr_a \
-            and self.subexpr_b == x.subexpr_b
-    def __hash__(self):
-        x = (self.__class__, self.subexpr_a, self.subexpr_b)
-        return hash(x)
-
-class AddSym(NonInvertible):
-    def ffwd(self, a, b):
-        return a + b
-    def __repr__(self):
-        return 'AddSym(%s, %s)' % (repr(self.subexpr_a), repr(self.subexpr_b))
-    def __str__(self):
-        return '(%s + %s)' % (str(self.subexpr_a), str(self.subexpr_b))
-
-class MulSym(NonInvertible):
-    def ffwd(self, a, b):
-        return a * b
-    def __repr__(self):
-        return 'MulSym(%s, %s)' % (repr(self.subexpr_a), repr(self.subexpr_b))
-    def __str__(self):
-        return '(%s * %s)' % (str(self.subexpr_a), str(self.subexpr_b))
-
-class LogSym(NonInvertible):
-    def ffwd(self, a, b):
-        return sympy.log(a, b)
-    def __repr__(self):
-        return 'LogSym(base=%s, %s)'\
-            % (repr(self.subexpr_b), repr(self.subexpr_b))
-    def __str__(self):
-        return 'log(%s; %s)' % (str(self.subexpr_a), self.subexpr_b)
-
-class PowSym(NonInvertible):
-    def ffwd(self, a, b):
-        return sympy.Pow(a, b)
-    def __repr__(self):
-        return 'PowSym(degree=%s, %s)'\
-            % (repr(self.subexpr_b), repr(self.subexpr_a))
-    def __str__(self):
-        return '%s**(%s)' % (str(self.subexpr_a), str(self.subexpr_b))
 
 # ==============================================================================
 # Utilities.

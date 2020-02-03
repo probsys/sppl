@@ -143,11 +143,6 @@ def test_solver_8():
     with pytest.raises(ValueError):
         sympy_solver(expr)
 
-    Z = Identity('Z')
-    event = (Y + Z) < 3
-    with pytest.raises(NotImplementedError):
-        event.solve()
-
 def test_solver_9_open():
     # 2(log(x))**3 - log(x) -5 > 0
     solution = Interval.open(

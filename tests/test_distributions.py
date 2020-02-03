@@ -79,7 +79,7 @@ def test_numeric_distribution_normal():
     assert isinf_neg(dist.logprob(X << {1}))
 
     dist.sample_expr(X**2, 1, rng)
-    dist.sample_expr(abs(X)+X**2, 1, rng)
+    dist.sample_func(lambda X: abs(X)+X**2, 1, rng)
     dist.sample_func(lambda X: X**2 if X > 0 else X**3, 100, rng)
 
     dist_condition_a = dist.condition((X < 2) | (X > 10))

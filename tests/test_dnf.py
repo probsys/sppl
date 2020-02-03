@@ -110,16 +110,3 @@ def test_factor_dnf_symbols_2():
 
     assert dnf[1] == ~(X4 > 0) | (X4 < 4)
     assert dnf[2] == ((10*LogNat(X5) + 9) > 5)
-
-def test_factor_dnf_non_invertible():
-    expr = ((X0 + X1) > 10) & ((X0 < 10) | (X1 > 5))
-    expr_dnf = expr.to_dnf()
-    assert expr_dnf == \
-        (((X0 + X1) > 10) & (X0 < 10)) \
-        | (((X0 + X1) > 10) & (X1 > 5))
-
-    dnf = factor_dnf_symbols(expr_dnf, {X0: 0, X1: 0})
-    assert dnf[0] == expr.to_dnf()
-
-    with pytest.raises(ValueError):
-        factor_dnf_symbols(expr_dnf, {X0: 0, X1: 1})

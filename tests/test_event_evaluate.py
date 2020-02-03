@@ -6,8 +6,6 @@ import pytest
 import sympy
 
 from sum_product_dsl.transforms import Identity
-from sum_product_dsl.transforms import LogSym
-
 
 X = Identity('X')
 Y = Identity('Y')
@@ -44,26 +42,6 @@ def test_event_basic_invertible():
 
     with pytest.raises(ValueError):
         event.evaluate({Y: 10})
-
-def test_event_basic_noninvertible():
-    event = (0 < abs(X + Y)) < 10
-    assert event.evaluate({X: 1, Y: 1})
-    assert not event.evaluate({X: 0, Y: 0})
-
-    event = (0 < (X + Y)**2 + (X+Y)) < 10
-    assert event.evaluate({X: 1, Y: 1})
-    assert not event.evaluate({X: 0, Y: 0})
-
-    event = LogSym(X, Y) << {-1}
-    assert event.evaluate({X: sympy.Rational(1, 2), Y: 2})
-
-    event = LogSym(X, Y)**2 << {1}
-    assert event.evaluate({X: sympy.Rational(1, 2), Y: 2, Z:10})
-    # Missing variables in assignments list.
-    with pytest.raises(ValueError):
-        event.evaluate({X: sympy.Rational(1, 2)})
-    with pytest.raises(ValueError):
-        event.evaluate({Y: 1})
 
 def test_event_compound():
     expr0 = abs(X)**2 + 10*abs(X)
