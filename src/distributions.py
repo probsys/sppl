@@ -79,17 +79,21 @@ class MixtureDistribution(Distribution):
         return self.symbols
 
     def sample(self, N, rng):
-        selections = logflip(self.weights, self.indexes, N, rng)
-        counts = Counter(selections)
-        samples = [self.distributions[i].sample(counts[i], rng)
-            for i in counts]
-        return list(chain.from_iterable(samples))
+        f_sample = lambda i, n: self.distributions[i].sample(n, rng)
+        return self.sample_many(f_sample, N, rng)
 
     def sample_expr(self, expr, N, rng):
+        f_sample = lambda i,n : self.distributions[i].sample_expr(expr, n, rng)
+        return self.sample_many(f_sample, N, rng)
+
+    def sample_func(self, func, N, rng):
+        f_sample = lambda i, n : self.distributions[i].sample_func(func, n, rng)
+        return self.sample_many(f_sample, N, rng)
+
+    def sample_many(self, func, N, rng):
         selections = logflip(self.weights, self.indexes, N, rng)
         counts = Counter(selections)
-        samples = [self.distributions[i].sample(counts[i], expr, rng)
-            for i in counts]
+        samples = [func(i, counts[i]) for i in counts]
         rng.shuffle(samples)
         return list(chain.from_iterable(samples))
 
