@@ -90,6 +90,7 @@ class MixtureDistribution(Distribution):
         counts = Counter(selections)
         samples = [self.distributions[i].sample(counts[i], expr, rng)
             for i in counts]
+        rng.shuffle(samples)
         return list(chain.from_iterable(samples))
 
     def logprob(self, event):
