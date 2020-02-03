@@ -72,7 +72,7 @@ class MixtureDistribution(Distribution):
 
         symbols = [d.get_symbols() for d in distributions]
         if not are_identical(symbols):
-            raise ValueError('Dists in mixture must have identical symbols.')
+            raise ValueError('Mixture must have identical symbols.')
         self.symbols = self.distributions[0].get_symbols()
 
     def get_symbols(self):
@@ -367,5 +367,6 @@ def sample_func(dist, func, samples):
     if unknown:
         raise ValueError('Unknown function arguments "%s" (allowed %s)'
             % (unknown, tokens))
-    sample_kwargs = [{a: sample[Identity(a)] for a in args} for sample in samples]
+    symbols = {a : Identity(a) for a in args}
+    sample_kwargs = [{a: s[X] for a, X in symbols.items()} for s in samples]
     return [func(**kwargs) for kwargs in sample_kwargs]
