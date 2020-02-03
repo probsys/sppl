@@ -179,8 +179,20 @@ class ProductDistribution(Distribution):
         ]
         return ProductDistribution(distributions)
 
-class NumericDistribution(Distribution):
-    """Univariate probability distribution on a single real interval."""
+class DistributionLeaf(Distribution):
+    def get_symbols(self):
+        # pylint: disable=no-member
+        return frozenset({self.symbol})
+    def sample_expr(self, expr, N, rng):
+        # pylint: disable=no-member
+        samples = self.sample(N, rng)
+        return [expr.evaluate({self.symbol: sample}) for sample in samples]
+    def sample_func(self, func, N, rng):
+        samples = self.sample(N, rng)
+        return sample_func(self, func, samples)
+
+class NumericDistribution(DistributionLeaf):
+    """Univariate distribution on a single real interval."""
 
     def __init__(self, symbol, dist, support, conditioned=None):
         assert isinstance(symbol, Identity)
@@ -204,9 +216,6 @@ class NumericDistribution(Distribution):
             self.Fu = 1
             self.logZ = 1
 
-    def get_symbols(self):
-        return frozenset({self.symbol})
-
     def sample(self, N, rng):
         if not self.conditioned:
             return self.dist.rvs(size=N, random_state=rng)
@@ -217,14 +226,6 @@ class NumericDistribution(Distribution):
         u = rng.uniform(size=N)
         u_interval = u*self.Fl + (1-u) * self.Fu
         return self.dist.ppf(u_interval)
-
-    def sample_expr(self, expr, N, rng):
-        samples = self.sample(N, rng)
-        return [expr.evaluate({self.symbol: sample}) for sample in samples]
-
-    def sample_func(self, func, N, rng):
-        samples = self.sample(N, rng)
-        return sample_func(self, func, samples)
 
     def logprob(self, event):
         interval = event.solve()
@@ -295,8 +296,8 @@ class NumericDistribution(Distribution):
 
         assert False, 'Unknown set type: %s' % (interval,)
 
-class NominalDistribution(Distribution):
-    """Probability distribution on set of unordered, non-numeric atoms."""
+class NominalDistribution(DistributionLeaf):
+    """Univariate distribution on set of unordered, non-numeric atoms."""
 
     def __init__(self, symbol, dist):
         assert isinstance(symbol, Identity)
@@ -307,9 +308,6 @@ class NominalDistribution(Distribution):
         self.outcomes = list(self.dist.keys())
         self.weights = [float(x) for x in self.dist.values()]
         assert allclose(float(sum(self.weights)),  1)
-
-    def get_symbols(self):
-        return frozenset({self.symbol})
 
     def logpdf(self, x):
         return sym_log(self.dist[x]) if x in self.dist else -inf
@@ -334,14 +332,6 @@ class NominalDistribution(Distribution):
     def sample(self, N, rng):
         # TODO: Replace with FLDR.
         return flip(self.weights, self.outcomes, N, rng)
-
-    def sample_expr(self, expr, N, rng):
-        samples = self.sample(N, rng)
-        return [expr.evaluate({self.symbol: sample}) for sample in samples]
-
-    def sample_func(self, func, N, rng):
-        samples = self.sample(N, rng)
-        return sample_func(self, func, samples)
 
 def simplify_nominal_event(event, support):
     if isinstance(event, EventInterval):
