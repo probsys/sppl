@@ -115,11 +115,14 @@ class ProductDistribution(Distribution):
     def __init__(self, distributions):
         self.distributions = distributions
 
-        symbols = [d.symbols for d in distributions]
-        self.symbols = reduce(lambda a, b: a.union(b), symbols)
+        symbols = [d.get_symbols() for d in distributions]
         assert are_disjoint(symbols), \
             'Distributions in Product must have disjoint symbols.'
+        self.symbols = frozenset(get_union(symbols))
         self.lookup = {s:i for i, syms in enumerate(symbols) for s in symbols}
+
+    def get_symbols(self):
+        return self.symbols
 
     def sample(self, N, rng):
         D = len(self.distributions)
