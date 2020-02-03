@@ -180,13 +180,12 @@ class ProductDistribution(Distribution):
         return ProductDistribution(distributions)
 
 class DistributionLeaf(Distribution):
+    # pylint: disable=no-member
     def get_symbols(self):
-        # pylint: disable=no-member
         return frozenset({self.symbol})
     def sample_expr(self, expr, N, rng):
-        # pylint: disable=no-member
         samples = self.sample(N, rng)
-        return [expr.evaluate({self.symbol: sample}) for sample in samples]
+        return [expr.evaluate(sample) for sample in samples]
     def sample_func(self, func, N, rng):
         samples = self.sample(N, rng)
         return sample_func(self, func, samples)
@@ -217,15 +216,19 @@ class NumericDistribution(DistributionLeaf):
             self.logZ = 1
 
     def sample(self, N, rng):
-        if not self.conditioned:
-            return self.dist.rvs(size=N, random_state=rng)
-        # XXX Method not guaranteed to be numerically stable, see e.g,.
-        # https://www.iro.umontreal.ca/~lecuyer/myftp/papers/truncated-normal-book-chapter.pdf
-        # Also consider using CDF for left tail and SF for right tail.
-        # Example: X ~ N(0,1) can sample X | (X < -10) but not X | (X > 10).
-        u = rng.uniform(size=N)
-        u_interval = u*self.Fl + (1-u) * self.Fu
-        return self.dist.ppf(u_interval)
+        if self.conditioned:
+            # XXX Method not guaranteed to be numerically stable, see e.g,.
+            # https://www.iro.umontreal.ca/~lecuyer/myftp/papers/truncated-normal-book-chapter.pdf
+            # Also consider using CDF for left tail and SF for right tail.
+            # Example: X ~ N(0,1) can sample X | (X < -10) but not X | (X > 10).
+            u = rng.uniform(size=N)
+            u_interval = u*self.Fl + (1-u) * self.Fu
+            xs = self.dist.ppf(u_interval)
+        else:
+            # Simulation by vanilla inversion sampling.
+            xs = self.dist.rvs(size=N, random_state=rng)
+        # Wrap result in a dictionary.
+        return [{self.symbol : x} for x in xs]
 
     def logprob(self, event):
         interval = event.solve()
@@ -331,7 +334,8 @@ class NominalDistribution(DistributionLeaf):
 
     def sample(self, N, rng):
         # TODO: Replace with FLDR.
-        return flip(self.weights, self.outcomes, N, rng)
+        xs = flip(self.weights, self.outcomes, N, rng)
+        return [{self.symbol: x} for x in xs]
 
 def simplify_nominal_event(event, support):
     if isinstance(event, EventInterval):
@@ -359,4 +363,5 @@ def sample_func(dist, func, samples):
     if unknown:
         raise ValueError('Unknown function arguments "%s" (allowed %s)'
             % (unknown, tokens))
-    return [func(sample) for sample in samples]
+    sample_kwargs = [{a: sample[Identity(a)] for a in args} for sample in samples]
+    return [func(**kwargs) for kwargs in sample_kwargs]

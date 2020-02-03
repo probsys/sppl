@@ -37,7 +37,7 @@ def test_nominal_distribution():
     assert dist.logprob((X << ())) == -float('inf')
 
     samples = dist.sample(100, rng)
-    assert all(x in dist.support for x in samples)
+    assert all(s[X] in dist.support for s in samples)
 
     predicate = (X << {'a', 'b'}) | X << {'c'}
     samples = dist.sample_expr(predicate, 100, rng)
@@ -84,7 +84,7 @@ def test_numeric_distribution_normal():
 
     dist_condition_a = dist.condition((X < 2) | (X > 10))
     samples = dist_condition_a.sample(100, rng)
-    assert all(s < 2 for s in samples)
+    assert all(s[X] < 2 for s in samples)
 
     dist_condition_b = dist.condition((X < -10) | (X > 10))
     assert isinstance(dist_condition_b, MixtureDistribution)
@@ -96,7 +96,7 @@ def test_numeric_distribution_normal():
         assert isinstance(dist_condition_c, NumericDistribution)
         assert isinf_neg(dist_condition_c.logprob((-1 < X) < 1))
         samples = dist_condition_c.sample(100, rng)
-        assert all(s in event.values for s in samples)
+        assert all(s[X] in event.values for s in samples)
 
     with pytest.raises(ValueError):
         dist.condition((X > 1) & (X < 1))
