@@ -18,7 +18,9 @@ from sum_product_dsl.transforms import Identity
 
 from sum_product_dsl.math_util import allclose
 from sum_product_dsl.math_util import isinf_neg
+from sum_product_dsl.math_util import logsumexp
 from sum_product_dsl.sym_util import Reals
+from sum_product_dsl.sym_util import RealsPos
 
 rng = numpy.random.RandomState(1)
 
@@ -92,3 +94,29 @@ def test_numeric_distribution_normal():
 
     with pytest.raises(ValueError):
         dist.condition(X << {1})
+
+def test_mixture_distribution_normal_gamma():
+    X = Identity('X')
+    weights = [
+        log(Fraction(2, 3)),
+        log(Fraction(1, 3))
+    ]
+    dist = MixtureDistribution([
+            NumericDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
+            NumericDistribution(X, scipy.stats.gamma(loc=0, a=1), RealsPos),
+        ], weights)
+
+    assert dist.logprob(X > 0) == logsumexp([
+        dist.weights[0] + dist.distributions[0].logprob(X > 0),
+        dist.weights[1] + dist.distributions[1].logprob(X > 0),
+    ])
+
+    dist_condition = dist.condition(X < 0)
+    assert isinstance(dist_condition, NumericDistribution)
+    assert dist_condition.conditioned
+    assert dist_condition.logprob(X < 0) == 0
+
+    assert dist.logprob(X < 0) == logsumexp([
+        dist.weights[0] + dist.distributions[0].logprob(X < 0),
+        dist.weights[1] + dist.distributions[1].logprob(X < 0),
+    ])

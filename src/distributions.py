@@ -68,10 +68,11 @@ class MixtureDistribution(Distribution):
         self.distributions = distributions
         self.weights = weights
         self.indexes = list(range(len(self.weights)))
+        assert allclose(float(logsumexp(weights)),  0)
 
         symbols = [d.get_symbols() for d in distributions]
-        assert are_identical(symbols), \
-            'Distributions in Mixture must have identical symbols.'
+        if not are_identical(symbols):
+            raise ValueError('Dists in mixture must have identical symbols.')
         self.symbols = self.distributions[0].get_symbols()
 
     def get_symbols(self):
@@ -101,10 +102,12 @@ class MixtureDistribution(Distribution):
 
     def condition(self, event):
         logps_condt = [dist.logprob(event) for dist in self.distributions]
-        logps_joint = [p + w for (p, w) in zip(logps_condt, self.weights)]
+        indexes = [i for i, lp in enumerate(logps_condt) if not isinf_neg(lp)]
+        logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
+        dists = [self.distributions[i].condition(event) for i in indexes]
         weights = lognorm(logps_joint)
-        dists = [dist.condition(event) for dist in self.distributions]
-        return MixtureDistribution(dists, weights)
+        return MixtureDistribution(dists, weights) if len(dists) > 1 \
+            else dists[0]
 
 class ProductDistribution(Distribution):
     """Vector of independent distributions."""
