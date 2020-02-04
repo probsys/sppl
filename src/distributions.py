@@ -196,7 +196,7 @@ class DistributionLeaf(Distribution):
         return self.sample(N, rng) if self.symbol in symbols else None
     def sample_func(self, func, N, rng):
         samples = self.sample(N, rng)
-        return func_sample(self, func, samples)
+        return func_evaluate(self, func, samples)
 
 class NumericDistribution(DistributionLeaf):
     """Univariate distribution on a single real interval."""
@@ -363,7 +363,7 @@ def simplify_nominal_event(event, support):
         return get_union(values)
     assert False, 'Unknown event %s' % (str(event),)
 
-def func_sample(dist, func, samples):
+def func_evaluate(dist, func, samples):
     args = func_symbols(dist, func)
     sample_kwargs = [{X.token: s[X] for X in args} for s in samples]
     return [func(**kwargs) for kwargs in sample_kwargs]
