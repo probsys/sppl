@@ -1,6 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from inspect import getfullargspec
 from collections import Counter
 from fractions import Fraction
 from functools import reduce
@@ -192,7 +193,7 @@ class DistributionLeaf(Distribution):
         return [expr.evaluate(sample) for sample in samples]
     def sample_func(self, func, N, rng):
         samples = self.sample(N, rng)
-        return sample_func(self, func, samples)
+        return func_sample(self, func, samples)
 
 class NumericDistribution(DistributionLeaf):
     """Univariate distribution on a single real interval."""
@@ -359,14 +360,16 @@ def simplify_nominal_event(event, support):
         return get_union(values)
     assert False, 'Unknown event %s' % (str(event),)
 
-def sample_func(dist, func, samples):
-    from inspect import getfullargspec
-    args = getfullargspec(func).args
-    tokens = {symbol.token for symbol in dist.get_symbols()}
-    unknown = [a for a in args if a not in tokens]
+def func_sample(dist, func, samples):
+    args = func_symbols(dist, func)
+    sample_kwargs = [{X.token: s[X] for X in args} for s in samples]
+    return [func(**kwargs) for kwargs in sample_kwargs]
+
+def func_symbols(dist, func):
+    symbols = dist.get_symbols()
+    args = [Identity(a) for a in getfullargspec(func).args]
+    unknown = [a for a in args if a not in symbols]
     if unknown:
         raise ValueError('Unknown function arguments "%s" (allowed %s)'
-            % (unknown, tokens))
-    symbols = {a : Identity(a) for a in args}
-    sample_kwargs = [{a: s[X] for a, X in symbols.items()} for s in samples]
-    return [func(**kwargs) for kwargs in sample_kwargs]
+            % (unknown, symbols))
+    return args
