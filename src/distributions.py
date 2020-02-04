@@ -53,7 +53,9 @@ class Distribution(object):
         raise NotImplementedError()
     def sample(self, N, rng):
         raise NotImplementedError()
-    def sample_expr(self, expr, N, rng):
+    def sample_subset(self, symbols, N, rng):
+        raise NotImplementedError()
+    def sample_func(self, func, N, rng):
         raise NotImplementedError()
     def logprob(self, event):
         raise NotImplementedError()
@@ -83,8 +85,8 @@ class MixtureDistribution(Distribution):
         f_sample = lambda i, n: self.distributions[i].sample(n, rng)
         return self.sample_many(f_sample, N, rng)
 
-    def sample_expr(self, expr, N, rng):
-        f_sample = lambda i,n : self.distributions[i].sample_expr(expr, n, rng)
+    def sample_subset(self, symbols, N, rng):
+        f_sample = lambda i,n : self.distributions[i].sample_subset(symbols, n, rng)
         return self.sample_many(f_sample, N, rng)
 
     def sample_func(self, func, N, rng):
@@ -188,9 +190,10 @@ class DistributionLeaf(Distribution):
     # pylint: disable=no-member
     def get_symbols(self):
         return frozenset({self.symbol})
-    def sample_expr(self, expr, N, rng):
-        samples = self.sample(N, rng)
-        return [expr.evaluate(sample) for sample in samples]
+    def sample(self, N, rng):
+        raise NotImplementedError()
+    def sample_subset(self, symbols, N, rng):
+        return self.sample(N, rng) if self.symbol in symbols else None
     def sample_func(self, func, N, rng):
         samples = self.sample(N, rng)
         return func_sample(self, func, samples)

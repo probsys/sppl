@@ -38,12 +38,17 @@ def test_nominal_distribution():
     samples = dist.sample(100, rng)
     assert all(s[X] in dist.support for s in samples)
 
-    predicate = (X << {'a', 'b'}) | X << {'c'}
-    samples = dist.sample_expr(predicate, 100, rng)
+    samples = dist.sample_subset([X, 'A'], 100, rng)
+    assert all(s[X] in dist.support for s in samples)
+
+    assert dist.sample_subset(['f'], 100, rng) is None
+
+    predicate = lambda X: (X in {'a', 'b'}) or X in {'c'}
+    samples = dist.sample_func(predicate, 100, rng)
     assert all(samples)
 
-    predicate = (~(X << {'a', 'b'})) & ~(X << {'c'})
-    samples = dist.sample_expr(predicate, 100, rng)
+    predicate = lambda X: (not (X in {'a', 'b'})) and (not (X in {'c'}))
+    samples = dist.sample_func(predicate, 100, rng)
     assert not any(samples)
 
     func = lambda X: 1 if X in {'a'} else None
@@ -77,7 +82,10 @@ def test_numeric_distribution_normal():
     assert isinf_neg(dist.logprob(abs(X) < 0))
     assert isinf_neg(dist.logprob(X << {1}))
 
-    dist.sample_expr(X**2, 1, rng)
+    dist.sample(100, rng)
+    dist.sample_subset([X], 100, rng)
+    assert dist.sample_subset([], 100, rng) is None
+    dist.sample_func(lambda X: X**2, 1, rng)
     dist.sample_func(lambda X: abs(X)+X**2, 1, rng)
     dist.sample_func(lambda X: X**2 if X > 0 else X**3, 100, rng)
 
@@ -124,7 +132,6 @@ def test_mixture_distribution_normal_gamma():
     assert dist.logprob(X < 0) == log(Fraction(2, 3)) + log(Fraction(1, 2))
     samples = dist.sample(100, rng)
     assert all(s[X] for s in samples)
-    dist.sample_expr(abs(X**3), 100, rng)
     dist.sample_func(lambda X: abs(X**3), 100, rng)
     with pytest.raises(ValueError):
         dist.sample_func(lambda Y: abs(X**3), 100, rng)
