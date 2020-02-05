@@ -13,6 +13,7 @@ import sympy
 from sum_product_dsl.distributions import MixtureDistribution
 from sum_product_dsl.distributions import NominalDistribution
 from sum_product_dsl.distributions import NumericDistribution
+from sum_product_dsl.distributions import ProductDistribution
 from sum_product_dsl.transforms import Identity
 
 from sum_product_dsl.math_util import allclose
@@ -147,3 +148,46 @@ def test_mixture_distribution_normal_gamma():
         dist.weights[0] + dist.distributions[0].logprob(X < 0),
         dist.weights[1] + dist.distributions[1].logprob(X < 0),
     ])
+
+def test_product_distribution_normal_gamma():
+    X1 = Identity('X1')
+    X2 = Identity('X2')
+    X3 = Identity('X3')
+    X4 = Identity('X4')
+    dists = [
+        ProductDistribution([
+            NumericDistribution(X1, scipy.stats.norm(loc=0, scale=1), Reals),
+            NumericDistribution(X4, scipy.stats.norm(loc=10, scale=1), Reals)
+        ]),
+        NumericDistribution(X2, scipy.stats.gamma(loc=0, a=1), RealsPos),
+        NumericDistribution(X3, scipy.stats.norm(loc=2, scale=3), Reals),
+    ]
+    dist = ProductDistribution(dists)
+    assert dist.distributions == [
+        dists[0].distributions[0],
+        dists[0].distributions[1],
+        dists[1],
+        dists[2],
+    ]
+    assert dist.get_symbols() == frozenset([X1, X2, X3, X4])
+
+    samples = dist.sample(2, rng)
+    assert len(samples) == 2
+    for sample in samples:
+        assert len(sample) == 4
+        assert all([X in sample for X in (X1, X2, X3, X4)])
+
+    samples = dist.sample_subset((X1, X2), 10, rng)
+    assert len(samples) == 10
+    for sample in samples:
+        assert len(sample) == 2
+        assert X1 in sample
+        assert X2 in sample
+
+    samples = dist.sample_func(lambda X1, X2, X3: (X1, (X2**2, X3)), 1, rng)
+    assert len(samples) == 1
+    assert len(samples[0]) == 2
+    assert len(samples[0][1]) == 2
+
+    with pytest.raises(ValueError):
+        dist.sample_func(lambda X1, X5: X1 + X4, 1, rng)

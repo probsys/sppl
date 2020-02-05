@@ -1,10 +1,10 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from inspect import getfullargspec
+from collections import ChainMap
 from collections import Counter
 from fractions import Fraction
-from functools import reduce
+from inspect import getfullargspec
 from itertools import chain
 
 from sympy import S as Singletons
@@ -13,15 +13,11 @@ from sympy import Intersection
 from sympy import Interval
 from sympy import Union
 
-from sympy import Tuple
-from sympy import to_dnf
-
 from .dnf import factor_dnf_symbols
 
 from .math_util import allclose
 from .math_util import flip
 from .math_util import isinf_neg
-from .math_util import isinf_pos
 from .math_util import logdiffexp
 from .math_util import logflip
 from .math_util import lognorm
@@ -36,7 +32,6 @@ from .sym_util import ContainersFinite
 from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_intersection
-from .sym_util import get_symbols
 from .sym_util import get_union
 from .sym_util import sym_log
 
@@ -118,50 +113,47 @@ class MixtureDistribution(Distribution):
             else dists[0]
 
 class ProductDistribution(Distribution):
-    """Vector of independent distributions."""
+    """Tuple of independent distributions."""
 
     def __init__(self, distributions):
-        self.distributions = distributions
-
-        symbols = [d.get_symbols() for d in distributions]
-        assert are_disjoint(symbols), \
-            'Distributions in Product must have disjoint symbols.'
+        self.distributions = list(chain.from_iterable([
+            (dist.distributions if isinstance(dist, type(self)) else [dist])
+            for dist in distributions
+        ]))
+        symbols = [d.get_symbols() for d in self.distributions]
+        if not are_disjoint(symbols):
+            raise ValueError('Product must have disjoint symbols')
         self.symbols = frozenset(get_union(symbols))
-        self.lookup = {s:i for i, syms in enumerate(symbols) for s in symbols}
+        self.lookup = {s:i for i, syms in enumerate(symbols) for s in syms}
 
     def get_symbols(self):
         return self.symbols
 
     def sample(self, N, rng):
-        D = len(self.distributions)
         samples = [dist.sample(N, rng) for dist in self.distributions]
-        return [[samples[r][c] for r in range(D)] for c in range(N)]
+        return merge_samples(samples, N)
 
-    def sample_expr(self, expr, N, rng):
-        symbols = get_symbols(expr)
+    def sample_subset(self, symbols, N, rng):
         # Partition symbols by lookup.
-        partition = {}
-        for sym in symbols:
-            key = self.lookup[sym]
-            if key not in partition:
-                partition[key] = [sym]
+        index_to_symbols = {}
+        for symbol in symbols:
+            key = self.lookup[symbol]
+            if key not in index_to_symbols:
+                index_to_symbols[key] = [symbol]
             else:
-                partition[key].append(sym)
-        # Fetch the samples.
+                index_to_symbols[key].append(symbol)
+        # Obtain the samples.
         samples = [
-            self.distributions[i].sample_expr(Tuple(*syms), N, rng)
-            for i, syms in partition.items()
+            self.distributions[i].sample_subset(symbols_i, N, rng)
+            for i, symbols_i in index_to_symbols.items()
         ]
-        # Construct the expressions.
-        expressions = []
-        symbols_lists = partition.values()
-        for _i in range(N):
-            mapping = {}
-            for syms, sample in zip(symbols_lists, samples):
-                mapping.update({sym: x for sym, x in zip(syms, sample)})
-            expri = expr.xreplace(mapping)
-            expressions.append(expri)
-        return expressions
+        # Merge the samples.
+        return merge_samples(samples, N)
+
+    def sample_func(self, func, N, rng):
+        symbols = func_symbols(self, func)
+        samples = self.sample_subset(symbols, N, rng)
+        return func_evaluate(self, func, samples)
 
     def logpdf(self, x):
         assert len(x) == len(self.distributions)
@@ -170,21 +162,27 @@ class ProductDistribution(Distribution):
         return logsumexp(logps)
 
     def logprob(self, event):
+        # TODO: Implement inclusion-exclusion algorithm.
+        pass
+
         # Factor the event across the product.
-        dnf = to_dnf(event)
-        events = factor_dnf_symbols(dnf, self.lookup)
-        logprobs = [self.distributions[i].logprob(e) for i, e in events.items()]
-        return logsumexp(logprobs)
+        # dnf = event.to_dnf()
+        # events = factor_dnf_symbols(dnf, self.lookup)
+        # logprobs = [self.distributions[i].logprob(e) for i, e in events.items()]
+        # return logsumexp(logprobs)
 
     def condition(self, event):
+        # TODO: Implement inclusion-exclusion algorithm.
+        pass
+
         # Factor the event across the product.
-        dnf = to_dnf(event)
-        constraints = factor_dnf_symbols(dnf, self.lookup)
-        distributions = [
-            d.condition(constraints[i]) if (i in constraints) else d
-            for i, d in enumerate(self.distributions)
-        ]
-        return ProductDistribution(distributions)
+        # dnf = event.to_dnf()
+        # constraints = factor_dnf_symbols(dnf, self.lookup)
+        # distributions = [
+        #     d.condition(constraints[i]) if (i in constraints) else d
+        #     for i, d in enumerate(self.distributions)
+        # ]
+        # return ProductDistribution(distributions)
 
 class DistributionLeaf(Distribution):
     # pylint: disable=no-member
@@ -376,3 +374,8 @@ def func_symbols(dist, func):
         raise ValueError('Unknown function arguments "%s" (allowed %s)'
             % (unknown, symbols))
     return args
+
+def merge_samples(samples, N):
+    # input [[{X:1, Y:2}, {X:0, Y:1}], [{Z:0}, {Z:1}]] (N=2)
+    # output [{X:1, Y:2, Z:0}, {X:0, Y:1, Z:1}]
+    return [dict(ChainMap(*sample_list)) for sample_list in zip(*samples)]
