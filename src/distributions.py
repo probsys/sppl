@@ -323,6 +323,8 @@ class NominalDistribution(DistributionLeaf):
         return sym_log(self.dist[x]) if x in self.dist else -inf
 
     def logprob(self, event):
+        # TODO: Consider using 1 - Pr[Event] for negation to avoid
+        # iterating over domain.
         values = simplify_nominal_event(event, self.support)
         p_event = sum(self.dist[x] for x in values)
         return sym_log(p_event)
