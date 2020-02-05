@@ -81,7 +81,8 @@ class MixtureDistribution(Distribution):
         return self.sample_many(f_sample, N, rng)
 
     def sample_subset(self, symbols, N, rng):
-        f_sample = lambda i,n : self.distributions[i].sample_subset(symbols, n, rng)
+        f_sample = lambda i, n : \
+            self.distributions[i].sample_subset(symbols, n, rng)
         return self.sample_many(f_sample, N, rng)
 
     def sample_func(self, func, N, rng):
