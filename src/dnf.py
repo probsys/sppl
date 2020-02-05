@@ -16,20 +16,20 @@ def factor_dnf_symbols(event, lookup):
         symbols = event.symbols()
         assert len(symbols) == 1
         key = lookup[symbols[0]]
-        return {key: event}
+        return {0: {key: event}}
 
     if isinstance(event, EventAnd):
         # Product term.
         assert all(isinstance(e, EventBasic) for e in event.events)
         mappings = [factor_dnf_symbols(e, lookup) for e in event.events]
-        events = {}
+        events = {0: {}}
         for mapping in mappings:
             assert len(mapping) == 1
-            [(key, ev)] = mapping.items()
-            if key not in events:
-                events[key] = ev
+            [(key, ev)] = mapping[0].items()
+            if key not in events[0]:
+                events[0][key] = ev
             else:
-                events[key] &= ev
+                events[0][key] &= ev
         return events
 
     if isinstance(event, EventOr):
@@ -37,12 +37,10 @@ def factor_dnf_symbols(event, lookup):
         assert all(isinstance(e, (EventAnd, EventBasic)) for e in event.events)
         mappings = [factor_dnf_symbols(e, lookup) for e in event.events]
         events = {}
-        for mapping in mappings:
-            for key, ev in mapping.items():
-                if key not in events:
-                    events[key] = ev
-                else:
-                    events[key] |= ev
+        for i, mapping in enumerate(mappings):
+            events[i] = {}
+            for key, ev in mapping[0].items():
+                events[i][key] = ev
         return events
 
     assert False, 'Invalid DNF event: %s' % (event,)

@@ -52,27 +52,56 @@ def test_to_dnf_changes():
     assert C & D & E in result.events
 
 def test_factor_dnf():
-    A = ExpNat(X0) > 0
-    B = X0 < 10
-    C = X1 < 10
-    D = X3 > 10
-    E = X4 > 0
-    F = (X2**2 - X2*3) < 0
-    G = 10*LogNat(X5) + 9 > 5
-    H = (Sqrt(2*X3)) < 0
-    I = X4 << [3, 1, 5]
+    E00 = ExpNat(X0) > 0
+    E01 = X0 < 10
+    E10 = X1 < 10
+    E20 = (X2**2 - X2*3) < 0
+    E30 = X3 > 10
+    E31 = (Sqrt(2*X3)) < 0
+    E40 = X4 > 0
+    E41 = X4 << [3, 1, 5]
+    E50 = 10*LogNat(X5) + 9 > 5
 
-    expr = (A & B & C & D & E) | (F & G & H & ~I)
+    expr = (E00)
     expr_dnf = expr.to_dnf()
     dnf = factor_dnf(expr_dnf)
-    assert len(dnf) == 6
+    assert len(dnf) == 1
+    assert dnf[0][X0] == E00
 
-    assert dnf[X0] == (A & B)
-    assert dnf[X1] == C
-    assert dnf[X2] == F
-    assert dnf[X3] == D | H
-    assert dnf[X4] == E | ~I
-    assert dnf[X5] == G
+    expr = E00 & E01
+    expr_dnf = expr.to_dnf()
+    dnf = factor_dnf(expr_dnf)
+    assert len(dnf) == 1
+    assert dnf[0][X0] == E00 & E01
+
+    expr = E00 | E01
+    expr_dnf = expr.to_dnf()
+    dnf = factor_dnf(expr_dnf)
+    assert len(dnf) == 2
+    assert dnf[0][X0] == E00
+    assert dnf[1][X0] == E01
+
+    expr = E00 | (E01 & E10)
+    expr_dnf = expr.to_dnf()
+    dnf = factor_dnf_symbols(expr_dnf, {X0: 0, X1: 0})
+    assert len(dnf) == 2
+    assert dnf[0][0] == E00
+    assert dnf[1][0] == E01 & E10
+
+    expr = (E00 & E01 & E10 & E30 & E40) | (E20 & E50 & E31 & ~E41)
+    expr_dnf = expr.to_dnf()
+    dnf = factor_dnf(expr_dnf)
+    assert len(dnf) == 2
+    assert dnf[0][X0] == E00 & E01
+    assert dnf[0][X1] == E10
+    assert dnf[0][X3] == E30
+    assert dnf[0][X4] == E40
+    assert len(dnf[0]) == 4
+    assert dnf[1][X3] == E31
+    assert dnf[1][X2] == E20
+    assert dnf[1][X4] == ~E41
+    assert dnf[1][X5] == E50
+    assert len(dnf[1]) == 4
 
 def test_factor_dnf_symbols_1():
     A = ExpNat(X0) > 0
@@ -83,18 +112,20 @@ def test_factor_dnf_symbols_1():
     expr = A & B & C & ~D
     expr_dnf = expr.to_dnf()
     dnf = factor_dnf_symbols(expr_dnf, {X0:0, X1:0, X2:0, X3:1, X4:1, X5:2})
-
     assert len(dnf) == 1
-    assert dnf[0] == expr
+    assert dnf[0][0] == expr
 
 def test_factor_dnf_symbols_2():
-    expr = (X0 < 1) & (X4 < 1) & (X5 < 1)
+    A = X0 < 1
+    B = X4 < 1
+    C = X5 < 1
+    expr = A & B & C
     expr_dnf = expr.to_dnf()
     dnf = factor_dnf_symbols(expr_dnf, {X0:0, X1:0, X2:0, X3:1, X4:1, X5:2})
-    assert len(dnf) == 3
-    assert dnf[0] == (X0 < 1)
-    assert dnf[1] == (X4 < 1)
-    assert dnf[2] == (X5 < 1)
+    assert len(dnf) == 1
+    assert dnf[0][0] == A
+    assert dnf[0][1] == B
+    assert dnf[0][2] == C
 
 def test_factor_dnf_symbols_3():
     A = (ExpNat(X0) > 0)
@@ -106,11 +137,11 @@ def test_factor_dnf_symbols_3():
     G = X4 < 4
 
     expr = (A & B & C & ~D) | (E & F & G)
-
     expr_dnf = expr.to_dnf()
     dnf = factor_dnf_symbols(expr_dnf, {X0:0, X1:0, X2:0, X3:1, X4:1, X5:2})
-    assert len(dnf) == 3
-
-    assert dnf[0] == (A & B & C) | E
-    assert dnf[1] == ~D | G
-    assert dnf[2] == F
+    assert len(dnf) == 2
+    assert dnf[0][0] == A & B & C
+    assert dnf[0][1] == ~D
+    assert dnf[1][0] == E
+    assert dnf[1][1] == G
+    assert dnf[1][2] == F
