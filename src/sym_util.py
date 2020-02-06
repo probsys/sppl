@@ -40,10 +40,10 @@ def are_identical(sets):
     intersection = get_intersection(sets)
     return all(len(s) == len(intersection) for s in sets)
 
-def powerset(values):
+def powerset(values, start=0):
     s = list(values)
-    subsets = [list(combinations(s, k)) for k in range(len(s) + 1)]
-    return list(chain.from_iterable(subsets))
+    subsets = [combinations(s, k) for k in range(start, len(s) + 1)]
+    return chain.from_iterable(subsets)
 
 def sympify_number(x):
     msg = 'Expected a numeric term, not %s' % (x,)

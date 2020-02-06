@@ -4,6 +4,7 @@
 from collections import ChainMap
 from collections import Counter
 from fractions import Fraction
+from functools import reduce
 from inspect import getfullargspec
 from itertools import chain
 
@@ -164,32 +165,46 @@ class ProductDistribution(Distribution):
         return logsumexp(logps)
 
     def logprob(self, event):
+        # Convert to DNF and factorize.
+        # Adopting Inclusion--Exclusion notation from:
+        # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
         expr_dnf = event.to_dnf()
         dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
-        n_clauses = len(dnf_factor)
-        indexes = range(n_clauses)
-        subsets = powerset(indexes)
-        (logps_pos, logps_neg) = ([], [])
-        for idxs in subsets[1:]:
-            idxs = list(idxs)
-            symbols = set(chain.from_iterable(dnf_factor[i].keys() for i in idxs))
-            logprobs = [
-                self.logprob_and_symbol(dnf_factor, idxs, symbol)
-                for symbol in symbols
-            ]
-            logprob = sum(logprobs)
-            x = logps_pos if ((-1)**(len(idxs) - 1) > 0) else logps_neg
-            x.append(logprob)
+        indexes = range(len(dnf_factor))
+        subsets = powerset(indexes, start=1)
+        # Compute probabilities of conjunctions.
+        (logps_pos, logps_neg) = reduce(lambda logps, J:
+                self.logprob_conjunction_indexes(dnf_factor, J, logps),
+            subsets, ((), ()))
+        # Aggregate positive and negative terms.
         logp_pos = logsumexp(logps_pos)
         logp_neg = logsumexp(logps_neg) if logps_neg else -inf
+        # Return difference.
         return logdiffexp(logp_pos, logp_neg) if logps_neg else logp_pos
 
-    def logprob_and_symbol(self, dnf_factor, idxs, symbol):
-        events = [dnf_factor[i][symbol] for i in idxs if symbol in dnf_factor[i]]
-        if not events:
-            return -inf
-        event = events[0] if len(events) == 1 else EventAnd(events)
-        return self.distributions[symbol].logprob(event)
+    def logprob_conjunction_indexes(self, dnf_factor, J, logps):
+        # Find symbols involved in clauses J.
+        symbols = set(chain.from_iterable(dnf_factor[j].keys() for j in J))
+        # Factorize events across the product.
+        logprobs = [self.logprob_conjunction(dnf_factor, J, symbol)
+            for symbol in symbols]
+        logprob = sum(logprobs)
+        # Add probability to either positive or negative sums.
+        (logps_pos, logps_neg) = logps
+        prefactor = (-1)**(len(J) - 1)
+        return \
+            (logps_pos + (logprob,), logps_neg) \
+            if (prefactor > 0) else \
+            (logps_pos, logps_neg + (logprob,))
+
+    def logprob_conjunction(self, dnf_factor, J, symbol):
+        # Find events in clause subset J which contain symbol.
+        events = [dnf_factor[j][symbol] for j in J if symbol in dnf_factor[j]]
+        # Compute probability of events
+        if events:
+            event = events[0] if (len(events) == 1) else EventAnd(events)
+            return self.distributions[symbol].logprob(event)
+        return -inf
 
     def condition(self, event):
         # TODO: Implement disjoint union algorithm (yields a mixture).
