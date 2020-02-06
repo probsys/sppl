@@ -19,6 +19,7 @@ from sum_product_dsl.transforms import Identity
 from sum_product_dsl.math_util import allclose
 from sum_product_dsl.math_util import isinf_neg
 from sum_product_dsl.math_util import logsumexp
+from sum_product_dsl.math_util import logdiffexp
 from sum_product_dsl.sym_util import Reals
 from sum_product_dsl.sym_util import RealsPos
 
@@ -191,3 +192,20 @@ def test_product_distribution_normal_gamma():
 
     with pytest.raises(ValueError):
         dist.sample_func(lambda X1, X5: X1 + X4, 1, rng)
+
+def test_inclusion_exclusion_basic():
+    X = Identity('X')
+    Y = Identity('Y')
+    dist = ProductDistribution([
+        NumericDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
+        NumericDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
+    ])
+    a = dist.logprob(X > 0)
+    b = dist.logprob(Y < 0.5)
+    c = dist.logprob((X > 0) & (Y < 0.5))
+    d = dist.logprob((X > 0) | (Y < 0.5))
+
+    assert allclose(a, dist.distributions[0].logprob(X > 0))
+    assert allclose(b, dist.distributions[1].logprob(Y < 0.5))
+    assert allclose(c, a + b)
+    assert allclose(d, logdiffexp(logsumexp([a, b]), c))

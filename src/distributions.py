@@ -33,6 +33,7 @@ from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_intersection
 from .sym_util import get_union
+from .sym_util import powerset
 from .sym_util import sym_log
 
 from .transforms import Identity
@@ -163,27 +164,36 @@ class ProductDistribution(Distribution):
         return logsumexp(logps)
 
     def logprob(self, event):
-        # TODO: Implement inclusion-exclusion algorithm.
-        pass
+        expr_dnf = event.to_dnf()
+        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
+        n_clauses = len(dnf_factor)
+        indexes = range(n_clauses)
+        subsets = powerset(indexes)
+        (logps_pos, logps_neg) = ([], [])
+        for idxs in subsets[1:]:
+            idxs = list(idxs)
+            symbols = set(chain.from_iterable(dnf_factor[i].keys() for i in idxs))
+            logprobs = [
+                self.logprob_and_symbol(dnf_factor, idxs, symbol)
+                for symbol in symbols
+            ]
+            logprob = sum(logprobs)
+            x = logps_pos if ((-1)**(len(idxs) - 1) > 0) else logps_neg
+            x.append(logprob)
+        logp_pos = logsumexp(logps_pos)
+        logp_neg = logsumexp(logps_neg) if logps_neg else -inf
+        return logdiffexp(logp_pos, logp_neg) if logps_neg else logp_pos
 
-        # Factor the event across the product.
-        # dnf = event.to_dnf()
-        # events = factor_dnf_symbols(dnf, self.lookup)
-        # logprobs = [self.distributions[i].logprob(e) for i, e in events.items()]
-        # return logsumexp(logprobs)
+    def logprob_and_symbol(self, dnf_factor, idxs, symbol):
+        events = [dnf_factor[i][symbol] for i in idxs if symbol in dnf_factor[i]]
+        if not events:
+            return -inf
+        event = events[0] if len(events) == 1 else EventAnd(events)
+        return self.distributions[symbol].logprob(event)
 
     def condition(self, event):
-        # TODO: Implement inclusion-exclusion algorithm.
+        # TODO: Implement disjoint union algorithm (yields a mixture).
         pass
-
-        # Factor the event across the product.
-        # dnf = event.to_dnf()
-        # constraints = factor_dnf_symbols(dnf, self.lookup)
-        # distributions = [
-        #     d.condition(constraints[i]) if (i in constraints) else d
-        #     for i, d in enumerate(self.distributions)
-        # ]
-        # return ProductDistribution(distributions)
 
 class DistributionLeaf(Distribution):
     # pylint: disable=no-member

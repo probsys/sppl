@@ -1,6 +1,8 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from itertools import chain
+from itertools import combinations
 from math import isinf
 
 import sympy
@@ -37,6 +39,11 @@ def are_disjoint(sets):
 def are_identical(sets):
     intersection = get_intersection(sets)
     return all(len(s) == len(intersection) for s in sets)
+
+def powerset(values):
+    s = list(values)
+    subsets = [list(combinations(s, k)) for k in range(len(s) + 1)]
+    return list(chain.from_iterable(subsets))
 
 def sympify_number(x):
     msg = 'Expected a numeric term, not %s' % (x,)
