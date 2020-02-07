@@ -165,6 +165,9 @@ class ProductDistribution(Distribution):
         return logsumexp(logps)
 
     def logprob(self, event):
+        return self.logprob_disjoint_union(event)
+
+    def logprob_inclusion_exclusion(self, event):
         # Adopting Inclusion--Exclusion principle:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
         expr_dnf = event.to_dnf()
@@ -191,6 +194,20 @@ class ProductDistribution(Distribution):
         logp_neg = logsumexp(logps_neg) if logps_neg else -inf
         # Return difference.
         return logdiffexp(logp_pos, logp_neg) if logps_neg else logp_pos
+
+    def logprob_disjoint_union(self, event):
+        # Adopting disjoint union principle.
+        # Disjoint union algorithm (yields mixture of products).
+        expr_dnf = event.to_dnf()
+        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
+        # Obtain the n disjoint clauses.
+        clauses = [
+            self.make_disjoint_conjunction(dnf_factor, i)
+            for i in dnf_factor
+        ]
+        # Construct the ProductDistribution weights.
+        ws = [self.get_clause_weight(clause) for clause in clauses]
+        return logsumexp(ws)
 
     def condition(self, event):
         # Disjoint union algorithm (yields mixture of products).

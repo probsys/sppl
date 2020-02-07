@@ -200,27 +200,28 @@ def test_inclusion_exclusion_basic():
         NumericDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
         NumericDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
     ])
-    a = dist.logprob(X > 0.1)
-    b = dist.logprob(Y < 0.5)
-    c = dist.logprob((X > 0.1) & (Y < 0.5))
-    d = dist.logprob((X > 0.1) | (Y < 0.5))
-    e = dist.logprob((X > 0.1) | ((Y < 0.5) & ~(X > 0.1)))
-    f = dist.logprob(~(X > 0.1))
-    g = dist.logprob((Y < 0.5) & ~(X > 0.1))
+    for func_prob in [dist.logprob, dist.logprob_inclusion_exclusion]:
+        a = func_prob(X > 0.1)
+        b = func_prob(Y < 0.5)
+        c = func_prob((X > 0.1) & (Y < 0.5))
+        d = func_prob((X > 0.1) | (Y < 0.5))
+        e = func_prob((X > 0.1) | ((Y < 0.5) & ~(X > 0.1)))
+        f = func_prob(~(X > 0.1))
+        g = func_prob((Y < 0.5) & ~(X > 0.1))
 
-    assert allclose(a, dist.distributions[0].logprob(X > 0.1))
-    assert allclose(b, dist.distributions[1].logprob(Y < 0.5))
+        assert allclose(a, dist.distributions[0].logprob(X > 0.1))
+        assert allclose(b, dist.distributions[1].logprob(Y < 0.5))
 
-    # Pr[AB]  = Pr[A] * Pr[B]
-    assert allclose(c, a + b)
-     # Pr[A|B] = Pr[A] + Pr[B] - Pr[AB]
-    assert allclose(d, logdiffexp(logsumexp([a, b]), c))
-    # Pr[A|B] = Pr[A] + Pr[B & ~A]
-    assert allclose(e, d)
-    # Pr[AB]  = Pr[A] * Pr[B]
-    assert allclose(g, b + f)
-    # Pr[A | (B & ~A)] = Pr[A] + Pr[B & ~A]
-    assert allclose(e, logsumexp([a, b+f]))
+        # Pr[AB]  = Pr[A] * Pr[B]
+        assert allclose(c, a + b)
+         # Pr[A|B] = Pr[A] + Pr[B] - Pr[AB]
+        assert allclose(d, logdiffexp(logsumexp([a, b]), c))
+        # Pr[A|B] = Pr[A] + Pr[B & ~A]
+        assert allclose(e, d)
+        # Pr[AB]  = Pr[A] * Pr[B]
+        assert allclose(g, b + f)
+        # Pr[A | (B & ~A)] = Pr[A] + Pr[B & ~A]
+        assert allclose(e, logsumexp([a, b+f]))
 
     # Condition on (X > 0)
     dX = dist.condition(X > 0)
