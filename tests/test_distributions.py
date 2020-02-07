@@ -221,3 +221,42 @@ def test_inclusion_exclusion_basic():
     assert allclose(g, b + f)
     # Pr[A | (B & ~A)] = Pr[A] + Pr[B & ~A]
     assert allclose(e, logsumexp([a, b+f]))
+
+    # Condition on (X > 0)
+    dX = dist.condition(X > 0)
+    assert isinstance(dX, ProductDistribution)
+    assert dX.distributions[0].symbol == Identity('X')
+    assert dX.distributions[0].conditioned
+    assert dX.distributions[0].support == sympy.Interval.open(0, sympy.oo)
+    assert dX.distributions[1].symbol == Identity('Y')
+    assert not dX.distributions[1].conditioned
+    assert dX.distributions[1].Fl == 0
+    assert dX.distributions[1].Fu == 1
+
+    # Condition on (Y < 0.5)
+    dY = dist.condition(Y < 0.5)
+    assert isinstance(dY, ProductDistribution)
+    assert dY.distributions[0].symbol == Identity('X')
+    assert not dY.distributions[0].conditioned
+    assert dY.distributions[1].symbol == Identity('Y')
+    assert dY.distributions[1].conditioned
+    assert dY.distributions[1].support == sympy.Interval.Ropen(0, 0.5)
+
+    # Condition on (X > 0) & (Y < 0.5)
+    dXY_and = dist.condition((X > 0) & (Y < 0.5))
+    assert isinstance(dXY_and, ProductDistribution)
+    assert dXY_and.distributions[0].symbol == Identity('X')
+    assert dXY_and.distributions[0].conditioned
+    assert dX.distributions[0].support == sympy.Interval.open(0, sympy.oo)
+    assert dXY_and.distributions[1].symbol == Identity('Y')
+    assert dXY_and.distributions[1].conditioned
+    assert dXY_and.distributions[1].support == sympy.Interval.Ropen(0, 0.5)
+
+    # Condition on (X > 0) | (Y < 0.5)
+    event = (X > 0) | (Y < 0.5)
+    dXY_or = dist.condition((X > 0) | (Y < 0.5))
+    assert isinstance(dXY_or, MixtureDistribution)
+    assert all(isinstance(d, ProductDistribution) for d in dXY_or.distributions)
+    assert allclose(dXY_or.logprob(X > 0),dXY_or.weights[0])
+    samples = dXY_or.sample(100, rng)
+    assert all(event.evaluate(sample) for sample in samples)

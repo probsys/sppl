@@ -201,8 +201,39 @@ class ProductDistribution(Distribution):
         return -inf
 
     def condition(self, event):
-        # TODO: Implement disjoint union algorithm (yields a mixture).
-        pass
+        # Disjoint union algorithm (yields mixture of products).
+        expr_dnf = event.to_dnf()
+        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
+        distributions_weights = [
+            self.condition_clause(dnf_factor, i) for i in dnf_factor]
+        products = [ProductDistribution(x[0]) for x in distributions_weights]
+        weights_unorm = [x[1] for x in distributions_weights]
+        weights = lognorm(weights_unorm)
+        return MixtureDistribution(products, weights) \
+            if (len(products) > 1) else products[0]
+
+    def condition_clause(self, dnf_factor, i):
+        # return dnf_factor[i] and reduce(e, x -> e & ~x, dnf_factor[1:i-1])
+        clause = self.make_disjoint_conjunction(dnf_factor, i)
+        distributions = [
+            distribution.condition(clause[k])
+                if k in clause else self.distributions[k]
+            for k, distribution in enumerate(self.distributions)
+        ]
+        logprobs = [self.logprob_conjunction({0: clause}, [0], k)
+            for k in clause]
+        weight = sum(logprobs)
+        return (distributions, weight)
+
+    def make_disjoint_conjunction(self, dnf_factor, i):
+        clause = dict(dnf_factor[i])
+        for j in range(i):
+            for k in dnf_factor[j]:
+                if k in clause:
+                    clause[k] &= (~dnf_factor[j][k])
+                else:
+                    clause[k] = (~dnf_factor[j][k])
+        return clause
 
 class DistributionLeaf(Distribution):
     # pylint: disable=no-member
