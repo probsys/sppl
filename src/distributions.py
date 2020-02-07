@@ -177,8 +177,10 @@ class ProductDistribution(Distribution):
             # Find symbols involved in clauses J.
             symbols = set(chain.from_iterable(dnf_factor[j].keys() for j in J))
             # Factorize events across the product.
-            logprobs = [self.compute_logprob_conjunction(dnf_factor, J, symbol)
-                for symbol in symbols]
+            logprobs = [
+                self.get_clause_weight_subset(dnf_factor, J, symbol)
+                for symbol in symbols
+            ]
             logprob = sum(logprobs)
             # Add probability to either positive or negative sums.
             prefactor = (-1)**(len(J) - 1)
@@ -190,15 +192,6 @@ class ProductDistribution(Distribution):
         # Return difference.
         return logdiffexp(logp_pos, logp_neg) if logps_neg else logp_pos
 
-    def compute_logprob_conjunction(self, dnf_factor, J, symbol):
-        # Find events in clause subset J which contain symbol.
-        events = [dnf_factor[j][symbol] for j in J if symbol in dnf_factor[j]]
-        # Compute probability of events.
-        if events:
-            event = events[0] if (len(events) == 1) else EventAnd(events)
-            return self.distributions[symbol].logprob(event)
-        return -inf
-
     def condition(self, event):
         # Disjoint union algorithm (yields mixture of products).
         expr_dnf = event.to_dnf()
@@ -208,22 +201,14 @@ class ProductDistribution(Distribution):
             self.make_disjoint_conjunction(dnf_factor, i)
             for i in dnf_factor
         ]
-        # Construct the ProductDistributions.
-        get_dist_condition = lambda clause: [
-            dist.condition(clause[k]) if (k in clause) else dist
-            for k, dist in enumerate(self.distributions)
-        ]
-        dists = [get_dist_condition(clause) for clause in clauses]
-        products = [ProductDistribution(dist) for dist in dists]
+        # Construct the new ProductDistributions.
+        ds = [self.get_clause_conditioned(clause) for clause in clauses]
+        products = [ProductDistribution(d) for d in ds]
         if len(products) == 1:
             return products[0]
         # Construct the ProductDistribution weights.
-        get_dist_weight = lambda clause: sum([
-            self.compute_logprob_conjunction({0: clause}, [0], k)
-            for k in clause
-        ])
-        weights_unorm = [get_dist_weight(clause) for clause in clauses]
-        weights = lognorm(weights_unorm)
+        ws = [self.get_clause_weight(clause) for clause in clauses]
+        weights = lognorm(ws)
         # Return MixtureDistribution of the products.
         return MixtureDistribution(products, weights)
 
@@ -236,6 +221,29 @@ class ProductDistribution(Distribution):
                 else:
                     clause[k] = (~dnf_factor[j][k])
         return clause
+
+    def get_clause_conditioned(self, clause):
+        # Return distributions conditioned on a clause (one conjunction).
+        return [
+            dist.condition(clause[k]) if (k in clause) else dist
+            for k, dist in enumerate(self.distributions)
+        ]
+
+    def get_clause_weight(self, clause):
+        # Return probability of a clause (one conjunction).
+        return sum([
+            dist.logprob(clause[k]) if (k in clause) else 0
+            for k, dist in enumerate(self.distributions)
+        ])
+
+    def get_clause_weight_subset(self, dnf_factor, J, symbol):
+        # Return probability of conjunction of |J| clauses, for given symbol.
+        events = [dnf_factor[j][symbol] for j in J if symbol in dnf_factor[j]]
+        if not events:
+            return -inf
+        # Compute probability of events.
+        event = events[0] if (len(events) == 1) else EventAnd(events)
+        return self.distributions[symbol].logprob(event)
 
 class DistributionLeaf(Distribution):
     # pylint: disable=no-member
