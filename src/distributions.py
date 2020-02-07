@@ -165,8 +165,7 @@ class ProductDistribution(Distribution):
         return logsumexp(logps)
 
     def logprob(self, event):
-        # Convert to DNF and factorize.
-        # Adopting Inclusion--Exclusion notation from:
+        # Adopting Inclusion--Exclusion principle:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
         expr_dnf = event.to_dnf()
         dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
@@ -178,7 +177,7 @@ class ProductDistribution(Distribution):
             # Find symbols involved in clauses J.
             symbols = set(chain.from_iterable(dnf_factor[j].keys() for j in J))
             # Factorize events across the product.
-            logprobs = [self.logprob_conjunction(dnf_factor, J, symbol)
+            logprobs = [self.compute_logprob_conjunction(dnf_factor, J, symbol)
                 for symbol in symbols]
             logprob = sum(logprobs)
             # Add probability to either positive or negative sums.
@@ -191,7 +190,7 @@ class ProductDistribution(Distribution):
         # Return difference.
         return logdiffexp(logp_pos, logp_neg) if logps_neg else logp_pos
 
-    def logprob_conjunction(self, dnf_factor, J, symbol):
+    def compute_logprob_conjunction(self, dnf_factor, J, symbol):
         # Find events in clause subset J which contain symbol.
         events = [dnf_factor[j][symbol] for j in J if symbol in dnf_factor[j]]
         # Compute probability of events.
@@ -204,26 +203,29 @@ class ProductDistribution(Distribution):
         # Disjoint union algorithm (yields mixture of products).
         expr_dnf = event.to_dnf()
         dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
-        distributions_weights = [
-            self.condition_clause(dnf_factor, i) for i in dnf_factor]
-        products = [ProductDistribution(x[0]) for x in distributions_weights]
-        weights_unorm = [x[1] for x in distributions_weights]
-        weights = lognorm(weights_unorm)
-        return MixtureDistribution(products, weights) \
-            if (len(products) > 1) else products[0]
-
-    def condition_clause(self, dnf_factor, i):
-        # return dnf_factor[i] and reduce(e, x -> e & ~x, dnf_factor[1:i-1])
-        clause = self.make_disjoint_conjunction(dnf_factor, i)
-        distributions = [
-            distribution.condition(clause[k])
-                if k in clause else self.distributions[k]
-            for k, distribution in enumerate(self.distributions)
+        # Obtain the n disjoint clauses.
+        clauses = [
+            self.make_disjoint_conjunction(dnf_factor, i)
+            for i in dnf_factor
         ]
-        logprobs = [self.logprob_conjunction({0: clause}, [0], k)
-            for k in clause]
-        weight = sum(logprobs)
-        return (distributions, weight)
+        # Construct the ProductDistributions.
+        get_dist_condition = lambda clause: [
+            dist.condition(clause[k]) if (k in clause) else dist
+            for k, dist in enumerate(self.distributions)
+        ]
+        dists = [get_dist_condition(clause) for clause in clauses]
+        products = [ProductDistribution(dist) for dist in dists]
+        if len(products) == 1:
+            return products[0]
+        # Construct the ProductDistribution weights.
+        get_dist_weight = lambda clause: sum([
+            self.compute_logprob_conjunction({0: clause}, [0], k)
+            for k in clause
+        ])
+        weights_unorm = [get_dist_weight(clause) for clause in clauses]
+        weights = lognorm(weights_unorm)
+        # Return MixtureDistribution of the products.
+        return MixtureDistribution(products, weights)
 
     def make_disjoint_conjunction(self, dnf_factor, i):
         clause = dict(dnf_factor[i])
