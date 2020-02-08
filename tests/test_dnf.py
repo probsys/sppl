@@ -51,6 +51,26 @@ def test_to_dnf_changes():
     assert B & D & E in result.events
     assert C & D & E in result.events
 
+def test_to_dnf_invert():
+    A = X0 < 0
+    B = X1 < 0
+    C = X2 < 0
+    D = X3 < 0
+
+    expr = ~(A | B | C)
+    assert expr.to_dnf() == ~A & ~B & ~C
+
+    expr = ~(A | B | ~C)
+    assert expr.to_dnf() == ~A & ~B & C
+
+    expr = ~((A | B | C) & D)
+    #  =>  ~(A | B | C) | ~D
+    assert expr.to_dnf() == (~A & ~B & ~C) | ~D
+
+    expr = ~((A | ~B | C) & ~D)
+    #  =>  ~(A | B | C) | ~D
+    assert expr.to_dnf() == (~A & B & ~C) | D
+
 def test_factor_dnf():
     E00 = ExpNat(X0) > 0
     E01 = X0 < 10

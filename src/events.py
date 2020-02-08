@@ -44,7 +44,7 @@ class Event(object):
         # return EventOr([self, event])
 
 class EventBasic(Event):
-    def __init__(self, expr, values, complement=None):
+    def __init__(self, expr, values, complement=False):
         assert isinstance(values, ContainersBasic)
         self.values = values
         self.expr = expr
