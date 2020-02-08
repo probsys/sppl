@@ -218,14 +218,18 @@ class ProductDistribution(Distribution):
             self.make_disjoint_conjunction(dnf_factor, i)
             for i in dnf_factor
         ]
+        # Construct the ProductDistribution weights.
+        ws = [self.get_clause_weight(clause) for clause in clauses]
+        indexes = [i for (i, w) in enumerate(ws) if not isinf_neg(w)]
+        if not indexes:
+            raise ValueError('Conditioning event "%s" has probability zero' %
+                (event,))
+        weights = lognorm([ws[i] for i in indexes])
         # Construct the new ProductDistributions.
-        ds = [self.get_clause_conditioned(clause) for clause in clauses]
+        ds = [self.get_clause_conditioned(clauses[i]) for i in indexes]
         products = [ProductDistribution(d) for d in ds]
         if len(products) == 1:
             return products[0]
-        # Construct the ProductDistribution weights.
-        ws = [self.get_clause_weight(clause) for clause in clauses]
-        weights = lognorm(ws)
         # Return MixtureDistribution of the products.
         return MixtureDistribution(products, weights)
 

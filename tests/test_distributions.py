@@ -14,8 +14,10 @@ from sum_product_dsl.distributions import MixtureDistribution
 from sum_product_dsl.distributions import NominalDistribution
 from sum_product_dsl.distributions import NumericDistribution
 from sum_product_dsl.distributions import ProductDistribution
-from sum_product_dsl.transforms import Identity
 
+from sum_product_dsl.transforms import Identity
+from sum_product_dsl.transforms import ExpNat as Exp
+from sum_product_dsl.transforms import LogNat as Log
 from sum_product_dsl.math_util import allclose
 from sum_product_dsl.math_util import isinf_neg
 from sum_product_dsl.math_util import logsumexp
@@ -265,3 +267,51 @@ def test_inclusion_exclusion_basic():
     assert allclose(dXY_or.logprob(X > 0),dXY_or.weights[0])
     samples = dXY_or.sample(100, rng)
     assert all(event.evaluate(sample) for sample in samples)
+
+def test_product_condition_or_probabilithy_zero():
+    # Condition on (exp(|3*X**2|) > 0) | (log(Y) < 0.5)
+    X = Identity('X')
+    Y = Identity('Y')
+    dist = ProductDistribution([
+        NumericDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
+        NumericDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
+    ])
+
+    # Condition on event which has probability zero.
+    event = (X > 2) & (X < 2)
+    with pytest.raises(ValueError):
+        dist.condition(event)
+    assert dist.logprob(event) == -float('inf')
+
+    # Condition on an event where one of the terms in the factored
+    # distribution has probability zero, i.e.,
+    # (X > 1) | [(log(Y) < 0.5) & (X > 2)]
+    #  = (X > 1) | [(log(Y) < 0.5) & (X > 2) & ~(X > 1)]
+    # The subclause (X > 2) & ~(X > 1) has probability zero, hence
+    # the result will be only a product distribution where X
+    # is constrained and Y is unconstrained
+    dist_condition = dist.condition((X>1) | ((Log(Y) < 0.5) & (X > 2)))
+    assert isinstance(dist_condition, ProductDistribution)
+    assert dist_condition.distributions[0].symbol == X
+    assert dist_condition.distributions[0].conditioned
+    assert dist_condition.distributions[0].support == sympy.Interval.open(1, sympy.oo)
+    assert dist_condition.distributions[1].symbol == Y
+    assert not dist_condition.distributions[1].conditioned
+
+    # Another case as above, where this time the subclause
+    # (X < 2) & ~(1 < exp(|3X**2|) is empty.
+    # Thus Y remains unconditioned
+    # and X is partitioned into (-oo, 0) U (0, oo) with equal weight.
+    event = (Exp(abs(3*X**2)) > 1) | ((Log(Y) < 0.5) & (X < 2))
+    dist_condition = dist.condition(event)
+    assert isinstance(dist_condition, ProductDistribution)
+    assert isinstance(dist_condition.distributions[0], MixtureDistribution)
+    assert dist_condition.distributions[0].weights == [-log(2), -log(2)]
+    assert dist_condition.distributions[0].distributions[0].conditioned
+    assert dist_condition.distributions[0].distributions[1].conditioned
+    assert dist_condition.distributions[0].distributions[0].support \
+        == sympy.Interval.Ropen(-sympy.oo, 0)
+    assert dist_condition.distributions[0].distributions[1].support \
+        == sympy.Interval.Lopen(0, sympy.oo)
+    assert dist_condition.distributions[1].symbol == Y
+    assert not dist_condition.distributions[1].conditioned
