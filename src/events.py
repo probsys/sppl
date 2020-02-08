@@ -126,10 +126,12 @@ class EventInterval(EventBasic):
         comp_l = '<' if self.values.left_open else '<='
         comp_r = '<' if self.values.right_open else '<='
         if isinf_neg(x_l):
-            return '%s %s %s' % (sym, comp_r, x_r)
-        if isinf_pos(x_r):
-            return '%s %s %s' % (x_l, comp_l, sym)
-        return '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
+            result = '%s %s %s' % (sym, comp_r, x_r)
+        elif isinf_pos(x_r):
+            result = '%s %s %s' % (x_l, comp_l, sym)
+        else:
+            result = '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
+        return result if not self.complement else '~(%s)' % (result,)
 
 class EventFinite(EventBasic):
     def __repr__(self):
