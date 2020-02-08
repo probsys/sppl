@@ -214,13 +214,13 @@ def test_inclusion_exclusion_basic():
 
         # Pr[A and B]  = Pr[A] * Pr[B]
         assert allclose(c, a + b)
-         # Pr[A | B] = Pr[A] + Pr[B] - Pr[AB]
+         # Pr[A or B] = Pr[A] + Pr[B] - Pr[AB]
         assert allclose(d, logdiffexp(logsumexp([a, b]), c))
-        # Pr[A | B] = Pr[A] + Pr[B & ~A]
+        # Pr[A or B] = Pr[A] + Pr[B & ~A]
         assert allclose(e, d)
         # Pr[A and B]  = Pr[A] * Pr[B]
         assert allclose(g, b + f)
-        # Pr[A | (B & ~A)] = Pr[A] + Pr[B & ~A]
+        # Pr[A or (B & ~A)] = Pr[A] + Pr[B & ~A]
         assert allclose(e, logsumexp([a, b+f]))
 
     # Condition on (X > 0)
