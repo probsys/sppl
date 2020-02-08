@@ -358,12 +358,12 @@ class NumericDistribution(DistributionLeaf):
         values = Intersection(self.support, interval)
 
         if values is EmptySet:
-            raise ValueError('Conditioning event "%s" is empty "%s"'
-                % (event, self.support))
+            raise ValueError('Conditioning event "%s" is empty (support="%s")'
+                % (str(event), self.support))
 
         if isinstance(values, ContainersFinite):
             raise ValueError('Conditioning event "%s" has probability zero' %
-                (event,))
+                (str(event),))
 
         if isinstance(values, Interval):
             weight = self.logcdf_interval(values)
@@ -410,8 +410,8 @@ class NominalDistribution(DistributionLeaf):
         values = simplify_nominal_event(event, self.support)
         p_event = sum([self.dist[x] for x in values])
         if isinf_neg(p_event):
-            raise ValueError('Cannot condition on zero probability event: %s'
-                % (str(event),))
+            raise ValueError('Conditioning event "%s" has probability zero' %
+                (str(event),))
         dist = {
             x : (self.dist[x] / p_event) if x in values else 0
             for x in self.outcomes
