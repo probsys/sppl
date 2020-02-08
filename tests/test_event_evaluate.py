@@ -69,7 +69,6 @@ def test_event_compound():
     assert event.evaluate({X: list(x_eq_500)[1], Y: 5})
 
 def test_event_solve_multi():
-
     event = (exp(abs(3*X**2)) > 1) | (log(Y) < 0.5)
     with pytest.raises(ValueError):
         event.solve()
