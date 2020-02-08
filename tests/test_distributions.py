@@ -202,6 +202,7 @@ def test_inclusion_exclusion_basic():
         NumericDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
         NumericDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
     ])
+
     for func_prob in [dist.logprob, dist.logprob_inclusion_exclusion]:
         a = func_prob(X > 0.1)
         b = func_prob(Y < 0.5)
