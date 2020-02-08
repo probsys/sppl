@@ -3,9 +3,10 @@
 
 import pytest
 
-import sympy
-
 from sum_product_dsl.transforms import Identity
+
+from sum_product_dsl.transforms import ExpNat as exp
+from sum_product_dsl.transforms import LogNat as log
 
 X = Identity('X')
 Y = Identity('Y')
@@ -66,3 +67,12 @@ def test_event_compound():
     x_eq_500 = (expr0 << {500}).solve()
     assert not event.evaluate({X: list(x_eq_500)[1], Y: 4})
     assert event.evaluate({X: list(x_eq_500)[1], Y: 5})
+
+def test_event_solve_multi():
+
+    event = (exp(abs(3*X**2)) > 1) | (log(Y) < 0.5)
+    with pytest.raises(ValueError):
+        event.solve()
+    event = (exp(abs(3*X**2)) > 1) & (log(Y) < 0.5)
+    with pytest.raises(ValueError):
+        event.solve()

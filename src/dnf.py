@@ -6,16 +6,14 @@ from sum_product_dsl.events import EventBasic
 from sum_product_dsl.events import EventOr
 
 def factor_dnf(event):
-    symbols = event.symbols()
-    lookup = {s:s for s in symbols}
+    lookup = {s:s for s in event.symbols}
     return factor_dnf_symbols(event, lookup)
 
 def factor_dnf_symbols(event, lookup):
     if isinstance(event, EventBasic):
         # Literal term.
-        symbols = event.symbols()
-        assert len(symbols) == 1
-        key = lookup[symbols[0]]
+        assert len(event.symbols) == 1
+        key = lookup[event.symbols[0]]
         return {0: {key: event}}
 
     if isinstance(event, EventAnd):

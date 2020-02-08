@@ -18,8 +18,6 @@ ContainersBasic = (sympy.Interval,) + ContainersFinite
 # Custom event language.
 
 class Event(object):
-    def symbols(self):
-        raise NotImplementedError()
     def solve(self):
         raise NotImplementedError()
     def evaluate(self, assignment):
@@ -51,8 +49,7 @@ class EventBasic(Event):
         self.values = values
         self.expr = expr
         self.complement = complement
-    def symbols(self):
-        return self.expr.symbols()
+        self.symbols = tuple(self.expr.symbols())
     def solve(self):
         solution = self.expr.invert(self.values)
         if self.complement:
@@ -146,11 +143,11 @@ class EventFinite(EventBasic):
 class EventOr(Event):
     def __init__(self, events):
         self.events = tuple(events)
-    def symbols(self):
-        sub_symbols = [event.symbols() for event in self.events]
-        symbols = itertools.chain.from_iterable(sub_symbols)
-        return tuple(set(symbols))
+        self.symbols = tuple(set(itertools.chain.from_iterable([
+            event.symbols for event in self.events])))
     def solve(self):
+        if len(self.symbols) > 1:
+            raise ValueError('Cannot solve event with multiple symbols.')
         intervals = [event.solve() for event in self.events]
         return sympy.Union(*intervals)
     def evaluate(self, assignment):
@@ -192,11 +189,11 @@ class EventOr(Event):
 class EventAnd(Event):
     def __init__(self, events):
         self.events = tuple(events)
-    def symbols(self):
-        sub_symbols = [event.symbols() for event in self.events]
-        symbols = itertools.chain.from_iterable(sub_symbols)
-        return tuple(set(symbols))
+        self.symbols = tuple(set(itertools.chain.from_iterable([
+            event.symbols for event in self.events])))
     def solve(self):
+        if len(self.symbols) > 1:
+            raise ValueError('Cannot solve event with multiple symbols.')
         intervals = [event.solve() for event in self.events]
         return sympy.Intersection(*intervals)
     def evaluate(self, assignment):
