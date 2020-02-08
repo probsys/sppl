@@ -212,13 +212,13 @@ def test_inclusion_exclusion_basic():
         assert allclose(a, dist.distributions[0].logprob(X > 0.1))
         assert allclose(b, dist.distributions[1].logprob(Y < 0.5))
 
-        # Pr[AB]  = Pr[A] * Pr[B]
+        # Pr[A and B]  = Pr[A] * Pr[B]
         assert allclose(c, a + b)
-         # Pr[A|B] = Pr[A] + Pr[B] - Pr[AB]
+         # Pr[A | B] = Pr[A] + Pr[B] - Pr[AB]
         assert allclose(d, logdiffexp(logsumexp([a, b]), c))
-        # Pr[A|B] = Pr[A] + Pr[B & ~A]
+        # Pr[A | B] = Pr[A] + Pr[B & ~A]
         assert allclose(e, d)
-        # Pr[AB]  = Pr[A] * Pr[B]
+        # Pr[A and B]  = Pr[A] * Pr[B]
         assert allclose(g, b + f)
         # Pr[A | (B & ~A)] = Pr[A] + Pr[B & ~A]
         assert allclose(e, logsumexp([a, b+f]))
