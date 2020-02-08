@@ -189,11 +189,13 @@ class ProductDistribution(Distribution):
             prefactor = (-1)**(len(J) - 1)
             x = logps_pos if prefactor > 0 else logps_neg
             x.append(logprob)
-        # Aggregate positive and negative terms.
+        # Aggregate positive term.
         logp_pos = logsumexp(logps_pos)
+        if isinf_neg(logp_pos) or not logps_neg:
+            return logp_pos
+        # Aggregate negative terms and return the difference.
         logp_neg = logsumexp(logps_neg) if logps_neg else -inf
-        # Return difference.
-        return logdiffexp(logp_pos, logp_neg) if logps_neg else logp_pos
+        return logdiffexp(logp_pos, logp_neg)
 
     def logprob_disjoint_union(self, event):
         # Adopting disjoint union principle.

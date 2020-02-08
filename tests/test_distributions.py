@@ -229,6 +229,10 @@ def test_inclusion_exclusion_basic():
         # i.e.,k (X > 1) => (X > 0).
         assert allclose(func_prob((X > 0) | (X > 1)), func_prob(X > 0))
 
+        # Probability zero event.
+        event = (0 < X < 0.5) & ((Y < 0) | (1 < X))
+        assert isinf_neg(func_prob(event))
+
     # Condition on (X > 0)
     dX = dist.condition(X > 0)
     assert isinstance(dX, ProductDistribution)
