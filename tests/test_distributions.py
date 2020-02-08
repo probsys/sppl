@@ -223,6 +223,10 @@ def test_inclusion_exclusion_basic():
         # Pr[A or (B & ~A)] = Pr[A] + Pr[B & ~A]
         assert allclose(e, logsumexp([a, b+f]))
 
+        # (A => B) => Pr[A or B] = Pr[B]
+        # i.e.,k (X > 1) => (X > 0).
+        assert allclose(func_prob((X > 0) | (X > 1)), func_prob(X > 0))
+
     # Condition on (X > 0)
     dX = dist.condition(X > 0)
     assert isinstance(dX, ProductDistribution)
