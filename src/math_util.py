@@ -20,7 +20,7 @@ def logdiffexp(a, b):
         return -float('inf')
     if b < a:
         return a + log1mexp(a - b)
-    assert False, 'Cannot logdiffexp negative summations.'
+    raise ValueError('Negative term in logdiffexp.')
 
 def lognorm(array):
     M = logsumexp(array)
