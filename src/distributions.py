@@ -386,8 +386,8 @@ class NumericDistribution(DistributionBasic):
                 % (str(event), self.support))
 
         if isinstance(values, ContainersFinite):
-            raise ValueError('Conditioning event "%s" has probability zero' %
-                (str(event),))
+            raise ValueError('Conditioning event "%s" has probability zero'
+                 % (str(event),))
 
         if isinstance(values, Interval):
             weight = self.logcdf_interval(values)
