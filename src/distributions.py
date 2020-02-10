@@ -6,6 +6,7 @@ from collections import Counter
 from fractions import Fraction
 from inspect import getfullargspec
 from itertools import chain
+from math import exp
 
 from sympy import S as Singletons
 
@@ -59,6 +60,24 @@ class Distribution(object):
         raise NotImplementedError()
     def condition(self, event):
         raise NotImplementedError()
+    def mutual_information(self, A, B):
+        # p11 = self.logprob(A & B)
+        # p10 = self.logprob(A & ~B)
+        # p01 = self.logprob(~A & B)
+        # p00 = self.logprob(~A & ~B)
+        lpA1 = self.logprob(A)
+        lpB1 = self.logprob(B)
+        lpA0 = logdiffexp(0, lpA1)
+        lpB0 = logdiffexp(0, lpB1)
+        lp00 = self.logprob(~A & ~B)
+        lp01 = self.logprob(~A & B)
+        lp10 = self.logprob(A & ~B)
+        lp11 = self.logprob(A & B)
+        m00 = exp(lp00) * (lp00 - (lpA0 + lpB0)) if not isinf_neg(lp00) else 0
+        m01 = exp(lp01) * (lp01 - (lpA0 + lpB1)) if not isinf_neg(lp01) else 0
+        m10 = exp(lp10) * (lp10 - (lpA1 + lpB0)) if not isinf_neg(lp10) else 0
+        m11 = exp(lp11) * (lp11 - (lpA1 + lpB1)) if not isinf_neg(lp11) else 0
+        return m00 + m01 + m10 + m11
 
 class MixtureDistribution(Distribution):
     """Weighted mixture of distributions."""
