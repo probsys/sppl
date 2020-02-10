@@ -286,7 +286,7 @@ class ProductDistribution(Distribution):
         event = events[0] if (len(events) == 1) else EventAnd(events)
         return self.distributions[symbol].logprob(event)
 
-class DistributionLeaf(Distribution):
+class DistributionBasic(Distribution):
     # pylint: disable=no-member
     def get_symbols(self):
         return frozenset({self.symbol})
@@ -298,7 +298,7 @@ class DistributionLeaf(Distribution):
         samples = self.sample(N, rng)
         return func_evaluate(self, func, samples)
 
-class NumericDistribution(DistributionLeaf):
+class NumericDistribution(DistributionBasic):
     """Univariate distribution on a single real interval."""
 
     def __init__(self, symbol, dist, support, conditioned=None):
@@ -407,7 +407,7 @@ class NumericDistribution(DistributionLeaf):
 
         assert False, 'Unknown set type: %s' % (interval,)
 
-class NominalDistribution(DistributionLeaf):
+class NominalDistribution(DistributionBasic):
     """Univariate distribution on set of unordered, non-numeric atoms."""
 
     def __init__(self, symbol, dist):
