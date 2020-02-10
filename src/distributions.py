@@ -4,7 +4,6 @@
 from collections import ChainMap
 from collections import Counter
 from fractions import Fraction
-from functools import reduce
 from inspect import getfullargspec
 from itertools import chain
 
