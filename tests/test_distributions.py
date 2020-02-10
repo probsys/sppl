@@ -118,6 +118,28 @@ def test_numeric_distribution_normal():
     with pytest.raises(ValueError):
         dist.sample_func(lambda Z: Z**2, 1, rng)
 
+    x = dist.logprob((X << {1, 2}) | (X < -1))
+    assert allclose(x, dist.logprob(X < -1))
+
+def test_numeric_distribution_gamma():
+    X = Identity('X')
+
+    dist = NumericDistribution(X, scipy.stats.gamma(a=1, scale=1), RealsPos)
+    with pytest.raises(ValueError):
+        dist.condition((X << {1, 2}) | (X < 0))
+
+    # Intentionally set Reals as the domain to exercise an important
+    # code path in dist.condition (Union case with zero weights).
+    dist = NumericDistribution(X, scipy.stats.gamma(a=1, scale=1), Reals)
+    assert isinf_neg(dist.logprob((X << {1, 2}) | (X < 0)))
+    with pytest.raises(ValueError):
+        dist.condition((X << {1, 2}) | (X < 0))
+
+    dist_condition = dist.condition((X << {1,2} | (X <= 3)))
+    assert isinstance(dist_condition, NumericDistribution)
+    assert dist_condition.conditioned
+    assert dist_condition.support == sympy.Interval(-sympy.oo, 3)
+
 def test_mixture_distribution_normal_gamma():
     X = Identity('X')
     weights = [

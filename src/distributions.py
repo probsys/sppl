@@ -341,17 +341,7 @@ class NumericDistribution(DistributionBasic):
     def logprob(self, event):
         interval = event.solve()
         values = Intersection(self.support, interval)
-        if values is EmptySet:
-            return -inf
-        if isinstance(values, ContainersFinite):
-            # XXX Assuming no atoms.
-            return -inf
-        if isinstance(values, Interval):
-            return self.logcdf_interval(values)
-        if isinstance(values, Union):
-            logps = [self.logcdf_interval(v) for v in values.args]
-            return logsumexp(logps)
-        assert False, 'Unknown set type: %s' % (values,)
+        return self.logprob_values(values)
 
     def logcdf(self, x):
         if not self.conditioned:
@@ -370,12 +360,25 @@ class NumericDistribution(DistributionBasic):
             return -inf
         return self.dist.logpdf(x) - self.logZ
 
-    def logcdf_interval(self, interval):
-        if interval == EmptySet:
+    def logprob_values(self, values):
+        if values is EmptySet:
             return -inf
-        xl = float(interval.start)
-        xh = float(interval.end)
+        if isinstance(values, ContainersFinite):
+            return self.logprob_finite(values)
+        if isinstance(values, Interval):
+            return self.logprob_interval(values)
+        if isinstance(values, Union):
+            logps = [self.logprob_values(v) for v in values.args]
+            return logsumexp(logps)
+        assert False, 'Unknown set type: %s' % (values,)
+
+    def logprob_interval(self, values):
+        xl = float(values.start)
+        xh = float(values.end)
         return logdiffexp(self.logcdf(xh), self.logcdf(xl))
+
+    def logprob_finite(self, values):
+        return -inf
 
     def condition(self, event):
         interval = event.solve()
@@ -390,20 +393,25 @@ class NumericDistribution(DistributionBasic):
                  % (str(event),))
 
         if isinstance(values, Interval):
-            weight = self.logcdf_interval(values)
+            weight = self.logprob_interval(values)
             assert -inf < weight
             return NumericDistribution(self.symbol, self.dist, values, True)
 
         if isinstance(values, Union):
-            distributions = [
-                NumericDistribution(self.symbol, self.dist, v, True)
-                for v in values.args
-            ]
-            weights_unorm = [self.logcdf_interval(v) for v in values.args]
+            weights_unorm = [self.logprob_values(v) for v in values.args]
+            indexes = [i for i, w in enumerate(weights_unorm) if not isinf_neg(w)]
+            if not indexes:
+                raise ValueError('Conditioning event "%s" has probability zero'
+                    % (str(event),))
             # TODO: Normalize the weights with greater precision, e.g.,
             # https://stats.stackexchange.com/questions/66616/converting-normalizing-very-small-likelihood-values-to-probability
-            weights = lognorm(weights_unorm)
-            return MixtureDistribution(distributions, weights)
+            weights = lognorm([weights_unorm[i] for i in indexes])
+            distributions = [
+                NumericDistribution(self.symbol, self.dist, values.args[i], True)
+                for i in indexes
+            ]
+            return MixtureDistribution(distributions, weights) \
+                if 1 < len(indexes) else distributions[0]
 
         assert False, 'Unknown set type: %s' % (interval,)
 
