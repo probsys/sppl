@@ -81,7 +81,7 @@ class Distribution(object):
         m11 = exp(lp11) * (lp11 - (lpA1 + lpB1)) if not isinf_neg(lp11) else 0
         return m00 + m01 + m10 + m11
 
-class MixtureDistribution(Distribution):
+class SumDistribution(Distribution):
     """Weighted mixture of distributions."""
 
     def __init__(self, distributions, weights):
@@ -132,7 +132,7 @@ class MixtureDistribution(Distribution):
         logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
         dists = [self.distributions[i].condition(event) for i in indexes]
         weights = lognorm(logps_joint)
-        return MixtureDistribution(dists, weights) if len(dists) > 1 \
+        return SumDistribution(dists, weights) if len(dists) > 1 \
             else dists[0]
 
 class ProductDistribution(Distribution):
@@ -252,8 +252,8 @@ class ProductDistribution(Distribution):
         products = [ProductDistribution(d) for d in ds]
         if len(products) == 1:
             return products[0]
-        # Return MixtureDistribution of the products.
-        return MixtureDistribution(products, weights)
+        # Return SumDistribution of the products.
+        return SumDistribution(products, weights)
 
     def make_disjoint_conjunction(self, dnf_factor, i):
         clause = dict(dnf_factor[i])
@@ -398,12 +398,12 @@ class RealDistribution(DistributionBasic):
                 (type(self))(self.symbol, self.dist, values.args[i], True)
                 for i in indexes
             ]
-            return MixtureDistribution(distributions, weights) \
+            return SumDistribution(distributions, weights) \
                 if 1 < len(indexes) else distributions[0]
 
         assert False, 'Unknown set type: %s' % (values,)
 
-class NumericDistribution(RealDistribution):
+class NumericalDistribution(RealDistribution):
     """Non-atomic distribution with a cumulative distribution function."""
     def __init__(self, symbol, dist, support, conditioned=None):
         super().__init__(symbol, dist, support, conditioned)

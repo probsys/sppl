@@ -10,9 +10,9 @@ import numpy
 import scipy.stats
 import sympy
 
-from sum_product_dsl.distributions import MixtureDistribution
+from sum_product_dsl.distributions import SumDistribution
 from sum_product_dsl.distributions import NominalDistribution
-from sum_product_dsl.distributions import NumericDistribution
+from sum_product_dsl.distributions import NumericalDistribution
 from sum_product_dsl.distributions import OrdinalDistribution
 from sum_product_dsl.distributions import ProductDistribution
 
@@ -32,7 +32,7 @@ rng = numpy.random.RandomState(1)
 def test_numeric_distribution_normal():
     X = Identity('X')
     probs = scipy.stats.norm(loc=0, scale=1)
-    dist = NumericDistribution(X, probs, Reals)
+    dist = NumericalDistribution(X, probs, Reals)
 
     assert allclose(dist.logprob(X > 0), -log(2))
     assert allclose(dist.logprob(abs(X) < 2), log(probs.cdf(2) - probs.cdf(-2)))
@@ -57,13 +57,13 @@ def test_numeric_distribution_normal():
     assert all(s[X] < 2 for s in samples)
 
     dist_condition_b = dist.condition((X < -10) | (X > 10))
-    assert isinstance(dist_condition_b, MixtureDistribution)
+    assert isinstance(dist_condition_b, SumDistribution)
     assert allclose(dist_condition_b.weights[0], -log(2))
     assert allclose(dist_condition_b.weights[0], dist_condition_b.weights[1])
 
     for event in [(X<-10), (X>3)]:
         dist_condition_c = dist.condition(event)
-        assert isinstance(dist_condition_c, NumericDistribution)
+        assert isinstance(dist_condition_c, NumericalDistribution)
         assert isinf_neg(dist_condition_c.logprob((-1 < X) < 1))
         samples = dist_condition_c.sample(100, rng)
         assert all(s[X] in event.values for s in samples)
@@ -83,19 +83,19 @@ def test_numeric_distribution_normal():
 def test_numeric_distribution_gamma():
     X = Identity('X')
 
-    dist = NumericDistribution(X, scipy.stats.gamma(a=1, scale=1), RealsPos)
+    dist = NumericalDistribution(X, scipy.stats.gamma(a=1, scale=1), RealsPos)
     with pytest.raises(ValueError):
         dist.condition((X << {1, 2}) | (X < 0))
 
     # Intentionally set Reals as the domain to exercise an important
     # code path in dist.condition (Union case with zero weights).
-    dist = NumericDistribution(X, scipy.stats.gamma(a=1, scale=1), Reals)
+    dist = NumericalDistribution(X, scipy.stats.gamma(a=1, scale=1), Reals)
     assert isinf_neg(dist.logprob((X << {1, 2}) | (X < 0)))
     with pytest.raises(ValueError):
         dist.condition((X << {1, 2}) | (X < 0))
 
     dist_condition = dist.condition((X << {1,2} | (X <= 3)))
-    assert isinstance(dist_condition, NumericDistribution)
+    assert isinstance(dist_condition, NumericalDistribution)
     assert dist_condition.conditioned
     assert dist_condition.support == sympy.Interval(-sympy.oo, 3)
     assert allclose(

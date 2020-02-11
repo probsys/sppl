@@ -10,9 +10,9 @@ import numpy
 import scipy.stats
 import sympy
 
-from sum_product_dsl.distributions import MixtureDistribution
+from sum_product_dsl.distributions import SumDistribution
 from sum_product_dsl.distributions import NominalDistribution
-from sum_product_dsl.distributions import NumericDistribution
+from sum_product_dsl.distributions import NumericalDistribution
 from sum_product_dsl.distributions import OrdinalDistribution
 from sum_product_dsl.distributions import ProductDistribution
 

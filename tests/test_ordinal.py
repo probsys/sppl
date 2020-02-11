@@ -7,7 +7,7 @@ import numpy
 import scipy.stats
 import sympy
 
-from sum_product_dsl.distributions import MixtureDistribution
+from sum_product_dsl.distributions import SumDistribution
 from sum_product_dsl.distributions import OrdinalDistribution
 
 from sum_product_dsl.math_util import allclose
@@ -69,7 +69,7 @@ def test_ordinal_distribution_poisson():
 
     # Make a mixture of two components.
     dist_condition = dist.condition(((1 <= X) < 5) | (3*X + 1) << {22})
-    assert isinstance(dist_condition, MixtureDistribution)
+    assert isinstance(dist_condition, SumDistribution)
     assert dist_condition.distributions[0].conditioned
     assert dist_condition.distributions[0].xl == 1
     assert dist_condition.distributions[0].xu == 4

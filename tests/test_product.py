@@ -9,8 +9,8 @@ import numpy
 import scipy.stats
 import sympy
 
-from sum_product_dsl.distributions import MixtureDistribution
-from sum_product_dsl.distributions import NumericDistribution
+from sum_product_dsl.distributions import SumDistribution
+from sum_product_dsl.distributions import NumericalDistribution
 from sum_product_dsl.distributions import ProductDistribution
 
 from sum_product_dsl.math_util import allclose
@@ -32,11 +32,11 @@ def test_product_distribution_normal_gamma():
     X4 = Identity('X4')
     dists = [
         ProductDistribution([
-            NumericDistribution(X1, scipy.stats.norm(loc=0, scale=1), Reals),
-            NumericDistribution(X4, scipy.stats.norm(loc=10, scale=1), Reals)
+            NumericalDistribution(X1, scipy.stats.norm(loc=0, scale=1), Reals),
+            NumericalDistribution(X4, scipy.stats.norm(loc=10, scale=1), Reals)
         ]),
-        NumericDistribution(X2, scipy.stats.gamma(loc=0, a=1), RealsPos),
-        NumericDistribution(X3, scipy.stats.norm(loc=2, scale=3), Reals),
+        NumericalDistribution(X2, scipy.stats.gamma(loc=0, a=1), RealsPos),
+        NumericalDistribution(X3, scipy.stats.norm(loc=2, scale=3), Reals),
     ]
     dist = ProductDistribution(dists)
     assert dist.distributions == [
@@ -72,8 +72,8 @@ def test_inclusion_exclusion_basic():
     X = Identity('X')
     Y = Identity('Y')
     dist = ProductDistribution([
-        NumericDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
-        NumericDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
+        NumericalDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
+        NumericalDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
     ])
 
     for func_prob in [dist.logprob, dist.logprob_inclusion_exclusion]:
@@ -148,7 +148,7 @@ def test_inclusion_exclusion_basic():
     # Condition on (X > 0) | (Y < 0.5)
     event = (X > 0) | (Y < 0.5)
     dXY_or = dist.condition((X > 0) | (Y < 0.5))
-    assert isinstance(dXY_or, MixtureDistribution)
+    assert isinstance(dXY_or, SumDistribution)
     assert all(isinstance(d, ProductDistribution) for d in dXY_or.distributions)
     assert allclose(dXY_or.logprob(X > 0),dXY_or.weights[0])
     samples = dXY_or.sample(100, rng)
@@ -159,8 +159,8 @@ def test_product_condition_or_probabilithy_zero():
     X = Identity('X')
     Y = Identity('Y')
     dist = ProductDistribution([
-        NumericDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
-        NumericDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
+        NumericalDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
+        NumericalDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
     ])
 
     # Condition on event which has probability zero.
@@ -191,7 +191,7 @@ def test_product_condition_or_probabilithy_zero():
     event = (Exp(abs(3*X**2)) > 1) | ((Log(Y) < 0.5) & (X < 2))
     dist_condition = dist.condition(event)
     assert isinstance(dist_condition, ProductDistribution)
-    assert isinstance(dist_condition.distributions[0], MixtureDistribution)
+    assert isinstance(dist_condition.distributions[0], SumDistribution)
     assert dist_condition.distributions[0].weights == [-log(2), -log(2)]
     assert dist_condition.distributions[0].distributions[0].conditioned
     assert dist_condition.distributions[0].distributions[1].conditioned

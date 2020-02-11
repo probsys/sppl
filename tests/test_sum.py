@@ -9,8 +9,8 @@ import pytest
 import numpy
 import scipy.stats
 
-from sum_product_dsl.distributions import MixtureDistribution
-from sum_product_dsl.distributions import NumericDistribution
+from sum_product_dsl.distributions import SumDistribution
+from sum_product_dsl.distributions import NumericalDistribution
 
 from sum_product_dsl.transforms import Identity
 from sum_product_dsl.math_util import logsumexp
@@ -25,9 +25,9 @@ def test_mixture_distribution_normal_gamma():
         log(Fraction(2, 3)),
         log(Fraction(1, 3))
     ]
-    dist = MixtureDistribution([
-            NumericDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
-            NumericDistribution(X, scipy.stats.gamma(loc=0, a=1), RealsPos),
+    dist = SumDistribution([
+            NumericalDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
+            NumericalDistribution(X, scipy.stats.gamma(loc=0, a=1), RealsPos),
         ], weights)
 
     assert dist.logprob(X > 0) == logsumexp([
@@ -42,7 +42,7 @@ def test_mixture_distribution_normal_gamma():
         dist.sample_func(lambda Y: abs(X**3), 100, rng)
 
     dist_condition = dist.condition(X < 0)
-    assert isinstance(dist_condition, NumericDistribution)
+    assert isinstance(dist_condition, NumericalDistribution)
     assert dist_condition.conditioned
     assert dist_condition.logprob(X < 0) == 0
     samples = dist_condition.sample(100, rng)

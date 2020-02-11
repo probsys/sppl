@@ -6,8 +6,8 @@ from math import log
 import numpy
 import scipy.stats
 
-from sum_product_dsl.distributions import MixtureDistribution
-from sum_product_dsl.distributions import NumericDistribution
+from sum_product_dsl.distributions import SumDistribution
+from sum_product_dsl.distributions import NumericalDistribution
 from sum_product_dsl.distributions import ProductDistribution
 
 from sum_product_dsl.math_util import allclose
@@ -22,22 +22,22 @@ def test_mutual_information_four_clusters():
     components = [
         # Component 1.
         ProductDistribution([
-            NumericDistribution(X, scipy.stats.norm(0, 0.5), Reals),
-            NumericDistribution(Y, scipy.stats.norm(0, 0.5), Reals)]),
+            NumericalDistribution(X, scipy.stats.norm(0, 0.5), Reals),
+            NumericalDistribution(Y, scipy.stats.norm(0, 0.5), Reals)]),
         # Component 2.
         ProductDistribution([
-            NumericDistribution(X, scipy.stats.norm(5, 0.5), Reals),
-            NumericDistribution(Y, scipy.stats.norm(0, 0.5), Reals)]),
+            NumericalDistribution(X, scipy.stats.norm(5, 0.5), Reals),
+            NumericalDistribution(Y, scipy.stats.norm(0, 0.5), Reals)]),
         # Component 3.
         ProductDistribution([
-            NumericDistribution(X, scipy.stats.norm(0, 0.5), Reals),
-            NumericDistribution(Y, scipy.stats.norm(5, 0.5), Reals)]),
+            NumericalDistribution(X, scipy.stats.norm(0, 0.5), Reals),
+            NumericalDistribution(Y, scipy.stats.norm(5, 0.5), Reals)]),
         # Component 4.
         ProductDistribution([
-            NumericDistribution(X, scipy.stats.norm(5, 0.5), Reals),
-            NumericDistribution(Y, scipy.stats.norm(5, 0.5), Reals)]),
+            NumericalDistribution(X, scipy.stats.norm(5, 0.5), Reals),
+            NumericalDistribution(Y, scipy.stats.norm(5, 0.5), Reals)]),
     ]
-    dist = MixtureDistribution(components, [-log(4)]*4)
+    dist = SumDistribution(components, [-log(4)]*4)
 
     samples = dist.sample(100, rng)
     mi = dist.mutual_information(X > 2, Y > 2)
