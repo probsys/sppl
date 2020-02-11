@@ -45,7 +45,7 @@ EmptySet = Singletons.EmptySet
 inf = float('inf')
 
 # ==============================================================================
-# Distribution classes.
+# Distribution base class.
 
 class Distribution(object):
     def __init__(self):
@@ -80,6 +80,9 @@ class Distribution(object):
         m10 = exp(lp10) * (lp10 - (lpA1 + lpB0)) if not isinf_neg(lp10) else 0
         m11 = exp(lp11) * (lp11 - (lpA1 + lpB1)) if not isinf_neg(lp11) else 0
         return m00 + m01 + m10 + m11
+
+# ==============================================================================
+# Sum distribution.
 
 class SumDistribution(Distribution):
     """Weighted mixture of distributions."""
@@ -135,6 +138,9 @@ class SumDistribution(Distribution):
         return SumDistribution(dists, weights) if len(dists) > 1 \
             else dists[0]
 
+# ==============================================================================
+# Product base class.
+
 class ProductDistribution(Distribution):
     """Tuple of independent distributions."""
 
@@ -154,7 +160,7 @@ class ProductDistribution(Distribution):
 
     def sample(self, N, rng):
         samples = [dist.sample(N, rng) for dist in self.distributions]
-        return merge_samples(samples, N)
+        return merge_samples(samples)
 
     def sample_subset(self, symbols, N, rng):
         # Partition symbols by lookup.
@@ -171,7 +177,7 @@ class ProductDistribution(Distribution):
             for i, symbols_i in index_to_symbols.items()
         ]
         # Merge the samples.
-        return merge_samples(samples, N)
+        return merge_samples(samples)
 
     def sample_func(self, func, N, rng):
         symbols = func_symbols(self, func)
@@ -288,6 +294,9 @@ class ProductDistribution(Distribution):
         event = events[0] if (len(events) == 1) else EventAnd(events)
         return self.distributions[symbol].logprob(event)
 
+# ==============================================================================
+# Basic Distribution base class.
+
 class DistributionBasic(Distribution):
     # pylint: disable=no-member
     def get_symbols(self):
@@ -299,6 +308,9 @@ class DistributionBasic(Distribution):
     def sample_func(self, func, N, rng):
         samples = self.sample(N, rng)
         return func_evaluate(self, func, samples)
+
+# ==============================================================================
+# RealDistribution base class.
 
 class RealDistribution(DistributionBasic):
     """Base class for distribution with a cumulative distribution function."""
@@ -403,6 +415,9 @@ class RealDistribution(DistributionBasic):
 
         assert False, 'Unknown set type: %s' % (values,)
 
+# ==============================================================================
+# Numerical distribution.
+
 class NumericalDistribution(RealDistribution):
     """Non-atomic distribution with a cumulative distribution function."""
     def __init__(self, symbol, dist, support, conditioned=None):
@@ -439,6 +454,9 @@ class NumericalDistribution(RealDistribution):
         logFl = self.logcdf(xl)
         logFu = self.logcdf(xu)
         return logdiffexp(logFu, logFl)
+
+# ==============================================================================
+# Ordinal distribution.
 
 class OrdinalDistribution(RealDistribution):
     """Atomic distribution with a cumulative distribution function."""
@@ -486,6 +504,9 @@ class OrdinalDistribution(RealDistribution):
     def logprob_interval(self, values):
         assert False, 'Atomic distribution cannot intersect an interval!'
 
+# ==============================================================================
+# Nominal distribution.
+
 class NominalDistribution(DistributionBasic):
     """Atomic distribution, no cumulative distribution function."""
 
@@ -526,6 +547,9 @@ class NominalDistribution(DistributionBasic):
         xs = flip(self.weights, self.outcomes, N, rng)
         return [{self.symbol: x} for x in xs]
 
+# ==============================================================================
+# Utilities.
+
 def simplify_nominal_event(event, support):
     if isinstance(event, EventInterval):
         raise ValueError('Nominal variables cannot be in real intervals: %s'
@@ -558,7 +582,7 @@ def func_symbols(dist, func):
             % (unknown, symbols))
     return args
 
-def merge_samples(samples, N):
+def merge_samples(samples):
     # input [[{X:1, Y:2}, {X:0, Y:1}], [{Z:0}, {Z:1}]] (N=2)
     # output [{X:1, Y:2, Z:0}, {X:0, Y:1, Z:1}]
     return [dict(ChainMap(*sample_list)) for sample_list in zip(*samples)]
