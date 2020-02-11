@@ -139,6 +139,10 @@ def test_numeric_distribution_gamma():
     assert isinstance(dist_condition, NumericDistribution)
     assert dist_condition.conditioned
     assert dist_condition.support == sympy.Interval(-sympy.oo, 3)
+    assert allclose(
+        dist_condition.logprob(X <= 2),
+        logdiffexp(dist.logprob(X<=2), dist.logprob(X<=0))
+            - dist_condition.logZ)
 
 def test_mixture_distribution_normal_gamma():
     X = Identity('X')

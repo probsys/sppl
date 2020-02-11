@@ -350,7 +350,7 @@ class NumericDistribution(DistributionBasic):
             return 0
         elif x <= self.xl:
             return -inf
-        p = logdiffexp(self.dist.logcdf(x), self.Fl)
+        p = logdiffexp(self.dist.logcdf(x), self.logFl)
         return p - self.logZ
 
     def logpdf(self, x):
