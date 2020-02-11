@@ -7,11 +7,13 @@ from fractions import Fraction
 from inspect import getfullargspec
 from itertools import chain
 from math import exp
+from math import isfinite
 
 from sympy import S as Singletons
 
 from sympy import Intersection
 from sympy import Interval
+from sympy import Range
 from sympy import Union
 
 from .dnf import factor_dnf_symbols
@@ -298,8 +300,8 @@ class DistributionBasic(Distribution):
         samples = self.sample(N, rng)
         return func_evaluate(self, func, samples)
 
-class NumericDistribution(DistributionBasic):
-    """Univariate distribution on a single real interval."""
+class RealDistribution(DistributionBasic):
+    """Base class for distribution with a cumulative distribution function."""
 
     def __init__(self, symbol, dist, support, conditioned=None):
         assert isinstance(symbol, Identity)
@@ -308,20 +310,14 @@ class NumericDistribution(DistributionBasic):
         self.support = support
         self.conditioned = conditioned
         # Derived attributes.
-        self.xl = float(support.start)
-        self.xu = float(support.end)
-        if conditioned:
-            self.Fl = self.dist.cdf(self.xl)
-            self.Fu = self.dist.cdf(self.xu)
-            self.logFl = self.dist.logcdf(self.xl)
-            self.logFu = self.dist.logcdf(self.xu)
-            self.logZ = logdiffexp(self.logFu, self.logFl)
-        else:
-            self.logFl = -inf
-            self.logFu = 0
-            self.Fl = 0
-            self.Fu = 1
-            self.logZ = 1
+        self.xl = float(support.inf)
+        self.xu = float(support.sup)
+        # Attributes to be populated by child classes.
+        self.Fl = None
+        self.Fu = None
+        self.logFl = None
+        self.logFu = None
+        self.logZ = None
 
     def sample(self, N, rng):
         if self.conditioned:
@@ -346,25 +342,23 @@ class NumericDistribution(DistributionBasic):
     def logcdf(self, x):
         if not self.conditioned:
             return self.dist.logcdf(x)
-        if self.xu <= x:
+        if self.xu < x:
             return 0
-        elif x <= self.xl:
+        elif x < self.xl:
             return -inf
         p = logdiffexp(self.dist.logcdf(x), self.logFl)
         return p - self.logZ
 
     def logpdf(self, x):
-        if not self.conditioned:
-            return self.dist.logpdf(x)
-        if x not in self.support:
-            return -inf
-        return self.dist.logpdf(x) - self.logZ
+        raise NotImplementedError()
 
     def logprob_values(self, values):
         if values is EmptySet:
             return -inf
         if isinstance(values, ContainersFinite):
             return self.logprob_finite(values)
+        if isinstance(values, Range):
+            return self.logprob_range(values)
         if isinstance(values, Interval):
             return self.logprob_interval(values)
         if isinstance(values, Union):
@@ -372,30 +366,24 @@ class NumericDistribution(DistributionBasic):
             return logsumexp(logps)
         assert False, 'Unknown set type: %s' % (values,)
 
-    def logprob_interval(self, values):
-        xl = float(values.start)
-        xh = float(values.end)
-        return logdiffexp(self.logcdf(xh), self.logcdf(xl))
-
     def logprob_finite(self, values):
-        return -inf
+        raise NotImplementedError()
+    def logprob_range(self, values):
+        raise NotImplementedError()
+    def logprob_interval(self, values):
+        raise NotImplementedError()
 
     def condition(self, event):
         interval = event.solve()
         values = Intersection(self.support, interval)
+        weight = self.logprob_values(values)
 
-        if values is EmptySet:
-            raise ValueError('Conditioning event "%s" is empty (support="%s")'
-                % (str(event), self.support))
-
-        if isinstance(values, ContainersFinite):
+        if isinf_neg(weight):
             raise ValueError('Conditioning event "%s" has probability zero'
-                 % (str(event),))
+                % (str(event)))
 
-        if isinstance(values, Interval):
-            weight = self.logprob_interval(values)
-            assert -inf < weight
-            return NumericDistribution(self.symbol, self.dist, values, True)
+        if isinstance(values, (ContainersFinite, Range, Interval)):
+            return (type(self))(self.symbol, self.dist, values, True)
 
         if isinstance(values, Union):
             weights_unorm = [self.logprob_values(v) for v in values.args]
@@ -407,16 +395,99 @@ class NumericDistribution(DistributionBasic):
             # https://stats.stackexchange.com/questions/66616/converting-normalizing-very-small-likelihood-values-to-probability
             weights = lognorm([weights_unorm[i] for i in indexes])
             distributions = [
-                NumericDistribution(self.symbol, self.dist, values.args[i], True)
+                (type(self))(self.symbol, self.dist, values.args[i], True)
                 for i in indexes
             ]
             return MixtureDistribution(distributions, weights) \
                 if 1 < len(indexes) else distributions[0]
 
-        assert False, 'Unknown set type: %s' % (interval,)
+        assert False, 'Unknown set type: %s' % (values,)
+
+class NumericDistribution(RealDistribution):
+    """Non-atomic distribution with a cumulative distribution function."""
+    def __init__(self, symbol, dist, support, conditioned=None):
+        super().__init__(symbol, dist, support, conditioned)
+        if conditioned:
+            self.Fl = self.dist.cdf(self.xl)
+            self.Fu = self.dist.cdf(self.xu)
+            self.logFl = self.dist.logcdf(self.xl)
+            self.logFu = self.dist.logcdf(self.xu)
+            self.logZ = logdiffexp(self.logFu, self.logFl)
+        else:
+            self.logFl = -inf
+            self.logFu = 0
+            self.Fl = 0
+            self.Fu = 1
+            self.logZ = 1
+
+    def logpdf(self, x):
+        if not self.conditioned:
+            return self.dist.logpdf(x)
+        if x not in self.support:
+            return -inf
+        return self.dist.logpdf(x) - self.logZ
+
+    def logprob_finite(self, values):
+        return -inf
+
+    def logprob_range(self, values):
+        return -inf
+
+    def logprob_interval(self, values):
+        xl = float(values.start)
+        xu = float(values.end)
+        logFl = self.logcdf(xl)
+        logFu = self.logcdf(xu)
+        return logdiffexp(logFu, logFl)
+
+class OrdinalDistribution(RealDistribution):
+    """Atomic distribution with a cumulative distribution function."""
+
+    def __init__(self, symbol, dist, support, conditioned=None):
+        super().__init__(symbol, dist, support, conditioned)
+        if conditioned:
+            self.Fl = self.dist.cdf(self.xl - 1)
+            self.Fu = self.dist.cdf(self.xu)
+            self.logFl = self.dist.logcdf(self.xl - 1)
+            self.logFu = self.dist.logcdf(self.xu)
+            self.logZ = logdiffexp(self.logFu, self.logFl)
+        else:
+            self.logFl = -inf
+            self.logFu = 0
+            self.Fl = 0
+            self.Fu = 1
+            self.logZ = 1
+
+    def logpdf(self, x):
+        if not self.conditioned:
+            return self.dist.logpmf(x)
+        if (x < self.xl) or (self.xu < x):
+            return -inf
+        return self.dist.logpmf(x) - self.logZ
+
+    def logprob_finite(self, values):
+        logps = [self.logpdf(float(x)) for x in values]
+        return logsumexp(logps)
+
+    def logprob_range(self, values):
+        if values.stop <= values.start:
+            return -inf
+        if values.step == 1:
+            xl = float(values.inf)
+            xu = float(values.sup)
+            logFl = self.logcdf(xl - 1)
+            logFu = self.logcdf(xu)
+            return logdiffexp(logFu, logFl)
+        if isfinite(values.start) and isfinite(values.stop):
+            xs = list(values)
+            return self.logprob_finite(xs)
+        raise ValueError('Cannot enumerate infinite set: %s' % (values,))
+
+    def logprob_interval(self, values):
+        assert False, 'Atomic distribution cannot intersect an interval!'
 
 class NominalDistribution(DistributionBasic):
-    """Univariate distribution on set of unordered, non-numeric atoms."""
+    """Atomic distribution, no cumulative distribution function."""
 
     def __init__(self, symbol, dist):
         assert isinstance(symbol, Identity)

@@ -12,6 +12,13 @@ from sympy.core.relational import Relational
 EmptySet = sympy.S.EmptySet
 Infinities = sympy.FiniteSet(-sympy.oo, sympy.oo)
 
+Integers = sympy.S.Integers
+IntegersPos = sympy.S.Naturals
+IntegersNeg = sympy.Range(-sympy.oo, 0, 1)
+
+IntegersPos0 = sympy.S.Naturals0
+IntegersNeg0 = sympy.Range(-sympy.oo, 1, 1)
+
 Reals = sympy.S.Reals
 RealsPos = sympy.Interval(0, sympy.oo)
 RealsNeg = sympy.Interval(-sympy.oo, 0)
