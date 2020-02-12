@@ -7,18 +7,13 @@ from math import log
 import pytest
 
 import numpy
-import scipy.stats
 
-from sum_product_dsl.distributions import SumDistribution
 from sum_product_dsl.distributions import NumericalDistribution
-
-from sum_product_dsl.transforms import Identity
+from sum_product_dsl.distributions import SumDistribution
 from sum_product_dsl.math_util import logsumexp
-from sum_product_dsl.sym_util import Reals
-from sum_product_dsl.sym_util import RealsPos
-
-from sum_product_dsl.numerical import Norm
 from sum_product_dsl.numerical import Gamma
+from sum_product_dsl.numerical import Norm
+from sum_product_dsl.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 

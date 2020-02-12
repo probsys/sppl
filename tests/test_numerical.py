@@ -1,7 +1,6 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from fractions import Fraction
 from math import log
 
 import pytest
@@ -10,25 +9,15 @@ import numpy
 import scipy.stats
 import sympy
 
-from sum_product_dsl.distributions import SumDistribution
-from sum_product_dsl.distributions import NominalDistribution
 from sum_product_dsl.distributions import NumericalDistribution
-from sum_product_dsl.distributions import OrdinalDistribution
-from sum_product_dsl.distributions import ProductDistribution
-
-from sum_product_dsl.numerical import Norm
-from sum_product_dsl.numerical import Gamma
-
-from sum_product_dsl.transforms import Identity
-from sum_product_dsl.transforms import ExpNat as Exp
-from sum_product_dsl.transforms import LogNat as Log
+from sum_product_dsl.distributions import SumDistribution
 from sum_product_dsl.math_util import allclose
 from sum_product_dsl.math_util import isinf_neg
-from sum_product_dsl.math_util import logsumexp
 from sum_product_dsl.math_util import logdiffexp
-from sum_product_dsl.sym_util import Integers
+from sum_product_dsl.numerical import Gamma
+from sum_product_dsl.numerical import Norm
 from sum_product_dsl.sym_util import Reals
-from sum_product_dsl.sym_util import RealsPos
+from sum_product_dsl.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 
