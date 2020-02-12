@@ -12,6 +12,7 @@ from sum_product_dsl.math_util import allclose
 from sum_product_dsl.math_util import logdiffexp
 from sum_product_dsl.math_util import logsumexp
 from sum_product_dsl.ordinal import Poisson
+from sum_product_dsl.ordinal import Randint
 from sum_product_dsl.transforms import Identity
 
 rng = numpy.random.RandomState(1)
@@ -80,3 +81,14 @@ def test_ordinal_distribution_poisson():
     # Condition on probability zero event.
     with pytest.raises(ValueError):
         dist.condition(((-3 <= X) < 0) | (3*X + 1) << {20})
+
+def test_ordinal_randint():
+    X = Identity('X')
+    dist = Randint(X, low=0, high=5)
+    assert dist.logprob(X < 5) == dist.logprob(X <= 4) == 0
+    # i.e., X is not in [0, 3]
+    dist_condition = dist.condition(~((X+1) << {1, 4}))
+    assert isinstance(dist_condition, SumDistribution)
+    assert dist_condition.distributions[0].support == sympy.Range(1, 3)
+    assert dist_condition.distributions[1].support == sympy.Range(4, 5)
+    assert dist_condition
