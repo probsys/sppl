@@ -88,9 +88,9 @@ class SumDistribution(Distribution):
     """Weighted mixture of distributions."""
 
     def __init__(self, distributions, weights):
-        self.distributions = distributions
-        self.weights = weights
-        self.indexes = list(range(len(self.weights)))
+        self.distributions = tuple(distributions)
+        self.weights = tuple(weights)
+        self.indexes = tuple(range(len(self.weights)))
         assert allclose(float(logsumexp(weights)),  0)
 
         symbols = [d.get_symbols() for d in distributions]
@@ -145,7 +145,7 @@ class ProductDistribution(Distribution):
     """Tuple of independent distributions."""
 
     def __init__(self, distributions):
-        self.distributions = list(chain.from_iterable([
+        self.distributions = tuple(chain.from_iterable([
             (dist.distributions if isinstance(dist, type(self)) else [dist])
             for dist in distributions
         ]))

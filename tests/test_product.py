@@ -36,12 +36,11 @@ def test_product_distribution_normal_gamma():
         Norm(X3, loc=2, scale=3)
     ]
     dist = ProductDistribution(dists)
-    assert dist.distributions == [
+    assert dist.distributions == (
         dists[0].distributions[0],
         dists[0].distributions[1],
         dists[1],
-        dists[2],
-    ]
+        dists[2],)
     assert dist.get_symbols() == frozenset([X1, X2, X3, X4])
 
     samples = dist.sample(2, rng)
@@ -189,7 +188,7 @@ def test_product_condition_or_probabilithy_zero():
     dist_condition = dist.condition(event)
     assert isinstance(dist_condition, ProductDistribution)
     assert isinstance(dist_condition.distributions[0], SumDistribution)
-    assert dist_condition.distributions[0].weights == [-log(2), -log(2)]
+    assert dist_condition.distributions[0].weights == (-log(2), -log(2))
     assert dist_condition.distributions[0].distributions[0].conditioned
     assert dist_condition.distributions[0].distributions[1].conditioned
     assert dist_condition.distributions[0].distributions[0].support \
