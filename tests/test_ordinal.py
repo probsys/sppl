@@ -4,23 +4,23 @@
 import pytest
 
 import numpy
-import scipy.stats
 import sympy
 
 from sum_product_dsl.distributions import SumDistribution
 from sum_product_dsl.distributions import OrdinalDistribution
 
+from sum_product_dsl.ordinal import Poisson
+
 from sum_product_dsl.math_util import allclose
 from sum_product_dsl.math_util import logdiffexp
 from sum_product_dsl.math_util import logsumexp
-from sum_product_dsl.sym_util import Integers
 from sum_product_dsl.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 
 def test_ordinal_distribution_poisson():
     X = Identity('X')
-    dist = OrdinalDistribution(X, scipy.stats.poisson(mu=5), Integers)
+    dist = Poisson(X, mu=5)
 
     a = dist.logprob((1 <= X) <= 7)
     b = dist.logprob(X << {1,2,3,4,5,6,7})

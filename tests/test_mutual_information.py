@@ -10,6 +10,7 @@ from sum_product_dsl.distributions import SumDistribution
 from sum_product_dsl.distributions import NumericalDistribution
 from sum_product_dsl.distributions import ProductDistribution
 
+from sum_product_dsl.numerical import Norm
 from sum_product_dsl.math_util import allclose
 from sum_product_dsl.sym_util import Reals
 from sum_product_dsl.transforms import Identity
@@ -22,20 +23,20 @@ def test_mutual_information_four_clusters():
     components = [
         # Component 1.
         ProductDistribution([
-            NumericalDistribution(X, scipy.stats.norm(0, 0.5), Reals),
-            NumericalDistribution(Y, scipy.stats.norm(0, 0.5), Reals)]),
+            Norm(X, loc=0, scale=0.5),
+            Norm(Y, loc=0, scale=0.5)]),
         # Component 2.
         ProductDistribution([
-            NumericalDistribution(X, scipy.stats.norm(5, 0.5), Reals),
-            NumericalDistribution(Y, scipy.stats.norm(0, 0.5), Reals)]),
+            Norm(X, loc=5, scale=0.5),
+            Norm(Y, loc=0, scale=0.5)]),
         # Component 3.
         ProductDistribution([
-            NumericalDistribution(X, scipy.stats.norm(0, 0.5), Reals),
-            NumericalDistribution(Y, scipy.stats.norm(5, 0.5), Reals)]),
+            Norm(X, loc=0, scale=0.5),
+            Norm(Y, loc=5, scale=0.5)]),
         # Component 4.
         ProductDistribution([
-            NumericalDistribution(X, scipy.stats.norm(5, 0.5), Reals),
-            NumericalDistribution(Y, scipy.stats.norm(5, 0.5), Reals)]),
+            Norm(X, loc=5, scale=0.5),
+            Norm(Y, loc=5, scale=0.5)]),
     ]
     dist = SumDistribution(components, [-log(4)]*4)
 

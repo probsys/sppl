@@ -13,6 +13,9 @@ from sum_product_dsl.distributions import SumDistribution
 from sum_product_dsl.distributions import NumericalDistribution
 from sum_product_dsl.distributions import ProductDistribution
 
+from sum_product_dsl.numerical import Norm
+from sum_product_dsl.numerical import Gamma
+
 from sum_product_dsl.math_util import allclose
 from sum_product_dsl.math_util import isinf_neg
 from sum_product_dsl.math_util import logdiffexp
@@ -32,11 +35,11 @@ def test_product_distribution_normal_gamma():
     X4 = Identity('X4')
     dists = [
         ProductDistribution([
-            NumericalDistribution(X1, scipy.stats.norm(loc=0, scale=1), Reals),
-            NumericalDistribution(X4, scipy.stats.norm(loc=10, scale=1), Reals)
+            Norm(X1, loc=0, scale=1),
+            Norm(X4, loc=10, scale=1),
         ]),
-        NumericalDistribution(X2, scipy.stats.gamma(loc=0, a=1), RealsPos),
-        NumericalDistribution(X3, scipy.stats.norm(loc=2, scale=3), Reals),
+        Gamma(X2, loc=0, a=1),
+        Norm(X3, loc=2, scale=3)
     ]
     dist = ProductDistribution(dists)
     assert dist.distributions == [
@@ -72,8 +75,8 @@ def test_inclusion_exclusion_basic():
     X = Identity('X')
     Y = Identity('Y')
     dist = ProductDistribution([
-        NumericalDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
-        NumericalDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
+        Norm(X, loc=0, scale=1),
+        Gamma(Y, a=1)
     ])
 
     for func_prob in [dist.logprob, dist.logprob_inclusion_exclusion]:
@@ -159,8 +162,8 @@ def test_product_condition_or_probabilithy_zero():
     X = Identity('X')
     Y = Identity('Y')
     dist = ProductDistribution([
-        NumericalDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
-        NumericalDistribution(Y, scipy.stats.gamma(a=1), RealsPos),
+        Norm(X, loc=0, scale=1),
+        Gamma(Y, a=1),
     ])
 
     # Condition on event which has probability zero.

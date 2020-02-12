@@ -17,6 +17,9 @@ from sum_product_dsl.math_util import logsumexp
 from sum_product_dsl.sym_util import Reals
 from sum_product_dsl.sym_util import RealsPos
 
+from sum_product_dsl.numerical import Norm
+from sum_product_dsl.numerical import Gamma
+
 rng = numpy.random.RandomState(1)
 
 def test_mixture_distribution_normal_gamma():
@@ -25,10 +28,8 @@ def test_mixture_distribution_normal_gamma():
         log(Fraction(2, 3)),
         log(Fraction(1, 3))
     ]
-    dist = SumDistribution([
-            NumericalDistribution(X, scipy.stats.norm(loc=0, scale=1), Reals),
-            NumericalDistribution(X, scipy.stats.gamma(loc=0, a=1), RealsPos),
-        ], weights)
+    dist = SumDistribution(
+        [Norm(X, loc=0, scale=1), Gamma(X, loc=0, a=1),], weights)
 
     assert dist.logprob(X > 0) == logsumexp([
         dist.weights[0] + dist.distributions[0].logprob(X > 0),

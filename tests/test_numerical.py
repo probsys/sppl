@@ -16,6 +16,9 @@ from sum_product_dsl.distributions import NumericalDistribution
 from sum_product_dsl.distributions import OrdinalDistribution
 from sum_product_dsl.distributions import ProductDistribution
 
+from sum_product_dsl.numerical import Norm
+from sum_product_dsl.numerical import Gamma
+
 from sum_product_dsl.transforms import Identity
 from sum_product_dsl.transforms import ExpNat as Exp
 from sum_product_dsl.transforms import LogNat as Log
@@ -31,11 +34,10 @@ rng = numpy.random.RandomState(1)
 
 def test_numeric_distribution_normal():
     X = Identity('X')
-    probs = scipy.stats.norm(loc=0, scale=1)
-    dist = NumericalDistribution(X, probs, Reals)
+    dist = Norm(X, loc=0, scale=1)
 
     assert allclose(dist.logprob(X > 0), -log(2))
-    assert allclose(dist.logprob(abs(X) < 2), log(probs.cdf(2) - probs.cdf(-2)))
+    assert allclose(dist.logprob(abs(X) < 2), log(dist.dist.cdf(2) - dist.dist.cdf(-2)))
 
     assert allclose(dist.logprob(X**2 > 0), 0)
     assert allclose(dist.logprob(abs(X) > 0), 0)
@@ -83,7 +85,7 @@ def test_numeric_distribution_normal():
 def test_numeric_distribution_gamma():
     X = Identity('X')
 
-    dist = NumericalDistribution(X, scipy.stats.gamma(a=1, scale=1), RealsPos)
+    dist = Gamma(X, a=1, scale=1)
     with pytest.raises(ValueError):
         dist.condition((X << {1, 2}) | (X < 0))
 
