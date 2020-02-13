@@ -550,3 +550,10 @@ def test_solver_finite_non_injective():
     solution = {-3, -1, 1, 3}
     event = (abs(Y))**3 << {1, 27}
     assert event.solve() == solution
+    # Abs Not.
+    solution = sympy.Union(
+        sympy.Interval.open(-oo, -1),
+        sympy.Interval.open(-1, 1),
+        sympy.Interval.open(1, oo))
+    event = ~(abs(Y) << {1})
+    assert event.solve() == solution
