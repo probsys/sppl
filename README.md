@@ -1,4 +1,4 @@
-## Query Language For A Sum-Product Probabilistic DSL
+## Probabilistic Programming with Sum--Product Networks
 
 ### Installation
 
