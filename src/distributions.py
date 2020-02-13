@@ -1,22 +1,27 @@
-# Copyright 2019 MIT Probabilistic Computing Project.
+# Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from collections import ChainMap
 from collections import Counter
-from functools import reduce
+from fractions import Fraction
+from inspect import getfullargspec
 from itertools import chain
+from math import exp
+from math import isfinite
+from math import log
 
 from sympy import S as Singletons
 
 from sympy import Intersection
 from sympy import Interval
+from sympy import Range
 from sympy import Union
-
-from sympy import Tuple
-from sympy import to_dnf
 
 from .dnf import factor_dnf_symbols
 
 from .math_util import allclose
+from .math_util import flip
+from .math_util import isinf_neg
 from .math_util import logdiffexp
 from .math_util import logflip
 from .math_util import lognorm
@@ -27,13 +32,14 @@ from .events import EventFinite
 from .events import EventInterval
 from .events import EventOr
 
-from .solver import solver
-
+from .sym_util import ContainersFinite
 from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_intersection
-from .sym_util import get_symbols
 from .sym_util import get_union
+from .sym_util import powerset
+from .sym_util import sym_log
+from .sym_util import sympify_number
 
 from .transforms import Identity
 
@@ -41,47 +47,114 @@ EmptySet = Singletons.EmptySet
 inf = float('inf')
 
 # ==============================================================================
-# Distribution classes.
+# Distribution base class.
 
 class Distribution(object):
     def __init__(self):
         raise NotImplementedError()
     def sample(self, N, rng):
         raise NotImplementedError()
-    def sample_expr(self, expr, N, rng):
+    def sample_subset(self, symbols, N, rng):
+        raise NotImplementedError()
+    def sample_func(self, func, N, rng):
         raise NotImplementedError()
     def logprob(self, event):
         raise NotImplementedError()
+    def prob(self, event):
+        lp = self.logprob(event)
+        return exp(lp)
     def logpdf(self, x):
         raise NotImplementedError()
     def condition(self, event):
         raise NotImplementedError()
+    def mutual_information(self, A, B):
+        # p11 = self.logprob(A & B)
+        # p10 = self.logprob(A & ~B)
+        # p01 = self.logprob(~A & B)
+        # p00 = self.logprob(~A & ~B)
+        lpA1 = self.logprob(A)
+        lpB1 = self.logprob(B)
+        lpA0 = logdiffexp(0, lpA1)
+        lpB0 = logdiffexp(0, lpB1)
+        lp00 = self.logprob(~A & ~B)
+        lp01 = self.logprob(~A & B)
+        lp10 = self.logprob(A & ~B)
+        lp11 = self.logprob(A & B)
+        m00 = exp(lp00) * (lp00 - (lpA0 + lpB0)) if not isinf_neg(lp00) else 0
+        m01 = exp(lp01) * (lp01 - (lpA0 + lpB1)) if not isinf_neg(lp01) else 0
+        m10 = exp(lp10) * (lp10 - (lpA1 + lpB0)) if not isinf_neg(lp10) else 0
+        m11 = exp(lp11) * (lp11 - (lpA1 + lpB1)) if not isinf_neg(lp11) else 0
+        return m00 + m01 + m10 + m11
 
-class MixtureDistribution(Distribution):
+    def __rmul__number(self, x):
+        x_val = sympify_number(x)
+        if not 0 < x < 1:
+            raise ValueError('Weight %s must be in (0, 1)' % (str(x),))
+        return PartialSumDistribution([self], [x_val])
+    def __rmul__(self, x):
+        # Try to multiply x as a number.
+        try:
+            return self.__rmul__number(x)
+        except TypeError:
+            pass
+        # Failed.
+        return NotImplemented
+    def __mul__(self, x):
+        return x * self
+
+    def __and__dist(self, x):
+        if isinstance(x, PartialSumDistribution):
+            raise TypeError()
+        if not isinstance(x, Distribution):
+            raise TypeError()
+        return ProductDistribution([self, x])
+    def __and__(self, x):
+        # Try to & x as a Distribution.
+        try:
+            return self.__and__dist(x)
+        except TypeError:
+            pass
+        # Failed.
+        return NotImplemented
+
+# ==============================================================================
+# Sum distribution.
+
+class SumDistribution(Distribution):
     """Weighted mixture of distributions."""
 
     def __init__(self, distributions, weights):
-        self.distributions = distributions
-        self.weights = weights
-        self.indexes = list(range(len(self.weights)))
+        self.distributions = tuple(distributions)
+        self.weights = tuple(weights)
+        self.indexes = tuple(range(len(self.weights)))
+        assert allclose(float(logsumexp(weights)),  0)
 
         symbols = [d.get_symbols() for d in distributions]
-        assert are_identical(symbols), \
-            'Distributions in Mixture must have identical symbols.'
-        self.symbols = distributions[0].symbols
+        if not are_identical(symbols):
+            raise ValueError('Mixture must have identical symbols.')
+        self.symbols = self.distributions[0].get_symbols()
+
+    def get_symbols(self):
+        return self.symbols
 
     def sample(self, N, rng):
-        selections = logflip(self.weights, self.indexes, N, rng)
-        counts = Counter(selections)
-        samples = [self.distributions[i].sample(counts[i], rng)
-            for i in counts]
-        return list(chain.from_iterable(samples))
+        f_sample = lambda i, n: self.distributions[i].sample(n, rng)
+        return self.sample_many(f_sample, N, rng)
 
-    def sample_expr(self, expr, N, rng):
+    def sample_subset(self, symbols, N, rng):
+        f_sample = lambda i, n : \
+            self.distributions[i].sample_subset(symbols, n, rng)
+        return self.sample_many(f_sample, N, rng)
+
+    def sample_func(self, func, N, rng):
+        f_sample = lambda i, n : self.distributions[i].sample_func(func, n, rng)
+        return self.sample_many(f_sample, N, rng)
+
+    def sample_many(self, func, N, rng):
         selections = logflip(self.weights, self.indexes, N, rng)
         counts = Counter(selections)
-        samples = [self.distributions[i].sample(counts[i], expr, rng)
-            for i in counts]
+        samples = [func(i, counts[i]) for i in counts]
+        rng.shuffle(samples)
         return list(chain.from_iterable(samples))
 
     def logprob(self, event):
@@ -94,53 +167,101 @@ class MixtureDistribution(Distribution):
 
     def condition(self, event):
         logps_condt = [dist.logprob(event) for dist in self.distributions]
-        logps_joint = [p + w for (p, w) in zip(logps_condt, self.weights)]
+        indexes = [i for i, lp in enumerate(logps_condt) if not isinf_neg(lp)]
+        logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
+        dists = [self.distributions[i].condition(event) for i in indexes]
         weights = lognorm(logps_joint)
-        dists = [dist.condition(event) for dist in self.distributions]
-        return MixtureDistribution(dists, weights)
+        return SumDistribution(dists, weights) if len(dists) > 1 \
+            else dists[0]
+
+class PartialSumDistribution(Distribution):
+    def __init__(self, distributions, weights):
+        self.distributions = distributions
+        self.weights = weights
+        self.indexes = list(range(len(self.weights)))
+        assert sum(weights) <  1
+
+        symbols = [d.get_symbols() for d in distributions]
+        if not are_identical(symbols):
+            raise ValueError('Mixture must have identical symbols.')
+        self.symbols = self.distributions[0].get_symbols()
+
+    def __and__(self, x):
+        raise TypeError('Weights do not sum to one.')
+    def __rand__(self, x):
+        raise TypeError('Weights do not sum to one.')
+    def __mul__(self, x):
+        raise TypeError('Cannot multiply PartialSumDistribution by constant.')
+    def __rmul__(self, x):
+        raise TypeError('Cannot multiply PartialSumDistribution by constant.')
+
+    def __or__partialsum(self, x):
+        if not isinstance(x, PartialSumDistribution):
+            raise TypeError()
+        weights = self.weights + x.weights
+        cumsum = float(sum(weights))
+        if allclose(cumsum, 1):
+            weights = [log(w) for w in weights]
+            distributions = self.distributions + x.distributions
+            return SumDistribution(distributions, weights)
+        if cumsum < 1:
+            distributions = self.distributions + x.distributions
+            return PartialSumDistribution(distributions, weights)
+        raise ValueError('Weights sum to more than one.')
+    def __or__(self, x):
+        # Try to | x as a PartialSumDistribution
+        try:
+            return self.__or__partialsum(x)
+        except TypeError:
+            pass
+        # Failed.
+        return NotImplemented
+
+# ==============================================================================
+# Product base class.
 
 class ProductDistribution(Distribution):
-    """Vector of independent distributions."""
+    """Tuple of independent distributions."""
 
     def __init__(self, distributions):
-        self.distributions = distributions
+        self.distributions = tuple(chain.from_iterable([
+            (dist.distributions if isinstance(dist, type(self)) else [dist])
+            for dist in distributions
+        ]))
+        symbols = [d.get_symbols() for d in self.distributions]
+        if not are_disjoint(symbols):
+            raise ValueError('Product must have disjoint symbols')
+        self.symbols = frozenset(get_union(symbols))
+        self.lookup = {s:i for i, syms in enumerate(symbols) for s in syms}
 
-        symbols = [d.symbols for d in distributions]
-        self.symbols = reduce(lambda a, b: a.union(b), symbols)
-        assert are_disjoint(symbols), \
-            'Distributions in Product must have disjoint symbols.'
-        self.lookup = {s:i for i, syms in enumerate(symbols) for s in symbols}
+    def get_symbols(self):
+        return self.symbols
 
     def sample(self, N, rng):
-        D = len(self.distributions)
         samples = [dist.sample(N, rng) for dist in self.distributions]
-        return [[samples[r][c] for r in range(D)] for c in range(N)]
+        return merge_samples(samples)
 
-    def sample_expr(self, expr, N, rng):
-        symbols = get_symbols(expr)
+    def sample_subset(self, symbols, N, rng):
         # Partition symbols by lookup.
-        partition = {}
-        for sym in symbols:
-            key = self.lookup[sym]
-            if key not in partition:
-                partition[key] = [sym]
+        index_to_symbols = {}
+        for symbol in symbols:
+            key = self.lookup[symbol]
+            if key not in index_to_symbols:
+                index_to_symbols[key] = [symbol]
             else:
-                partition[key].append(sym)
-        # Fetch the samples.
+                index_to_symbols[key].append(symbol)
+        # Obtain the samples.
         samples = [
-            self.distributions[i].sample_expr(Tuple(*syms), N, rng)
-            for i, syms in partition.items()
+            self.distributions[i].sample_subset(symbols_i, N, rng)
+            for i, symbols_i in index_to_symbols.items()
         ]
-        # Construct the expressions.
-        expressions = []
-        symbols_lists = partition.values()
-        for _i in range(N):
-            mapping = {}
-            for syms, sample in zip(symbols_lists, samples):
-                mapping.update({sym: x for sym, x in zip(syms, sample)})
-            expri = expr.xreplace(mapping)
-            expressions.append(expri)
-        return expressions
+        # Merge the samples.
+        return merge_samples(samples)
+
+    def sample_func(self, func, N, rng):
+        symbols = func_symbols(self, func)
+        samples = self.sample_subset(symbols, N, rng)
+        return func_evaluate(self, func, samples)
 
     def logpdf(self, x):
         assert len(x) == len(self.distributions)
@@ -149,79 +270,249 @@ class ProductDistribution(Distribution):
         return logsumexp(logps)
 
     def logprob(self, event):
-        # Factor the event across the product.
-        dnf = to_dnf(event)
-        events = factor_dnf_symbols(dnf, self.lookup)
-        logprobs = [self.distributions[i].logprob(e) for i, e in events.items()]
-        return logsumexp(logprobs)
+        return self.logprob_disjoint_union(event)
+
+    def logprob_inclusion_exclusion(self, event):
+        # Adopting Inclusion--Exclusion principle:
+        # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
+        expr_dnf = event.to_dnf()
+        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
+        indexes = range(len(dnf_factor))
+        subsets = powerset(indexes, start=1)
+        # Compute probabilities of all the conjunctions.
+        (logps_pos, logps_neg) = ([], [])
+        for J in subsets:
+            # Find symbols involved in clauses J.
+            symbols = set(chain.from_iterable(dnf_factor[j].keys() for j in J))
+            # Factorize events across the product.
+            logprobs = [
+                self.get_clause_weight_subset(dnf_factor, J, symbol)
+                for symbol in symbols
+            ]
+            logprob = sum(logprobs)
+            # Add probability to either positive or negative sums.
+            prefactor = (-1)**(len(J) - 1)
+            x = logps_pos if prefactor > 0 else logps_neg
+            x.append(logprob)
+        # Aggregate positive term.
+        logp_pos = logsumexp(logps_pos)
+        if isinf_neg(logp_pos) or not logps_neg:
+            return logp_pos
+        # Aggregate negative terms and return the difference.
+        logp_neg = logsumexp(logps_neg) if logps_neg else -inf
+        return logdiffexp(logp_pos, logp_neg)
+
+    def logprob_disjoint_union(self, event):
+        # Adopting disjoint union principle.
+        # Disjoint union algorithm (yields mixture of products).
+        expr_dnf = event.to_dnf()
+        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
+        # Obtain the n disjoint clauses.
+        clauses = [
+            self.make_disjoint_conjunction(dnf_factor, i)
+            for i in dnf_factor
+        ]
+        # Construct the ProductDistribution weights.
+        ws = [self.get_clause_weight(clause) for clause in clauses]
+        return logsumexp(ws)
 
     def condition(self, event):
-        # Factor the event across the product.
-        dnf = to_dnf(event)
-        constraints = factor_dnf_symbols(dnf, self.lookup)
-        distributions = [
-            d.condition(constraints[i]) if (i in constraints) else d
-            for i, d in enumerate(self.distributions)
+        # Disjoint union algorithm (yields mixture of products).
+        expr_dnf = event.to_dnf()
+        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
+        # Obtain the n disjoint clauses.
+        clauses = [
+            self.make_disjoint_conjunction(dnf_factor, i)
+            for i in dnf_factor
         ]
-        return ProductDistribution(distributions)
+        # Construct the ProductDistribution weights.
+        ws = [self.get_clause_weight(clause) for clause in clauses]
+        indexes = [i for (i, w) in enumerate(ws) if not isinf_neg(w)]
+        if not indexes:
+            raise ValueError('Conditioning event "%s" has probability zero' %
+                (event,))
+        weights = lognorm([ws[i] for i in indexes])
+        # Construct the new ProductDistributions.
+        ds = [self.get_clause_conditioned(clauses[i]) for i in indexes]
+        products = [ProductDistribution(d) for d in ds]
+        if len(products) == 1:
+            return products[0]
+        # Return SumDistribution of the products.
+        return SumDistribution(products, weights)
 
-class NumericDistribution(Distribution):
-    """Univariate probability distribution on a single real interval."""
+    def make_disjoint_conjunction(self, dnf_factor, i):
+        clause = dict(dnf_factor[i])
+        for j in range(i):
+            for k in dnf_factor[j]:
+                if k in clause:
+                    clause[k] &= (~dnf_factor[j][k])
+                else:
+                    clause[k] = (~dnf_factor[j][k])
+        return clause
 
-    def __init__(self, symbol, dist, support, conditioned):
-        assert isinstance(support, Interval)
+    def get_clause_conditioned(self, clause):
+        # Return distributions conditioned on a clause (one conjunction).
+        return [
+            dist.condition(clause[k]) if (k in clause) else dist
+            for k, dist in enumerate(self.distributions)
+        ]
+
+    def get_clause_weight(self, clause):
+        # Return probability of a clause (one conjunction).
+        return sum([
+            dist.logprob(clause[k]) if (k in clause) else 0
+            for k, dist in enumerate(self.distributions)
+        ])
+
+    def get_clause_weight_subset(self, dnf_factor, J, symbol):
+        # Return probability of conjunction of |J| clauses, for given symbol.
+        events = [dnf_factor[j][symbol] for j in J if symbol in dnf_factor[j]]
+        if not events:
+            return -inf
+        # Compute probability of events.
+        event = events[0] if (len(events) == 1) else EventAnd(events)
+        return self.distributions[symbol].logprob(event)
+
+# ==============================================================================
+# Basic Distribution base class.
+
+class DistributionBasic(Distribution):
+    # pylint: disable=no-member
+    def get_symbols(self):
+        return frozenset({self.symbol})
+    def sample(self, N, rng):
+        raise NotImplementedError()
+    def sample_subset(self, symbols, N, rng):
+        return self.sample(N, rng) if self.symbol in symbols else None
+    def sample_func(self, func, N, rng):
+        samples = self.sample(N, rng)
+        return func_evaluate(self, func, samples)
+
+# ==============================================================================
+# RealDistribution base class.
+
+class RealDistribution(DistributionBasic):
+    """Base class for distribution with a cumulative distribution function."""
+
+    def __init__(self, symbol, dist, support, conditioned=None):
+        assert isinstance(symbol, Identity)
+        self.symbol = symbol
         self.dist = dist
         self.support = support
         self.conditioned = conditioned
-        self.xl = float(support.start)
-        self.xu = float(support.end)
-        if conditioned:
-            logp_lower = dist.logcdf(self.xl)
-            logp_upper = dist.logcdf(self.xu)
-            self.logZ = logdiffexp(logp_upper, logp_lower)
-            self.Fl = dist.cdf(self.xl)
-            self.Fu = dist.cdf(self.xu)
-        else:
-            self.logZ = 1
-            self.Fl = 0
-            self.Fu = 1
-        self.symbol = symbol
-        self.symbols = frozenset({symbol})
+        # Derived attributes.
+        self.xl = float(support.inf)
+        self.xu = float(support.sup)
+        # Attributes to be populated by child classes.
+        self.Fl = None
+        self.Fu = None
+        self.logFl = None
+        self.logFu = None
+        self.logZ = None
 
     def sample(self, N, rng):
-        if not self.conditioned:
-            return self.dist.rvs(size=N, rng=rng)
-        u = rng.uniform(size=N)
-        u_interval = u*self.Fl + (1-u) * self.Fu
-        return self.dist.ppf(u_interval)
-
-    def sample_expr(self, expr, N, rng):
-        samples = self.sample(N, rng)
-        return [expr.xreplace({self.symbol: sample}) for sample in samples]
+        if self.conditioned:
+            # XXX Method not guaranteed to be numerically stable, see e.g,.
+            # https://www.iro.umontreal.ca/~lecuyer/myftp/papers/truncated-normal-book-chapter.pdf
+            # Also consider using CDF for left tail and SF for right tail.
+            # Example: X ~ N(0,1) can sample X | (X < -10) but not X | (X > 10).
+            u = rng.uniform(size=N)
+            u_interval = u*self.Fl + (1-u) * self.Fu
+            xs = self.dist.ppf(u_interval)
+        else:
+            # Simulation by vanilla inversion sampling.
+            xs = self.dist.rvs(size=N, random_state=rng)
+        # Wrap result in a dictionary.
+        return [{self.symbol : x} for x in xs]
 
     def logprob(self, event):
-        expression = solver(event)
-        values = Intersection(self.support, expression)
-        if values == EmptySet:
-            return -inf
-        if isinstance(values, Interval):
-            return self._logcdf_interval(values)
-        elif isinstance(values, Union):
-            intervals = values.args
-            logps = [self._logcdf_interval(v) for v in intervals]
-            return logsumexp(logps)
-        else:
-            assert False, 'Unknown event type: %s' % (event,)
+        interval = event.solve()
+        values = Intersection(self.support, interval)
+        return self.logprob_values(values)
 
     def logcdf(self, x):
         if not self.conditioned:
             return self.dist.logcdf(x)
-        if self.xu <= x:
+        if self.xu < x:
             return 0
-        elif x <= self.xl:
+        elif x < self.xl:
             return -inf
-        p = logdiffexp(self.dist.logcdf(x), self.Fl)
+        p = logdiffexp(self.dist.logcdf(x), self.logFl)
         return p - self.logZ
+
+    def logpdf(self, x):
+        raise NotImplementedError()
+
+    def logprob_values(self, values):
+        if values is EmptySet:
+            return -inf
+        if isinstance(values, ContainersFinite):
+            return self.logprob_finite(values)
+        if isinstance(values, Range):
+            return self.logprob_range(values)
+        if isinstance(values, Interval):
+            return self.logprob_interval(values)
+        if isinstance(values, Union):
+            logps = [self.logprob_values(v) for v in values.args]
+            return logsumexp(logps)
+        assert False, 'Unknown set type: %s' % (values,)
+
+    def logprob_finite(self, values):
+        raise NotImplementedError()
+    def logprob_range(self, values):
+        raise NotImplementedError()
+    def logprob_interval(self, values):
+        raise NotImplementedError()
+
+    def condition(self, event):
+        interval = event.solve()
+        values = Intersection(self.support, interval)
+        weight = self.logprob_values(values)
+
+        if isinf_neg(weight):
+            raise ValueError('Conditioning event "%s" has probability zero'
+                % (str(event)))
+
+        if isinstance(values, (ContainersFinite, Range, Interval)):
+            return (type(self))(self.symbol, self.dist, values, True)
+
+        if isinstance(values, Union):
+            weights_unorm = [self.logprob_values(v) for v in values.args]
+            indexes = [i for i, w in enumerate(weights_unorm) if not isinf_neg(w)]
+            if not indexes:
+                raise ValueError('Conditioning event "%s" has probability zero'
+                    % (str(event),))
+            # TODO: Normalize the weights with greater precision, e.g.,
+            # https://stats.stackexchange.com/questions/66616/converting-normalizing-very-small-likelihood-values-to-probability
+            weights = lognorm([weights_unorm[i] for i in indexes])
+            distributions = [
+                (type(self))(self.symbol, self.dist, values.args[i], True)
+                for i in indexes
+            ]
+            return SumDistribution(distributions, weights) \
+                if 1 < len(indexes) else distributions[0]
+
+        assert False, 'Unknown set type: %s' % (values,)
+
+# ==============================================================================
+# Numerical distribution.
+
+class NumericalDistribution(RealDistribution):
+    """Non-atomic distribution with a cumulative distribution function."""
+    def __init__(self, symbol, dist, support, conditioned=None):
+        super().__init__(symbol, dist, support, conditioned)
+        if conditioned:
+            self.Fl = self.dist.cdf(self.xl)
+            self.Fu = self.dist.cdf(self.xu)
+            self.logFl = self.dist.logcdf(self.xl)
+            self.logFu = self.dist.logcdf(self.xu)
+            self.logZ = logdiffexp(self.logFu, self.logFl)
+        else:
+            self.logFl = -inf
+            self.logFu = 0
+            self.Fl = 0
+            self.Fu = 1
+            self.logZ = 1
 
     def logpdf(self, x):
         if not self.conditioned:
@@ -230,72 +521,113 @@ class NumericDistribution(Distribution):
             return -inf
         return self.dist.logpdf(x) - self.logZ
 
-    def _logcdf_interval(self, interval):
-        if interval == EmptySet:
-            return -inf
-        xl = float(interval.start)
-        xh = float(interval.end)
-        return logdiffexp(self.logcdf(xh), self.logcdf(xl))
+    def logprob_finite(self, values):
+        return -inf
 
-    def condition(self, event):
-        expression = solver(event)
-        support = Intersection(self.support, expression)
-        if support == EmptySet:
-            raise ValueError('Event "%s" does overlap with support "%s"'
-                % (event, self.support))
+    def logprob_range(self, values):
+        return -inf
 
-        if isinstance(expression, Interval):
-            return NumericDistribution(self.symbol, self.dist, support, True)
-        elif isinstance(expression, Union):
-            intervals = expression.args
-            distributions = [
-                NumericDistribution(self.symbol, self.dist, interval, True)
-                for interval in intervals
-            ]
-            weights_unorm = [self._logcdf_interval(i) for i in intervals]
-            weights = lognorm(weights_unorm)
-            return MixtureDistribution(distributions, weights)
+    def logprob_interval(self, values):
+        xl = float(values.start)
+        xu = float(values.end)
+        logFl = self.logcdf(xl)
+        logFu = self.logcdf(xu)
+        return logdiffexp(logFu, logFl)
+
+# ==============================================================================
+# Ordinal distribution.
+
+class OrdinalDistribution(RealDistribution):
+    """Atomic distribution with a cumulative distribution function."""
+
+    def __init__(self, symbol, dist, support, conditioned=None):
+        super().__init__(symbol, dist, support, conditioned)
+        if conditioned:
+            self.Fl = self.dist.cdf(self.xl - 1)
+            self.Fu = self.dist.cdf(self.xu)
+            self.logFl = self.dist.logcdf(self.xl - 1)
+            self.logFu = self.dist.logcdf(self.xu)
+            self.logZ = logdiffexp(self.logFu, self.logFl)
         else:
-            assert False, 'Unknown expression type: %s' % (expression,)
-
-class NominalDistribution(Distribution):
-    """Probability distribution on set of unordered, non-numeric atoms."""
-
-    def __init__(self, symbol, dist):
-        self.symbol = symbol
-        self.symbols = frozenset({symbol})
-        self.dist = dict(dist)
-        self.support = frozenset(dist.keys())
-        self.outcomes = list(dist.keys())
-        self.weights = list(dist.values())
-        assert allclose(sum(self.weights),  1)
+            self.logFl = -inf
+            self.logFu = 0
+            self.Fl = 0
+            self.Fu = 1
+            self.logZ = 1
 
     def logpdf(self, x):
-        return self.dist.get(x, -inf)
+        if not self.conditioned:
+            return self.dist.logpmf(x)
+        if (x < self.xl) or (self.xu < x):
+            return -inf
+        return self.dist.logpmf(x) - self.logZ
+
+    def logprob_finite(self, values):
+        logps = [self.logpdf(float(x)) for x in values]
+        return logsumexp(logps)
+
+    def logprob_range(self, values):
+        if values.stop <= values.start:
+            return -inf
+        if values.step == 1:
+            xl = float(values.inf)
+            xu = float(values.sup)
+            logFl = self.logcdf(xl - 1)
+            logFu = self.logcdf(xu)
+            return logdiffexp(logFu, logFl)
+        if isfinite(values.start) and isfinite(values.stop):
+            xs = list(values)
+            return self.logprob_finite(xs)
+        raise ValueError('Cannot enumerate infinite set: %s' % (values,))
+
+    def logprob_interval(self, values):
+        assert False, 'Atomic distribution cannot intersect an interval!'
+
+# ==============================================================================
+# Nominal distribution.
+
+class NominalDistribution(DistributionBasic):
+    """Atomic distribution, no cumulative distribution function."""
+
+    def __init__(self, symbol, dist):
+        assert isinstance(symbol, Identity)
+        self.symbol = symbol
+        self.dist = {x: Fraction(w) for x, w in dist.items()}
+        # Derived attributes.
+        self.support = frozenset(self.dist)
+        self.outcomes = list(self.dist.keys())
+        self.weights = [float(x) for x in self.dist.values()]
+        assert allclose(float(sum(self.weights)),  1)
+
+    def logpdf(self, x):
+        return sym_log(self.dist[x]) if x in self.dist else -inf
 
     def logprob(self, event):
-        _, logp = self._logprob(event)
-        return logp
-
-    def _logprob(self, event):
+        # TODO: Consider using 1 - Pr[Event] for negation to avoid
+        # iterating over domain.
         values = simplify_nominal_event(event, self.support)
-        logp = sum(self.logpdf(x) for x in values)
-        return (values, logp)
+        p_event = sum(self.dist[x] for x in values)
+        return sym_log(p_event)
 
     def condition(self, event):
-        values, logp = self._logprob(event)
-        if logp == -inf:
-            raise ValueError('Cannot condition on zero probability event: %s'
-                % (event,))
-        dist = {x: self.logpdf(x) - logp for x in values}
+        values = simplify_nominal_event(event, self.support)
+        p_event = sum([self.dist[x] for x in values])
+        if isinf_neg(p_event):
+            raise ValueError('Conditioning event "%s" has probability zero' %
+                (str(event),))
+        dist = {
+            x : (self.dist[x] / p_event) if x in values else 0
+            for x in self.outcomes
+        }
         return NominalDistribution(self.symbol, dist)
 
     def sample(self, N, rng):
-        return logflip(self.weights, self.support, N, rng)
+        # TODO: Replace with FLDR.
+        xs = flip(self.weights, self.outcomes, N, rng)
+        return [{self.symbol: x} for x in xs]
 
-    def sample_expr(self, expr, N, rng):
-        samples = self.sample(N, rng)
-        return [expr.xreplace({self.symbol: sample}) for sample in samples]
+# ==============================================================================
+# Utilities.
 
 def simplify_nominal_event(event, support):
     if isinstance(event, EventInterval):
@@ -313,4 +645,23 @@ def simplify_nominal_event(event, support):
     if isinstance(event, EventOr):
         values = [simplify_nominal_event(e, support) for e in event.events]
         return get_union(values)
-    assert False, 'Unknown event %s' % (event,)
+    assert False, 'Unknown event %s' % (str(event),)
+
+def func_evaluate(dist, func, samples):
+    args = func_symbols(dist, func)
+    sample_kwargs = [{X.token: s[X] for X in args} for s in samples]
+    return [func(**kwargs) for kwargs in sample_kwargs]
+
+def func_symbols(dist, func):
+    symbols = dist.get_symbols()
+    args = [Identity(a) for a in getfullargspec(func).args]
+    unknown = [a for a in args if a not in symbols]
+    if unknown:
+        raise ValueError('Unknown function arguments "%s" (allowed %s)'
+            % (unknown, symbols))
+    return args
+
+def merge_samples(samples):
+    # input [[{X:1, Y:2}, {X:0, Y:1}], [{Z:0}, {Z:1}]] (N=2)
+    # output [{X:1, Y:2, Z:0}, {X:0, Y:1, Z:1}]
+    return [dict(ChainMap(*sample_list)) for sample_list in zip(*samples)]

@@ -1,10 +1,10 @@
-# Copyright 2019 MIT Probabilistic Computing Project.
+# Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
 import pytest
 
-from sum_product_dsl.distributions import simplify_nominal_event
-from sum_product_dsl.transforms import Identity
+from spn.distributions import simplify_nominal_event
+from spn.transforms import Identity
 
 X = Identity('X')
 

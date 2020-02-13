@@ -1,4 +1,4 @@
-# Copyright 2019 MIT Probabilistic Computing Project.
+# Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
 from sympy import FiniteSet
@@ -10,14 +10,14 @@ from sympy import oo
 from sympy import sqrt as SymSqrt
 from sympy.abc import x
 
-from sum_product_dsl.sym_util import EmptySet
-from sum_product_dsl.sym_util import ExtReals
-from sum_product_dsl.sym_util import Reals
+from spn.sym_util import EmptySet
+from spn.sym_util import ExtReals
+from spn.sym_util import Reals
 
-from sum_product_dsl.poly import solve_poly_equality
-from sum_product_dsl.poly import solve_poly_inequality
+from spn.poly import solve_poly_equality
+from spn.poly import solve_poly_inequality
 
-from sum_product_dsl.math_util import allclose
+from spn.math_util import allclose
 
 
 def test_solve_poly_inequaltiy_pos_inf():

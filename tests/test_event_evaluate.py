@@ -1,13 +1,12 @@
-# Copyright 2019 MIT Probabilistic Computing Project.
+# Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
 import pytest
 
-import sympy
+from spn.transforms import Identity
 
-from sum_product_dsl.transforms import Identity
-from sum_product_dsl.transforms import LogSym
-
+from spn.transforms import ExpNat as exp
+from spn.transforms import LogNat as log
 
 X = Identity('X')
 Y = Identity('Y')
@@ -45,26 +44,6 @@ def test_event_basic_invertible():
     with pytest.raises(ValueError):
         event.evaluate({Y: 10})
 
-def test_event_basic_noninvertible():
-    event = (0 < abs(X + Y)) < 10
-    assert event.evaluate({X: 1, Y: 1})
-    assert not event.evaluate({X: 0, Y: 0})
-
-    event = (0 < (X + Y)**2 + (X+Y)) < 10
-    assert event.evaluate({X: 1, Y: 1})
-    assert not event.evaluate({X: 0, Y: 0})
-
-    event = LogSym(X, Y) << {-1}
-    assert event.evaluate({X: sympy.Rational(1, 2), Y: 2})
-
-    event = LogSym(X, Y)**2 << {1}
-    assert event.evaluate({X: sympy.Rational(1, 2), Y: 2, Z:10})
-    # Missing variables in assignments list.
-    with pytest.raises(ValueError):
-        event.evaluate({X: sympy.Rational(1, 2)})
-    with pytest.raises(ValueError):
-        event.evaluate({Y: 1})
-
 def test_event_compound():
     expr0 = abs(X)**2 + 10*abs(X)
     expr1 = Y-1
@@ -88,3 +67,11 @@ def test_event_compound():
     x_eq_500 = (expr0 << {500}).solve()
     assert not event.evaluate({X: list(x_eq_500)[1], Y: 4})
     assert event.evaluate({X: list(x_eq_500)[1], Y: 5})
+
+def test_event_solve_multi():
+    event = (exp(abs(3*X**2)) > 1) | (log(Y) < 0.5)
+    with pytest.raises(ValueError):
+        event.solve()
+    event = (exp(abs(3*X**2)) > 1) & (log(Y) < 0.5)
+    with pytest.raises(ValueError):
+        event.solve()

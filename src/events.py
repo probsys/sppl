@@ -1,4 +1,4 @@
-# Copyright 2019 MIT Probabilistic Computing Project.
+# Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
 import itertools
@@ -18,8 +18,6 @@ ContainersBasic = (sympy.Interval,) + ContainersFinite
 # Custom event language.
 
 class Event(object):
-    def symbols(self):
-        raise NotImplementedError()
     def solve(self):
         raise NotImplementedError()
     def evaluate(self, assignment):
@@ -37,20 +35,21 @@ class Event(object):
     def to_dnf_list(self):
         raise NotImplementedError()
     def __and__(self, event):
-        raise NotImplementedError()
+        # Basic implementation (no simplification):
         # return EventAnd([self, event])
+        raise NotImplementedError()
     def __or__(self, event):
         raise NotImplementedError()
+        # Basic implementation (no simplification):
         # return EventOr([self, event])
 
 class EventBasic(Event):
-    def __init__(self, expr, values, complement=None):
+    def __init__(self, expr, values, complement=False):
         assert isinstance(values, ContainersBasic)
         self.values = values
         self.expr = expr
         self.complement = complement
-    def symbols(self):
-        return [self.expr.symbol()]
+        self.symbols = tuple(self.expr.symbols())
     def solve(self):
         solution = self.expr.invert(self.values)
         if self.complement:
@@ -127,10 +126,12 @@ class EventInterval(EventBasic):
         comp_l = '<' if self.values.left_open else '<='
         comp_r = '<' if self.values.right_open else '<='
         if isinf_neg(x_l):
-            return '%s %s %s' % (sym, comp_r, x_r)
-        if isinf_pos(x_r):
-            return '%s %s %s' % (x_l, comp_l, sym)
-        return '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
+            result = '%s %s %s' % (sym, comp_r, x_r)
+        elif isinf_pos(x_r):
+            result = '%s %s %s' % (x_l, comp_l, sym)
+        else:
+            result = '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
+        return result if not self.complement else '~(%s)' % (result,)
 
 class EventFinite(EventBasic):
     def __repr__(self):
@@ -144,11 +145,11 @@ class EventFinite(EventBasic):
 class EventOr(Event):
     def __init__(self, events):
         self.events = tuple(events)
-    def symbols(self):
-        sub_symbols = [event.symbols() for event in self.events]
-        symbols = itertools.chain.from_iterable(sub_symbols)
-        return list(set(symbols))
+        self.symbols = tuple(set(itertools.chain.from_iterable([
+            event.symbols for event in self.events])))
     def solve(self):
+        if len(self.symbols) > 1:
+            raise ValueError('Cannot solve event with multiple symbols.')
         intervals = [event.solve() for event in self.events]
         return sympy.Union(*intervals)
     def evaluate(self, assignment):
@@ -190,11 +191,11 @@ class EventOr(Event):
 class EventAnd(Event):
     def __init__(self, events):
         self.events = tuple(events)
-    def symbols(self):
-        sub_symbols = [event.symbols() for event in self.events]
-        symbols = itertools.chain.from_iterable(sub_symbols)
-        return list(set(symbols))
+        self.symbols = tuple(set(itertools.chain.from_iterable([
+            event.symbols for event in self.events])))
     def solve(self):
+        if len(self.symbols) > 1:
+            raise ValueError('Cannot solve event with multiple symbols.')
         intervals = [event.solve() for event in self.events]
         return sympy.Intersection(*intervals)
     def evaluate(self, assignment):

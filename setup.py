@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2019 MIT Probabilistic Computing Project.
+# Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
 import os
@@ -116,7 +116,7 @@ class local_sdist(sdist):
         os.rename(version_file + '.tmp', version_file)
 
 setup(
-    name='sum_product_dsl',
+    name='spn',
     version=PKG_VERSION,
     description='A Query Language for Conditional Simulation',
     url='https://github.com/probcomp/sum-product-dsl',
@@ -130,12 +130,12 @@ setup(
         'Programming Language :: Python :: 2.7',
     ],
     packages=[
-        'sum_product_dsl',
-        'sum_product_dsl.tests',
+        'spn',
+        'spn.tests',
     ],
     package_dir={
-        'sum_product_dsl': 'src',
-        'sum_product_dsl.tests': 'tests',
+        'spn': 'src',
+        'spn.tests': 'tests',
     },
     cmdclass={
         'build_py': local_build_py,
