@@ -60,6 +60,9 @@ class Distribution(object):
         raise NotImplementedError()
     def logprob(self, event):
         raise NotImplementedError()
+    def prob(self, event):
+        lp = self.logprob(event)
+        return exp(lp)
     def logpdf(self, x):
         raise NotImplementedError()
     def condition(self, event):
