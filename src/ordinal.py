@@ -86,3 +86,7 @@ def Yulesimon(symbol, **kwargs):
     """A Yule-Simon discrete random variable."""
     return OrdinalDistribution(symbol, scipy.stats.yulesimon(**kwargs),
         IntegersPos)
+
+def Atomic(symbol, **kwargs):
+    """A Yule-Simon discrete random variable."""
+    return Randint(symbol, low=kwargs['loc'], high=kwargs['loc']+1)
