@@ -187,9 +187,9 @@ class PartialSumDistribution(Distribution):
         self.symbols = self.distributions[0].get_symbols()
 
     def __and__(self, x):
-        raise TypeError('Cannot embed PartialSumDistribution in a Product.')
+        raise TypeError('Weights do not sum to one.')
     def __rand__(self, x):
-        raise TypeError('Cannot embed PartialSumDistribution in a Product.')
+        raise TypeError('Weights do not sum to one.')
     def __mul__(self, x):
         raise TypeError('Cannot multiply PartialSumDistribution by constant.')
     def __rmul__(self, x):
