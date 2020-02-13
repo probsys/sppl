@@ -36,9 +36,30 @@ class Transform(object):
         raise NotImplementedError()
     def range(self):
         raise NotImplementedError()
+
     def evaluate(self, assignment):
         raise NotImplementedError()
+    def ffwd(self, x):
+        raise NotImplementedError()
+    def finv(self, x):
+        raise NotImplementedError()
+
     def invert(self, x):
+        intersection = sympy.Intersection(self.range(), x)
+        if intersection is EmptySet:
+            return EmptySet
+        if isinstance(intersection, ContainersFinite):
+            return self.invert_finite(intersection)
+        if isinstance(intersection, sympy.Interval):
+            return self.invert_interval(intersection)
+        if isinstance(intersection, sympy.Union):
+            intervals = [self.invert(y) for y in intersection.args]
+            return sympy.Union(*intervals)
+        assert False, 'Unknown intersection: %s' % (intersection,)
+    def invert_finite(self, values):
+        raise NotImplementedError()
+    def invert_interval(self, interval):
+        # Should be called on subset of range.
         raise NotImplementedError()
 
     # Addition.
@@ -251,41 +272,10 @@ class Transform(object):
             return EventInterval(self, x)
         return NotImplemented
 
-class Invertible(Transform):
-    # Transforms which can be forward evaluated and back-solved.
-    def symbols(self):
-        # pylint: disable=no-member
-        return self.subexpr.symbols()
-    def ffwd(self, x):
-        raise NotImplementedError()
-    def finv(self, x):
-        raise NotImplementedError()
-    def evaluate(self, assignment):
-        # pylint: disable=no-member
-        y = self.subexpr.evaluate(assignment)
-        return self.ffwd(y)
-    def invert(self, x):
-        intersection = sympy.Intersection(self.range(), x)
-        if intersection is EmptySet:
-            return EmptySet
-        if isinstance(intersection, ContainersFinite):
-            return self.invert_finite(intersection)
-        if isinstance(intersection, sympy.Interval):
-            return self.invert_interval(intersection)
-        if isinstance(intersection, sympy.Union):
-            intervals = [self.invert(y) for y in intersection.args]
-            return sympy.Union(*intervals)
-        assert False, 'Unknown intersection: %s' % (intersection,)
-    def invert_finite(self, values):
-        raise NotImplementedError()
-    def invert_interval(self, interval):
-        # Should be called on subset of range.
-        raise NotImplementedError()
-
 # ==============================================================================
 # Injective transforms.
 
-class Injective(Invertible):
+class Injective(Transform):
     # Injective (one-to-one) transforms.
     def invert_finite(self, values):
         # pylint: disable=no-member
@@ -340,10 +330,15 @@ class Radical(Injective):
         assert degree != 0
         self.subexpr = make_subexpr(subexpr)
         self.degree = degree
+    def symbols(self):
+        return self.subexpr.symbols()
     def domain(self):
         return ExtRealsPos
     def range(self):
         return ExtRealsPos
+    def evaluate(self, assignment):
+        y = self.subexpr.evaluate(assignment)
+        return self.ffwd(y)
     def ffwd(self, x):
         assert x in self.domain()
         return sympy.Pow(x, sympy.Rational(1, self.degree))
@@ -369,10 +364,15 @@ class Exp(Injective):
         assert base > 0
         self.subexpr = make_subexpr(subexpr)
         self.base = base
+    def symbols(self):
+        return self.subexpr.symbols()
     def domain(self):
         return ExtReals
     def range(self):
         return ExtRealsPos
+    def evaluate(self, assignment):
+        y = self.subexpr.evaluate(assignment)
+        return self.ffwd(y)
     def ffwd(self, x):
         assert x in self.domain()
         return sympy.Pow(self.base, x)
@@ -400,10 +400,15 @@ class Log(Injective):
         assert base > 1
         self.subexpr = make_subexpr(subexpr)
         self.base = base
+    def symbols(self):
+        return self.subexpr.symbols()
     def domain(self):
         return ExtRealsPos
     def range(self):
         return ExtReals
+    def evaluate(self, assignment):
+        y = self.subexpr.evaluate(assignment)
+        return self.ffwd(y)
     def ffwd(self, x):
         assert x in self.domain()
         return sympy.log(x, self.base) if x > 0 else -oo
@@ -431,7 +436,7 @@ class Log(Injective):
 # ==============================================================================
 # Non Injective transforms.
 
-class NonInjective(Invertible):
+class NonInjective(Transform):
     # Non-injective (many-to-one) transforms.
     def invert_finite(self, values):
         # pylint: disable=no-member
@@ -445,10 +450,15 @@ class NonInjective(Invertible):
 class Abs(NonInjective):
     def __init__(self, subexpr):
         self.subexpr = make_subexpr(subexpr)
+    def symbols(self):
+        return self.subexpr.symbols()
     def domain(self):
         return ExtReals
     def range(self):
         return ExtRealsPos
+    def evaluate(self, assignment):
+        y = self.subexpr.evaluate(assignment)
+        return self.ffwd(y)
     def ffwd(self, x):
         assert x in self.domain()
         return x if x > 0 else -x
@@ -478,10 +488,15 @@ class Abs(NonInjective):
 class Reciprocal(NonInjective):
     def __init__(self, subexpr):
         self.subexpr = make_subexpr(subexpr)
+    def symbols(self):
+        return self.subexpr.symbols()
     def domain(self):
         return ExtReals - sympy.FiniteSet(0)
     def range(self):
         return Reals - sympy.FiniteSet(0)
+    def evaluate(self, assignment):
+        y = self.subexpr.evaluate(assignment)
+        return self.ffwd(y)
     def ffwd(self, x):
         assert x in self.domain()
         return 0 if isinf(x) else sympy.Rational(1, x)
@@ -524,6 +539,8 @@ class Poly(NonInjective):
         self.coeffs = tuple(coeffs)
         self.degree = len(coeffs) - 1
         self.symexpr = make_sympy_polynomial(coeffs)
+    def symbols(self):
+        return self.subexpr.symbols()
     def domain(self):
         return ExtReals
     def range(self):
@@ -531,6 +548,9 @@ class Poly(NonInjective):
         pos_inf = sympy.FiniteSet(oo) if result.right == oo else EmptySet
         neg_inf = sympy.FiniteSet(-oo) if result.left == -oo else EmptySet
         return sympy.Union(result, pos_inf, neg_inf)
+    def evaluate(self, assignment):
+        y = self.subexpr.evaluate(assignment)
+        return self.ffwd(y)
     def ffwd(self, x):
         assert x in self.domain()
         return self.symexpr.subs(symX, x) \
