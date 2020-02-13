@@ -8,6 +8,7 @@ from inspect import getfullargspec
 from itertools import chain
 from math import exp
 from math import isfinite
+from math import log
 
 from sympy import S as Singletons
 
@@ -38,6 +39,7 @@ from .sym_util import get_intersection
 from .sym_util import get_union
 from .sym_util import powerset
 from .sym_util import sym_log
+from .sym_util import sympify_number
 
 from .transforms import Identity
 
@@ -80,6 +82,37 @@ class Distribution(object):
         m10 = exp(lp10) * (lp10 - (lpA1 + lpB0)) if not isinf_neg(lp10) else 0
         m11 = exp(lp11) * (lp11 - (lpA1 + lpB1)) if not isinf_neg(lp11) else 0
         return m00 + m01 + m10 + m11
+
+    def __rmul__number(self, x):
+        x_val = sympify_number(x)
+        if not 0 < x < 1:
+            raise ValueError('Weight %s must be in (0, 1)' % (str(x),))
+        return PartialSumDistribution([self], [x_val])
+    def __rmul__(self, x):
+        # Try to multiply x as a number.
+        try:
+            return self.__rmul__number(x)
+        except TypeError:
+            pass
+        # Failed.
+        return NotImplemented
+    def __mul__(self, x):
+        return x * self
+
+    def __and__dist(self, x):
+        if isinstance(x, PartialSumDistribution):
+            raise TypeError()
+        if not isinstance(x, Distribution):
+            raise TypeError()
+        return ProductDistribution([self, x])
+    def __and__(self, x):
+        # Try to & x as a Distribution.
+        try:
+            return self.__and__dist(x)
+        except TypeError:
+            pass
+        # Failed.
+        return NotImplemented
 
 # ==============================================================================
 # Sum distribution.
@@ -137,6 +170,49 @@ class SumDistribution(Distribution):
         weights = lognorm(logps_joint)
         return SumDistribution(dists, weights) if len(dists) > 1 \
             else dists[0]
+
+class PartialSumDistribution(Distribution):
+    def __init__(self, distributions, weights):
+        self.distributions = distributions
+        self.weights = weights
+        self.indexes = list(range(len(self.weights)))
+        assert sum(weights) <  1
+
+        symbols = [d.get_symbols() for d in distributions]
+        if not are_identical(symbols):
+            raise ValueError('Mixture must have identical symbols.')
+        self.symbols = self.distributions[0].get_symbols()
+
+    def __and__(self, x):
+        raise TypeError('Cannot embed PartialSumDistribution in a Product.')
+    def __rand__(self, x):
+        raise TypeError('Cannot embed PartialSumDistribution in a Product.')
+    def __mul__(self, x):
+        raise TypeError('Cannot multiply PartialSumDistribution by constant.')
+    def __rmul__(self, x):
+        raise TypeError('Cannot multiply PartialSumDistribution by constant.')
+
+    def __or__partialsum(self, x):
+        if not isinstance(x, PartialSumDistribution):
+            raise TypeError()
+        weights = self.weights + x.weights
+        cumsum = float(sum(weights))
+        if allclose(cumsum, 1):
+            weights = [log(w) for w in weights]
+            distributions = self.distributions + x.distributions
+            return SumDistribution(distributions, weights)
+        if cumsum < 1:
+            distributions = self.distributions + x.distributions
+            return PartialSumDistribution(distributions, weights)
+        raise ValueError('Weights sum to more than one.')
+    def __or__(self, x):
+        # Try to | x as a PartialSumDistribution
+        try:
+            return self.__or__partialsum(x)
+        except TypeError:
+            pass
+        # Failed.
+        return NotImplemented
 
 # ==============================================================================
 # Product base class.
