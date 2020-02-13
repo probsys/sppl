@@ -569,6 +569,38 @@ class Poly(NonInjective):
         x = (self.__class__, self.subexpr, self.coeffs)
         return hash(x)
 
+class FiniteMapping(NonInjective):
+    def __init__(self, subexpr, mapping):
+        self.subexpr = make_subexpr(subexpr)
+        self.mapping = mapping
+        self.mapping_domain = sympy.FiniteSet(*self.mapping.keys())
+        self.mapping_range = sympy.FiniteSet(*self.mapping.values())
+        self.mapping_inverse = {}
+        for k, v in self.mapping.items():
+            if v in self.mapping_inverse:
+                self.mapping_inverse[v].append(k)
+            else:
+                self.mapping_inverse[v] = [k]
+    def domain(self):
+        return self.mapping_domain
+    def range(self):
+        return self.mapping_range
+    def ffwd(self, x):
+        assert x in self.domain()
+        return self.mapping[x]
+    def finv(self, x):
+        if not x in self.range():
+            return EmptySet
+        return self.mapping_inverse[x]
+    def __repr__(self):
+        return 'FiniteMapping(mapping=%s, %s)' \
+            % (repr(self.mapping), repr(self.subexpr))
+    def __str__(self):
+        '(%s)' % (self.mapping)
+    def __hash__(self):
+        x = (self.__class__, self.subexpr, self.mapping)
+        return hash(x)
+
 # Some useful constructors.
 def ExpNat(subexpr):
     return Exp(subexpr, sympy.exp(1))

@@ -13,6 +13,7 @@ from sympy import oo
 from spn.math_util import allclose
 from spn.sym_util import sympy_solver
 from spn.transforms import ExpNat
+from spn.transforms import FiniteMapping
 from spn.transforms import Identity
 from spn.transforms import Log
 from spn.transforms import LogNat
@@ -501,6 +502,16 @@ def test_solver_24_negative_power_Rat():
     event = (5 <= Y**Rat(-1, 3)) < 6
     assert event.solve() == Interval.Lopen(Rat(1, 216), Rat(1, 125))
 
+def test_solver_25_finite_mapping_in_interval():
+    # Case 1.
+    solution = {-3, -2, 0, 2, 3}
+    event = (0 < FiniteMapping(abs(Y), {0: 1, 2: 3, 3: 4})) <= 4
+    assert event.solve() == solution
+    # Case 2.
+    solution = {-sympy.sqrt(2), 0, sympy.sqrt(2)}
+    event = (0 < FiniteMapping(Y**2, {0: 1, 2: 3, 3: 4})) < 4
+    assert event.solve() == solution
+
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
     # Identity.
@@ -549,4 +560,12 @@ def test_solver_finite_non_injective():
     # Poly Abs.
     solution = {-3, -1, 1, 3}
     event = (abs(Y))**3 << {1, 27}
+    assert event.solve() == solution
+    # FiniteMapping.
+    solution = {0, 3}
+    event = FiniteMapping(Y, {0: 1, 2: 3, 3: 4}) << {1, 4}
+    assert event.solve() == solution
+    # Abs FiniteMapping.
+    solution = {-3, 0, 3}
+    event = FiniteMapping(abs(Y), {0: 1, 2: 3, 3: 4}) << {1, 4}
     assert event.solve() == solution
