@@ -27,7 +27,7 @@ from .sym_util import ContainersFinite
 from .sym_util import sympify_number
 
 # ==============================================================================
-# Custom invertible function language.
+# Transform base class.
 
 class Transform(object):
     def symbols(self):
@@ -282,6 +282,9 @@ class Invertible(Transform):
         # Should be called on subset of range.
         raise NotImplementedError()
 
+# ==============================================================================
+# Injective transforms.
+
 class Injective(Invertible):
     # Injective (one-to-one) transforms.
     def invert_finite(self, values):
@@ -296,17 +299,6 @@ class Injective(Invertible):
         interval_prime = transform_interval(interval, a_prime, b_prime)
         # pylint: disable=no-member
         return self.subexpr.invert(interval_prime)
-
-class NonInjective(Invertible):
-    # Non-injective (many-to-one) transforms.
-    def invert_finite(self, values):
-        # pylint: disable=no-member
-        values_prime_list = [self.finv(x) for x in values]
-        values_prime = set(chain.from_iterable(values_prime_list))
-        return self.subexpr.invert(values_prime)
-    def invert_interval(self, interval):
-        # Should be called on subset of range.
-        raise NotImplementedError()
 
 class Identity(Injective):
     def __init__(self, token):
@@ -341,81 +333,6 @@ class Identity(Injective):
         return self.token
     def __hash__(self):
         x = (self.__class__, self.token)
-        return hash(x)
-
-class Abs(NonInjective):
-    def __init__(self, subexpr):
-        self.subexpr = make_subexpr(subexpr)
-    def domain(self):
-        return ExtReals
-    def range(self):
-        return ExtRealsPos
-    def ffwd(self, x):
-        assert x in self.domain()
-        return x if x > 0 else -x
-    def finv(self, x):
-        if not x in self.range():
-            return EmptySet
-        return {x, -x}
-    def invert_interval(self, interval):
-        assert isinstance(interval, sympy.Interval)
-        (a, b) = (interval.left, interval.right)
-        interval_pos = transform_interval(interval, a, b)
-        interval_neg = transform_interval(interval, -b, -a, flip=True)
-        interval_inv = interval_pos + interval_neg
-        return self.subexpr.invert(interval_inv)
-    def __eq__(self, x):
-        return isinstance(x, Abs) and self.subexpr == x.subexpr
-    def __repr__(self):
-        return 'Abs(%s)' % (repr(self.subexpr))
-    def __str__(self):
-        return '|%s|' % (str(self.subexpr),)
-    def __hash__(self):
-        x = (self.__class__, self.subexpr)
-        return hash(x)
-    def __abs__(self):
-        return Abs(self.subexpr)
-
-class Reciprocal(NonInjective):
-    def __init__(self, subexpr):
-        self.subexpr = make_subexpr(subexpr)
-    def domain(self):
-        return ExtReals - sympy.FiniteSet(0)
-    def range(self):
-        return Reals - sympy.FiniteSet(0)
-    def ffwd(self, x):
-        assert x in self.domain()
-        return 0 if isinf(x) else sympy.Rational(1, x)
-    def finv(self, x):
-        if x not in self.range():
-            return EmptySet
-        if x == 0:
-            return {-oo, oo}
-        return {sympy.Rational(1, x)}
-    def invert_interval(self, interval):
-        (a, b) = (interval.left, interval.right)
-        if (0 <= a < b):
-            assert 0 < a or interval.left_open
-            a_inv = sympy.Rational(1, a) if 0 < a else oo
-            b_inv = sympy.Rational(1, b) if (not isinf(b)) else 0
-            interval_inv = transform_interval(interval, b_inv, a_inv, flip=True)
-            return self.subexpr.invert(interval_inv)
-        if (a < b <= 0):
-            assert b < 0 or interval.right_open
-            a_inv = sympy.Rational(1, a) if (not isinf(a)) else 0
-            b_inv = sympy.Rational(1, b) if b < 0 else -oo
-            interval_inv = transform_interval(interval, b_inv, a_inv, flip=True)
-            return self.subexpr.invert(interval_inv)
-        assert False, 'Impossible Reciprocal interval: %s ' % (interval,)
-    def __eq__(self, x):
-        return isinstance(x, Reciprocal) \
-            and self.subexpr == x.subexpr
-    def __repr__(self):
-        return 'Reciprocal(%s)' % (repr(self.subexpr),)
-    def __str__(self):
-        return '(1/%s)' % (str(self.subexpr),)
-    def __hash__(self):
-        x = (self.__class__, self.subexpr)
         return hash(x)
 
 class Radical(Injective):
@@ -511,6 +428,95 @@ class Log(Injective):
         x = (self.__class__, self.subexpr, self.base)
         return hash(x)
 
+# ==============================================================================
+# Non Injective transforms.
+
+class NonInjective(Invertible):
+    # Non-injective (many-to-one) transforms.
+    def invert_finite(self, values):
+        # pylint: disable=no-member
+        values_prime_list = [self.finv(x) for x in values]
+        values_prime = set(chain.from_iterable(values_prime_list))
+        return self.subexpr.invert(values_prime)
+    def invert_interval(self, interval):
+        # Should be called on subset of range.
+        raise NotImplementedError()
+
+class Abs(NonInjective):
+    def __init__(self, subexpr):
+        self.subexpr = make_subexpr(subexpr)
+    def domain(self):
+        return ExtReals
+    def range(self):
+        return ExtRealsPos
+    def ffwd(self, x):
+        assert x in self.domain()
+        return x if x > 0 else -x
+    def finv(self, x):
+        if not x in self.range():
+            return EmptySet
+        return {x, -x}
+    def invert_interval(self, interval):
+        assert isinstance(interval, sympy.Interval)
+        (a, b) = (interval.left, interval.right)
+        interval_pos = transform_interval(interval, a, b)
+        interval_neg = transform_interval(interval, -b, -a, flip=True)
+        interval_inv = interval_pos + interval_neg
+        return self.subexpr.invert(interval_inv)
+    def __eq__(self, x):
+        return isinstance(x, Abs) and self.subexpr == x.subexpr
+    def __repr__(self):
+        return 'Abs(%s)' % (repr(self.subexpr))
+    def __str__(self):
+        return '|%s|' % (str(self.subexpr),)
+    def __hash__(self):
+        x = (self.__class__, self.subexpr)
+        return hash(x)
+    def __abs__(self):
+        return Abs(self.subexpr)
+
+class Reciprocal(NonInjective):
+    def __init__(self, subexpr):
+        self.subexpr = make_subexpr(subexpr)
+    def domain(self):
+        return ExtReals - sympy.FiniteSet(0)
+    def range(self):
+        return Reals - sympy.FiniteSet(0)
+    def ffwd(self, x):
+        assert x in self.domain()
+        return 0 if isinf(x) else sympy.Rational(1, x)
+    def finv(self, x):
+        if x not in self.range():
+            return EmptySet
+        if x == 0:
+            return {-oo, oo}
+        return {sympy.Rational(1, x)}
+    def invert_interval(self, interval):
+        (a, b) = (interval.left, interval.right)
+        if (0 <= a < b):
+            assert 0 < a or interval.left_open
+            a_inv = sympy.Rational(1, a) if 0 < a else oo
+            b_inv = sympy.Rational(1, b) if (not isinf(b)) else 0
+            interval_inv = transform_interval(interval, b_inv, a_inv, flip=True)
+            return self.subexpr.invert(interval_inv)
+        if (a < b <= 0):
+            assert b < 0 or interval.right_open
+            a_inv = sympy.Rational(1, a) if (not isinf(a)) else 0
+            b_inv = sympy.Rational(1, b) if b < 0 else -oo
+            interval_inv = transform_interval(interval, b_inv, a_inv, flip=True)
+            return self.subexpr.invert(interval_inv)
+        assert False, 'Impossible Reciprocal interval: %s ' % (interval,)
+    def __eq__(self, x):
+        return isinstance(x, Reciprocal) \
+            and self.subexpr == x.subexpr
+    def __repr__(self):
+        return 'Reciprocal(%s)' % (repr(self.subexpr),)
+    def __str__(self):
+        return '(1/%s)' % (str(self.subexpr),)
+    def __hash__(self):
+        x = (self.__class__, self.subexpr)
+        return hash(x)
+
 class Poly(NonInjective):
     def __init__(self, subexpr, coeffs):
         assert len(coeffs) > 1
@@ -569,6 +575,9 @@ class Poly(NonInjective):
         x = (self.__class__, self.subexpr, self.coeffs)
         return hash(x)
 
+# ==============================================================================
+# Utilities.
+
 # Some useful constructors.
 def ExpNat(subexpr):
     return Exp(subexpr, sympy.exp(1))
@@ -580,9 +589,6 @@ def Pow(subexpr, n):
     assert 0 <= n
     coeffs = [0]*n + [1]
     return Poly(subexpr, coeffs)
-
-# ==============================================================================
-# Utilities.
 
 def transform_interval(interval, a, b, flip=None):
     return \
