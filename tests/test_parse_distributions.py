@@ -5,16 +5,16 @@ import pytest
 
 from math import log
 
-from sum_product_dsl.distributions import NumericalDistribution
-from sum_product_dsl.distributions import PartialSumDistribution
-from sum_product_dsl.distributions import ProductDistribution
-from sum_product_dsl.distributions import SumDistribution
+from spn.distributions import NumericalDistribution
+from spn.distributions import PartialSumDistribution
+from spn.distributions import ProductDistribution
+from spn.distributions import SumDistribution
 
-from sum_product_dsl.numerical import Gamma
-from sum_product_dsl.numerical import Norm
-from sum_product_dsl.transforms import Identity
+from spn.numerical import Gamma
+from spn.numerical import Norm
+from spn.transforms import Identity
 
-from sum_product_dsl.math_util import allclose
+from spn.math_util import allclose
 
 X = Identity('X')
 Y = Identity('Y')

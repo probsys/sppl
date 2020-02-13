@@ -10,13 +10,13 @@ from sympy import Rational as Rat
 from sympy import S as Singletons
 from sympy import oo
 
-from sum_product_dsl.math_util import allclose
-from sum_product_dsl.sym_util import sympy_solver
-from sum_product_dsl.transforms import ExpNat
-from sum_product_dsl.transforms import Identity
-from sum_product_dsl.transforms import Log
-from sum_product_dsl.transforms import LogNat
-from sum_product_dsl.transforms import Sqrt
+from spn.math_util import allclose
+from spn.sym_util import sympy_solver
+from spn.transforms import ExpNat
+from spn.transforms import Identity
+from spn.transforms import Log
+from spn.transforms import LogNat
+from spn.transforms import Sqrt
 
 X = sympy.symbols("X")
 Y = Identity("Y")

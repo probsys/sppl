@@ -1,9 +1,9 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from sum_product_dsl.events import EventAnd
-from sum_product_dsl.events import EventBasic
-from sum_product_dsl.events import EventOr
+from spn.events import EventAnd
+from spn.events import EventBasic
+from spn.events import EventOr
 
 def factor_dnf(event):
     lookup = {s:s for s in event.symbols}

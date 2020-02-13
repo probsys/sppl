@@ -6,14 +6,14 @@ import pytest
 import numpy
 import sympy
 
-from sum_product_dsl.distributions import OrdinalDistribution
-from sum_product_dsl.distributions import SumDistribution
-from sum_product_dsl.math_util import allclose
-from sum_product_dsl.math_util import logdiffexp
-from sum_product_dsl.math_util import logsumexp
-from sum_product_dsl.ordinal import Poisson
-from sum_product_dsl.ordinal import Randint
-from sum_product_dsl.transforms import Identity
+from spn.distributions import OrdinalDistribution
+from spn.distributions import SumDistribution
+from spn.math_util import allclose
+from spn.math_util import logdiffexp
+from spn.math_util import logsumexp
+from spn.ordinal import Poisson
+from spn.ordinal import Randint
+from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 

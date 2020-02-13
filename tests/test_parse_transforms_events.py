@@ -9,21 +9,21 @@ from sympy import Interval
 from sympy import Rational as Rat
 from sympy import oo
 
-from sum_product_dsl.transforms import Abs
-from sum_product_dsl.transforms import Identity
-from sum_product_dsl.transforms import Poly
-from sum_product_dsl.transforms import Pow
-from sum_product_dsl.transforms import Radical
-from sum_product_dsl.transforms import Reciprocal
+from spn.transforms import Abs
+from spn.transforms import Identity
+from spn.transforms import Poly
+from spn.transforms import Pow
+from spn.transforms import Radical
+from spn.transforms import Reciprocal
 
-from sum_product_dsl.transforms import ExpNat
-from sum_product_dsl.transforms import LogNat
-from sum_product_dsl.transforms import Sqrt
+from spn.transforms import ExpNat
+from spn.transforms import LogNat
+from spn.transforms import Sqrt
 
-from sum_product_dsl.events import EventAnd
-from sum_product_dsl.events import EventFinite
-from sum_product_dsl.events import EventInterval
-from sum_product_dsl.events import EventOr
+from spn.events import EventAnd
+from spn.events import EventFinite
+from spn.events import EventInterval
+from spn.events import EventOr
 
 X = Identity("X")
 Y = X

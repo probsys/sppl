@@ -3,13 +3,13 @@
 
 import pytest
 
-from sum_product_dsl.dnf import factor_dnf
-from sum_product_dsl.dnf import factor_dnf_symbols
+from spn.dnf import factor_dnf
+from spn.dnf import factor_dnf_symbols
 
-from sum_product_dsl.transforms import ExpNat
-from sum_product_dsl.transforms import Identity
-from sum_product_dsl.transforms import LogNat
-from sum_product_dsl.transforms import Sqrt
+from spn.transforms import ExpNat
+from spn.transforms import Identity
+from spn.transforms import LogNat
+from spn.transforms import Sqrt
 
 (X0, X1, X2, X3, X4, X5) = [Identity("X%d" % (i,)) for i in range(6)]
 

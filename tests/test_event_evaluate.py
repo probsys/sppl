@@ -3,10 +3,10 @@
 
 import pytest
 
-from sum_product_dsl.transforms import Identity
+from spn.transforms import Identity
 
-from sum_product_dsl.transforms import ExpNat as exp
-from sum_product_dsl.transforms import LogNat as log
+from spn.transforms import ExpNat as exp
+from spn.transforms import LogNat as log
 
 X = Identity('X')
 Y = Identity('Y')

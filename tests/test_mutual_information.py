@@ -5,11 +5,11 @@ from math import log
 
 import numpy
 
-from sum_product_dsl.distributions import ProductDistribution
-from sum_product_dsl.distributions import SumDistribution
-from sum_product_dsl.math_util import allclose
-from sum_product_dsl.numerical import Norm
-from sum_product_dsl.transforms import Identity
+from spn.distributions import ProductDistribution
+from spn.distributions import SumDistribution
+from spn.math_util import allclose
+from spn.numerical import Norm
+from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 

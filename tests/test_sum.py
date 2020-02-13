@@ -8,12 +8,12 @@ import pytest
 
 import numpy
 
-from sum_product_dsl.distributions import NumericalDistribution
-from sum_product_dsl.distributions import SumDistribution
-from sum_product_dsl.math_util import logsumexp
-from sum_product_dsl.numerical import Gamma
-from sum_product_dsl.numerical import Norm
-from sum_product_dsl.transforms import Identity
+from spn.distributions import NumericalDistribution
+from spn.distributions import SumDistribution
+from spn.math_util import logsumexp
+from spn.numerical import Gamma
+from spn.numerical import Norm
+from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 

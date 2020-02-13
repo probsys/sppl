@@ -9,15 +9,15 @@ import numpy
 import scipy.stats
 import sympy
 
-from sum_product_dsl.distributions import NumericalDistribution
-from sum_product_dsl.distributions import SumDistribution
-from sum_product_dsl.math_util import allclose
-from sum_product_dsl.math_util import isinf_neg
-from sum_product_dsl.math_util import logdiffexp
-from sum_product_dsl.numerical import Gamma
-from sum_product_dsl.numerical import Norm
-from sum_product_dsl.sym_util import Reals
-from sum_product_dsl.transforms import Identity
+from spn.distributions import NumericalDistribution
+from spn.distributions import SumDistribution
+from spn.math_util import allclose
+from spn.math_util import isinf_neg
+from spn.math_util import logdiffexp
+from spn.numerical import Gamma
+from spn.numerical import Norm
+from spn.sym_util import Reals
+from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 

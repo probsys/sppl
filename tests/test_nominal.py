@@ -10,22 +10,22 @@ import numpy
 import scipy.stats
 import sympy
 
-from sum_product_dsl.distributions import SumDistribution
-from sum_product_dsl.distributions import NominalDistribution
-from sum_product_dsl.distributions import NumericalDistribution
-from sum_product_dsl.distributions import OrdinalDistribution
-from sum_product_dsl.distributions import ProductDistribution
+from spn.distributions import SumDistribution
+from spn.distributions import NominalDistribution
+from spn.distributions import NumericalDistribution
+from spn.distributions import OrdinalDistribution
+from spn.distributions import ProductDistribution
 
-from sum_product_dsl.transforms import Identity
-from sum_product_dsl.transforms import ExpNat as Exp
-from sum_product_dsl.transforms import LogNat as Log
-from sum_product_dsl.math_util import allclose
-from sum_product_dsl.math_util import isinf_neg
-from sum_product_dsl.math_util import logsumexp
-from sum_product_dsl.math_util import logdiffexp
-from sum_product_dsl.sym_util import Integers
-from sum_product_dsl.sym_util import Reals
-from sum_product_dsl.sym_util import RealsPos
+from spn.transforms import Identity
+from spn.transforms import ExpNat as Exp
+from spn.transforms import LogNat as Log
+from spn.math_util import allclose
+from spn.math_util import isinf_neg
+from spn.math_util import logsumexp
+from spn.math_util import logdiffexp
+from spn.sym_util import Integers
+from spn.sym_util import Reals
+from spn.sym_util import RealsPos
 
 rng = numpy.random.RandomState(1)
 
