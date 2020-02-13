@@ -441,7 +441,7 @@ class NonInjective(Transform):
     def invert_finite(self, values):
         # pylint: disable=no-member
         values_prime_list = [self.finv(x) for x in values]
-        values_prime = set(chain.from_iterable(values_prime_list))
+        values_prime = sympy.Union(*values_prime_list)
         return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
         # Should be called on subset of range.
