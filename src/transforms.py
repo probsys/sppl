@@ -771,9 +771,11 @@ class EventOr(EventCompound):
         ys = [event.evaluate(assignment) for event in self.subexprs]
         return any(ys)
     def ffwd(self, x):
+        # Cannot asses on multi-symbol Event.
         ys = [event.ffwd(x) for event in self.subexprs]
         return any(ys)
     def finv(self, x):
+        # Cannot invert multi-symbol Event.
         ys = [event.finv(x) for event in self.subexprs]
         return sympy.Union(*ys)
     def invert_finite(self, values):
@@ -819,9 +821,11 @@ class EventAnd(EventCompound):
         ys = [event.evaluate(assignment) for event in self.subexprs]
         return all(ys)
     def ffwd(self, x):
+        # Cannot asses on multi-symbol Event.
         ys = [event.ffwd(x) for event in self.subexprs]
         return all(ys)
     def finv(self, x):
+        # Cannot invert multi-symbol Event.
         ys = [event.finv(x) for event in self.subexprs]
         return sympy.Intersection(*ys)
     def invert_finite(self, values):
