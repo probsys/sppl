@@ -2,6 +2,7 @@
 # See LICENSE.txt
 
 from itertools import chain
+from itertools import product
 from math import isinf
 
 import sympy
@@ -12,8 +13,8 @@ from sympy.abc import X as symX
 from sympy.calculus.util import function_range
 from sympy.calculus.util import limit
 
-from .events import EventFinite
-from .events import EventInterval
+from .math_util import isinf_neg
+from .math_util import isinf_pos
 
 from .poly import solve_poly_equality
 from .poly import solve_poly_inequality
@@ -593,6 +594,275 @@ class Poly(NonInjective):
         return ' + '.join([t for t in terms if t])
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.coeffs)
+        return hash(x)
+
+# ==============================================================================
+# Event is  Boolean-valued (non-injective) transform.
+
+class Event(Transform):
+    def range(self):
+        return sympy.FiniteSet(0, 1)
+
+    # Event methods.
+    def solve(self):
+        if len(self.symbols()) > 1:
+            raise ValueError('Cannot solve multi-symbol Event.')
+        return self.invert({1})
+    def to_dnf(self):
+        dnf = self.to_dnf_list()
+        simplify_event = lambda x, E: x[0] if len(x)==1 else E(x)
+        events = [simplify_event(conjunction, EventAnd) for conjunction in dnf]
+        return simplify_event(events, EventOr)
+    def to_dnf_list(self):
+        raise NotImplementedError()
+    def __and__(self, event):
+        # Naive implementation (no simplification):
+        # return EventAnd([self, event])
+        raise NotImplementedError()
+    def __or__(self, event):
+        raise NotImplementedError()
+        # Naive implementation (no simplification):
+        # return EventOr([self, event])
+
+class EventBasic(Event):
+    def __init__(self, subexpr, values, complement=False):
+        assert isinstance(values, (sympy.Interval,) + ContainersFinite)
+        self.values = values
+        self.subexpr = subexpr
+        self.complement = complement
+    def symbols(self):
+        return self.subexpr.symbols()
+    def domain(self):
+        return self.subexpr.domain()
+    def evaluate(self, assignment):
+        y = self.subexpr.evaluate(assignment)
+        return self.ffwd(y)
+    def ffwd(self, x):
+        # In    Complement      Result
+        # T     F               T
+        # F     F               F
+        # T     T               F
+        # F     T               T
+        return (x in self.values) ^ bool(self.complement)
+    def finv(self, x):
+        if x not in self.range():
+            return EmptySet
+        if x == 1:
+            if not self.complement:
+                return self.values
+            else:
+                return sympy.Complement(Reals, sympy.sympify(self.values))
+        if x == 0:
+            if not self.complement:
+                return sympy.Complement(Reals, sympy.sympify(self.values))
+            else:
+                return self.values
+        assert False, 'Impossible value %s.'
+    def invert_finite(self, values):
+        values_prime_list = [self.finv(x) for x in values]
+        values_prime = sympy.Union(*values_prime_list)
+        return self.subexpr.invert(values_prime)
+
+    # Event methods.
+    def to_dnf_list(self):
+        return [[self]]
+    def __and__(self, event):
+        if isinstance(event, EventAnd):
+            events = (self,) + event.subexprs
+            return EventAnd(events)
+        if isinstance(event, (EventBasic, EventOr)):
+            return EventAnd([self, event])
+        return NotImplemented
+    def __or__(self, event):
+        if isinstance(event, EventOr):
+            events = (self,) + event.subexprs
+            return EventOr(events)
+        if isinstance(event, (EventBasic, EventAnd)):
+            return EventOr([self, event])
+        return NotImplemented
+    def __eq__(self, event):
+        return isinstance(event, type(self)) \
+            and (self.values == event.values) \
+            and (self.subexpr == event.subexpr) \
+            and (self.complement == event.complement)
+
+class EventInterval(EventBasic):
+    def __compute_gte__(self, x, left_open):
+        # x < (Y < b)
+        if not isinf_neg(self.values.left):
+            raise ValueError('cannot compute %s < %s' % (x, str(self)))
+        if self.complement:
+            raise ValueError('cannot compute < with complement')
+        xn = sympify_number(x)
+        interval = sympy.Interval(xn, self.values.right,
+            left_open=left_open, right_open=self.values.right_open)
+        return EventInterval(self.subexpr, interval, complement=self.complement)
+    def __compute_lte__(self, x, right_open):
+        # (a < Y) < x
+        if not isinf_pos(self.values.right):
+            raise ValueError('cannot compute %s < %s' % (str(self), x))
+        if self.complement:
+            raise ValueError('cannot compute < with complement')
+        xn = sympify_number(x)
+        interval = sympy.Interval(self.values.left, xn,
+            left_open=self.values.left_open, right_open=right_open)
+        return EventInterval(self.subexpr, interval, complement=self.complement)
+    def __gt__(self, x):
+        return self.__compute_gte__(x, True)
+    def __ge__(self, x):
+        return self.__compute_gte__(x, False)
+    def __lt__(self, x):
+        return self.__compute_lte__(x, True)
+    def __le__(self, x):
+        return self.__compute_lte__(x, False)
+    def __invert__(self):
+        return EventInterval(self.subexpr, self.values, not self.complement)
+    def __repr__(self):
+        return 'EventInterval(%s, %s, complement=%s)' \
+            % (repr(self.subexpr), repr(self.values), repr(self.complement))
+    def __str__(self):
+        sym = str(self.subexpr)
+        comp_l = '<' if self.values.left_open else '<='
+        (x_l, x_r) = (self.values.left, self.values.right)
+        comp_r = '<' if self.values.right_open else '<='
+        if isinf_neg(x_l):
+            result = '%s %s %s' % (sym, comp_r, x_r)
+        elif isinf_pos(x_r):
+            result = '%s %s %s' % (x_l, comp_l, sym)
+        else:
+            result = '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
+        return result if not self.complement else '~(%s)' % (result,)
+
+class EventFinite(EventBasic):
+    # TODO: Consider allowing 0 < (X << {1, 2})
+    # treating the RHS as a Boolean-valued function.
+    def __gt__(self, x):
+        raise TypeError()
+    def __ge__(self, x):
+        raise TypeError()
+    def __lt__(self, x):
+        raise TypeError()
+    def __le__(self, x):
+        raise TypeError()
+
+    def __repr__(self):
+        return 'EventFinite(%s, %s, complement=%s)' \
+            % (repr(self.subexpr), repr(self.values), repr(self.complement))
+    def __str__(self):
+        return '%s << %s' % (str(self.subexpr), str(self.values))
+    def __invert__(self):
+        return EventFinite(self.subexpr, self.values, not self.complement)
+
+class EventCompound(Event):
+    def __init__(self, subexprs):
+        assert all(isinstance(s, Event) for s in subexprs)
+        self.subexprs = tuple(subexprs)
+    def symbols(self):
+        return tuple(set(chain.from_iterable([
+            event.symbols() for event in self.subexprs])))
+    def domain(self):
+        if len(self.symbols()) > 1:
+            raise ValueError('No domain for multi-symbol Event.')
+        domains = [event.domain() for event in self.subexprs]
+        return sympy.Intersection(*domains)
+
+class EventOr(EventCompound):
+    def evaluate(self, assignment):
+        ys = [event.evaluate(assignment) for event in self.subexprs]
+        return any(ys)
+    def ffwd(self, x):
+        ys = [event.ffwd(x) for event in self.subexprs]
+        return any(ys)
+    def finv(self, x):
+        ys = [event.finv(x) for event in self.subexprs]
+        return sympy.Union(*ys)
+    def invert_finite(self, values):
+        solutions = [event.invert(values) for event in self.subexprs]
+        return sympy.Union(*solutions)
+
+    # Event methods.
+    def to_dnf_list(self):
+        sub_dnf = [event.to_dnf_list() for event in self.subexprs]
+        return list(chain.from_iterable(sub_dnf))
+    def __and__(self, event):
+        if isinstance(event, EventAnd):
+            events = (self,) + event.subexprs
+            return EventAnd(events)
+        if isinstance(event, (EventBasic, EventOr)):
+            events = (self, event)
+            return EventAnd(events)
+        return NotImplemented
+    def __or__(self, event):
+        if isinstance(event, EventOr):
+            events = self.subexprs + event.subexprs
+            return EventOr(events)
+        if isinstance(event, (EventBasic, EventAnd)):
+            events = self.subexprs + (event,)
+            return EventOr(events)
+        return NotImplemented
+    def __eq__(self, event):
+        return isinstance(event, EventOr) and (self.subexprs == event.subexprs)
+    def __invert__(self):
+        sub_events = [~event for event in self.subexprs]
+        return EventAnd(sub_events)
+    def __repr__(self):
+        return 'EventOr(%s)' % (repr(self.subexprs,))
+    def __str__(self):
+        sub_events = ['(%s)' % (str(event),) for event in self.subexprs]
+        return ' | '.join(sub_events)
+    def __hash__(self):
+        x = (self.__class__, self.subexprs)
+        return hash(x)
+
+class EventAnd(EventCompound):
+    def evaluate(self, assignment):
+        ys = [event.evaluate(assignment) for event in self.subexprs]
+        return all(ys)
+    def ffwd(self, x):
+        ys = [event.ffwd(x) for event in self.subexprs]
+        return all(ys)
+    def finv(self, x):
+        ys = [event.finv(x) for event in self.subexprs]
+        return sympy.Intersection(*ys)
+    def invert_finite(self, values):
+        solutions = [event.invert(values) for event in self.subexprs]
+        return sympy.Intersection(*solutions)
+
+    # Event methods.
+    def to_dnf_list(self):
+        sub_dnf = [event.to_dnf_list() for event in self.subexprs]
+        return [
+            list(chain.from_iterable(cross))
+            for cross in product(*sub_dnf)
+        ]
+    def __and__(self, event):
+        if isinstance(event, EventAnd):
+            events = self.subexprs + event.subexprs
+            return EventAnd(events)
+        if isinstance(event, (EventBasic, EventOr)):
+            events = self.subexprs + (event,)
+            return EventAnd(events)
+        return NotImplemented
+    def __or__(self, event):
+        if isinstance(event, EventOr):
+            events = (self,) + event.subexprs
+            return EventOr(events)
+        if isinstance(event, (EventBasic, EventAnd)):
+            events = (self, event)
+            return EventOr(events)
+        return NotImplemented
+    def __eq__(self, event):
+        return isinstance(event, EventAnd) and (self.subexprs == event.subexprs)
+    def __invert__(self):
+        sub_events = [~event for event in self.subexprs]
+        return EventOr(sub_events)
+    def __repr__(self):
+        return 'EventAnd(%s)' % (repr(self.subexprs,))
+    def __str__(self):
+        sub_events = ['(%s)' % (str(event),) for event in self.subexprs]
+        return ' & '.join(sub_events)
+    def __hash__(self):
+        x = (self.__class__, self.subexprs)
         return hash(x)
 
 # ==============================================================================

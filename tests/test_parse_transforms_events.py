@@ -20,10 +20,10 @@ from spn.transforms import ExpNat
 from spn.transforms import LogNat
 from spn.transforms import Sqrt
 
-from spn.events import EventAnd
-from spn.events import EventFinite
-from spn.events import EventInterval
-from spn.events import EventOr
+from spn.transforms import EventAnd
+from spn.transforms import EventFinite
+from spn.transforms import EventInterval
+from spn.transforms import EventOr
 
 X = Identity("X")
 Y = X

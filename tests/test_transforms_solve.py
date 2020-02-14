@@ -305,9 +305,7 @@ def test_solver_18():
     assert answer == solution
 
     interval = (~event).solve()
-    assert interval == sympy.Union(
-        Interval.open(-oo, 0),
-        Interval.open(solution.right, oo))
+    assert interval == Interval.open(solution.right, oo)
 
 def test_solver_19():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
@@ -323,9 +321,9 @@ def test_solver_19():
     assert answer == solution
 
     interval = (~event).solve()
-    assert interval == sympy.Union(
-        Interval.open(-oo, 0),
-        Interval.Lopen(solution.args[0].right, solution.args[1].left))
+    assert interval == Interval.Lopen(
+        solution.args[0].right,
+        solution.args[1].left)
 
 def test_solver_20():
     # log(x**2 - 3) < 5
