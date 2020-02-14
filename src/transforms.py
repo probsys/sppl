@@ -274,10 +274,9 @@ class Transform(object):
         return NotImplemented
 
 # ==============================================================================
-# Injective transforms.
+# Injective (one-to-one) Transforms.
 
 class Injective(Transform):
-    # Injective (one-to-one) transforms.
     def invert_finite(self, values):
         # pylint: disable=no-member
         values_prime = {self.finv(x) for x in values}
@@ -435,20 +434,9 @@ class Log(Injective):
         return hash(x)
 
 # ==============================================================================
-# Non Injective transforms.
+# Non-injective real-valued Transforms.
 
-class NonInjective(Transform):
-    # Non-injective (many-to-one) transforms.
-    def invert_finite(self, values):
-        # pylint: disable=no-member
-        values_prime_list = [self.finv(x) for x in values]
-        values_prime = sympy.Union(*values_prime_list)
-        return self.subexpr.invert(values_prime)
-    def invert_interval(self, interval):
-        # Should be called on subset of range.
-        raise NotImplementedError()
-
-class Abs(NonInjective):
+class Abs(Transform):
     def __init__(self, subexpr):
         self.subexpr = make_subexpr(subexpr)
     def symbols(self):
@@ -467,6 +455,10 @@ class Abs(NonInjective):
         if not x in self.range():
             return EmptySet
         return {x, -x}
+    def invert_finite(self, values):
+        values_prime_list = [self.finv(x) for x in values]
+        values_prime = sympy.Union(*values_prime_list)
+        return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
         assert isinstance(interval, sympy.Interval)
         (a, b) = (interval.left, interval.right)
@@ -486,7 +478,7 @@ class Abs(NonInjective):
     def __abs__(self):
         return Abs(self.subexpr)
 
-class Reciprocal(NonInjective):
+class Reciprocal(Transform):
     def __init__(self, subexpr):
         self.subexpr = make_subexpr(subexpr)
     def symbols(self):
@@ -507,6 +499,10 @@ class Reciprocal(NonInjective):
         if x == 0:
             return {-oo, oo}
         return {sympy.Rational(1, x)}
+    def invert_finite(self, values):
+        values_prime_list = [self.finv(x) for x in values]
+        values_prime = sympy.Union(*values_prime_list)
+        return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
         (a, b) = (interval.left, interval.right)
         if (0 <= a < b):
@@ -533,7 +529,7 @@ class Reciprocal(NonInjective):
         x = (self.__class__, self.subexpr)
         return hash(x)
 
-class Poly(NonInjective):
+class Poly(Transform):
     def __init__(self, subexpr, coeffs):
         assert len(coeffs) > 1
         self.subexpr = make_subexpr(subexpr)
@@ -560,6 +556,10 @@ class Poly(NonInjective):
         if not x in self.range():
             return EmptySet
         return solve_poly_equality(self.symexpr, x)
+    def invert_finite(self, values):
+        values_prime_list = [self.finv(x) for x in values]
+        values_prime = sympy.Union(*values_prime_list)
+        return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
         assert isinstance(interval, sympy.Interval)
         (a, b) = (interval.left, interval.right)
@@ -597,7 +597,7 @@ class Poly(NonInjective):
         return hash(x)
 
 # ==============================================================================
-# Event is  Boolean-valued (non-injective) transform.
+# Non-injective Boolean-valued Transforms.
 
 class Event(Transform):
     def range(self):
