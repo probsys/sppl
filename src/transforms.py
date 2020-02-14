@@ -456,8 +456,7 @@ class Abs(Transform):
             return EmptySet
         return {x, -x}
     def invert_finite(self, values):
-        values_prime_list = [self.finv(x) for x in values]
-        values_prime = sympy.Union(*values_prime_list)
+        values_prime = sympy.Union(*[self.finv(x) for x in values])
         return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
         assert isinstance(interval, sympy.Interval)
@@ -500,8 +499,7 @@ class Reciprocal(Transform):
             return {-oo, oo}
         return {sympy.Rational(1, x)}
     def invert_finite(self, values):
-        values_prime_list = [self.finv(x) for x in values]
-        values_prime = sympy.Union(*values_prime_list)
+        values_prime = sympy.Union(*[self.finv(x) for x in values])
         return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
         (a, b) = (interval.left, interval.right)
@@ -559,8 +557,7 @@ class Poly(Transform):
             return EmptySet
         return solve_poly_equality(self.symexpr, x)
     def invert_finite(self, values):
-        values_prime_list = [self.finv(x) for x in values]
-        values_prime = sympy.Union(*values_prime_list)
+        values_prime = sympy.Union(*[self.finv(x) for x in values])
         return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
         assert isinstance(interval, sympy.Interval)
@@ -661,8 +658,7 @@ class EventBasic(Event):
                 return self.values
         assert False, 'Impossible value %s.'
     def invert_finite(self, values):
-        values_prime_list = [self.finv(x) for x in values]
-        values_prime = sympy.Union(*values_prime_list)
+        values_prime = sympy.Union(*[self.finv(x) for x in values])
         return self.subexpr.invert(values_prime)
 
     # Event methods.
