@@ -542,6 +542,8 @@ class Poly(Transform):
         return ExtReals
     def range(self):
         result = function_range(self.symexpr, symX, Reals)
+        if isinstance(result, ContainersFinite):
+            return result
         pos_inf = sympy.FiniteSet(oo) if result.right == oo else EmptySet
         neg_inf = sympy.FiniteSet(-oo) if result.left == -oo else EmptySet
         return sympy.Union(result, pos_inf, neg_inf)

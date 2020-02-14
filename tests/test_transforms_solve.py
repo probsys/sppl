@@ -499,6 +499,20 @@ def test_solver_24_negative_power_Rat():
     event = (5 <= Y**Rat(-1, 3)) < 6
     assert event.solve() == Interval.Lopen(Rat(1, 216), Rat(1, 125))
 
+def test_solver_25_constant():
+    event = (0*Y + 1) << {1}
+    assert event.solve() == Singletons.Reals
+    event = (0*Y + 1) << {0}
+    assert event.solve() == Singletons.EmptySet
+    event = (0.9 < (0*Y + 1)) < 1
+    assert event.solve() == Singletons.EmptySet
+    event = (0.9 < (0*Y + 1)**2) <= 1
+    assert event.solve() == Singletons.Reals
+    event = (0.9 < (0*Y + 2)**2) <= 1
+    assert event.solve() == Singletons.EmptySet
+    event = (0*Y + 2)**2 << {4}
+    assert event.solve() == Singletons.Reals
+
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
     # Identity.
