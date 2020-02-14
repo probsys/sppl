@@ -279,13 +279,13 @@ class Transform(object):
 class Injective(Transform):
     def invert_finite(self, values):
         # pylint: disable=no-member
-        values_prime = {self.finv(x) for x in values}
+        values_prime = sympy.Union(*[self.finv(x) for x in values])
         return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
         assert isinstance(interval, sympy.Interval)
         (a, b) = (interval.left, interval.right)
-        a_prime = self.finv(a)
-        b_prime = self.finv(b)
+        a_prime = next(iter(self.finv(a)))
+        b_prime = next(iter(self.finv(b)))
         interval_prime = transform_interval(interval, a_prime, b_prime)
         # pylint: disable=no-member
         return self.subexpr.invert(interval_prime)
@@ -310,7 +310,7 @@ class Identity(Injective):
     def finv(self, x):
         if not x in self.range():
             return EmptySet
-        return x
+        return {x}
     def invert_finite(self, values):
         return values
     def invert_interval(self, interval):
@@ -345,7 +345,7 @@ class Radical(Injective):
     def finv(self, x):
         if x not in self.range():
             return EmptySet
-        return sympy.Pow(x, sympy.Rational(self.degree, 1))
+        return {sympy.Pow(x, sympy.Rational(self.degree, 1))}
     def __eq__(self, x):
         return isinstance(x, Radical) \
             and self.subexpr == x.subexpr \
@@ -379,7 +379,7 @@ class Exp(Injective):
     def finv(self, x):
         if not x in self.range():
             return EmptySet
-        return sympy.log(x, self.base) if x > 0 else -oo
+        return {sympy.log(x, self.base) if x > 0 else -oo}
     def __eq__(self, x):
         return isinstance(x, Exp) \
             and self.subexpr == x.subexpr \
@@ -411,11 +411,11 @@ class Log(Injective):
         return self.ffwd(y)
     def ffwd(self, x):
         assert x in self.domain()
-        return sympy.log(x, self.base) if x > 0 else -oo
+        return {sympy.log(x, self.base) if x > 0 else -oo}
     def finv(self, x):
         if not x in self.range():
             return EmptySet
-        return sympy.Pow(self.base, x)
+        return {sympy.Pow(self.base, x)}
     def __eq__(self, x):
         return isinstance(x, Log) \
             and self.subexpr == x.subexpr \
