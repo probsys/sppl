@@ -305,9 +305,7 @@ def test_solver_18():
     assert answer == solution
 
     interval = (~event).solve()
-    assert interval == sympy.Union(
-        Interval.open(-oo, 0),
-        Interval.open(solution.right, oo))
+    assert interval == Interval.open(solution.right, oo)
 
 def test_solver_19():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
@@ -323,9 +321,9 @@ def test_solver_19():
     assert answer == solution
 
     interval = (~event).solve()
-    assert interval == sympy.Union(
-        Interval.open(-oo, 0),
-        Interval.Lopen(solution.args[0].right, solution.args[1].left))
+    assert interval == Interval.Lopen(
+        solution.args[0].right,
+        solution.args[1].left)
 
 def test_solver_20():
     # log(x**2 - 3) < 5
@@ -501,6 +499,54 @@ def test_solver_24_negative_power_Rat():
     event = (5 <= Y**Rat(-1, 3)) < 6
     assert event.solve() == Interval.Lopen(Rat(1, 216), Rat(1, 125))
 
+def test_solver_25_constant():
+    event = (0*Y + 1) << {1}
+    assert event.solve() == Singletons.Reals
+    event = (0*Y + 1) << {0}
+    assert event.solve() == Singletons.EmptySet
+    event = (0.9 < (0*Y + 1)) < 1
+    assert event.solve() == Singletons.EmptySet
+    event = (0.9 < (0*Y + 1)**2) <= 1
+    assert event.solve() == Singletons.Reals
+    event = (0.9 < (0*Y + 2)**2) <= 1
+    assert event.solve() == Singletons.EmptySet
+    event = (0*Y + 2)**2 << {4}
+    assert event.solve() == Singletons.Reals
+
+def test_solver_26_piecewise_one_expr_basic_event():
+    event = (Y**2)*(0 <= Y) < 2
+    assert event.solve() == sympy.Interval.Ropen(0, sympy.sqrt(2))
+    event = (0 <= Y)*(Y**2) < 2
+    assert event.solve() == sympy.Interval.Ropen(0, sympy.sqrt(2))
+    event = ((0 <= Y) < 5)*(Y < 1) << {1}
+    assert event.solve() == sympy.Interval.Ropen(0, 1)
+    event = ((0 <= Y) < 5)*(~(Y < 1)) << {1}
+    assert event.solve() == sympy.Interval.Ropen(1, 5)
+    event = 10*(0 <= Y) << {10}
+    assert event.solve() == sympy.Interval(0, sympy.oo)
+    event = 10*(0 <= Y) << {0}
+    assert event.solve() == sympy.Interval.Ropen(-sympy.oo, 0)
+
+def test_solver_26_piecewise_one_expr_compound_event():
+    event = (Y**2)*((Y < 0) | (0 < Y)) < 2
+    assert event.solve() == sympy.Union(
+        sympy.Interval.open(-sympy.sqrt(2), 0),
+        sympy.Interval.open(0, sympy.sqrt(2)))
+
+def test_solver_27_piecewise_many():
+    expr = (Y < 0)*(Y**2) + (0 <= Y)*Y**(Rat(1, 2))
+    event = expr << {3}
+    assert sorted(event.solve()) == [-sympy.sqrt(3), 9]
+    event = 0 < expr
+    assert event.solve() == sympy.Union(
+        sympy.Interval.open(-oo, 0),
+        sympy.Interval.open(0, oo))
+
+    # TODO: Consider banning the restriction of a function
+    # to a segment outside of its domain.
+    expr = (Y < 0)*Y**(Rat(1, 2))
+    assert (expr < 1).solve() == Singletons.EmptySet
+
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
     # Identity.
@@ -549,4 +595,11 @@ def test_solver_finite_non_injective():
     # Poly Abs.
     solution = {-3, -1, 1, 3}
     event = (abs(Y))**3 << {1, 27}
+    assert event.solve() == solution
+    # Abs Not.
+    solution = sympy.Union(
+        sympy.Interval.open(-oo, -1),
+        sympy.Interval.open(-1, 1),
+        sympy.Interval.open(1, oo))
+    event = ~(abs(Y) << {1})
     assert event.solve() == solution

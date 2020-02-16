@@ -20,10 +20,12 @@ from spn.transforms import ExpNat
 from spn.transforms import LogNat
 from spn.transforms import Sqrt
 
-from spn.events import EventAnd
-from spn.events import EventFinite
-from spn.events import EventInterval
-from spn.events import EventOr
+from spn.transforms import EventAnd
+from spn.transforms import EventFinite
+from spn.transforms import EventInterval
+from spn.transforms import EventOr
+
+from spn.transforms import Piecewise
 
 X = Identity("X")
 Y = X
@@ -259,6 +261,43 @@ def test_parse_24_negative_power():
     with pytest.raises(ValueError):
         X**0
 
+def test_parse_26_piecewise_one_expr_basic_event():
+    assert (Y**2)*(0 <= Y) == Piecewise(
+        [Poly(Y, [0, 0, 1])],
+        [EventInterval(Y, sympy.Interval(0, sympy.oo))])
+    assert (0 <= Y)*(Y**2) == Piecewise(
+        [Poly(Y, [0, 0, 1])],
+        [EventInterval(Y, sympy.Interval(0, sympy.oo))])
+    assert ((0 <= Y) < 5)*(Y < 1) == Piecewise(
+        [EventInterval(Y, sympy.Interval.Ropen(-sympy.oo, 1))],
+        [EventInterval(Y, sympy.Interval.Ropen(0, 5))],
+    )
+    assert ((0 <= Y) < 5)*(~(Y < 1)) == Piecewise(
+        [EventInterval(Y, sympy.Interval.Ropen(-sympy.oo, 1), complement=True)],
+        [EventInterval(Y, sympy.Interval.Ropen(0, 5))],
+    )
+    assert 10*(0 <= Y) == Poly(
+        EventInterval(Y, sympy.Interval(0, sympy.oo)),
+        [0, 10])
+
+def test_parse_26_piecewise_one_expr_compound_event():
+    assert (Y**2)*((Y < 0) | (0 < Y)) == Piecewise(
+        [Poly(Y, [0, 0, 1])],
+        [EventOr([
+            EventInterval(Y, sympy.Interval.open(-sympy.oo, 0)),
+            EventInterval(Y, sympy.Interval.open(0, sympy.oo)),
+            ])])
+
+def test_parse_27_piecewise_many():
+    assert (Y < 0)*(Y**2) + (0 <= Y)*Y**(Rat(1, 2)) == Piecewise(
+        [
+            Poly(Y, [0, 0, 1]),
+            Radical(Y, 2)],
+        [
+            EventInterval(Y, sympy.Interval.open(-sympy.oo, 0)),
+            EventInterval(Y, sympy.Interval(0, sympy.oo))
+        ])
+
 def test_errors():
     with pytest.raises(ValueError):
         1 + LogNat(X) - ExpNat(X)
@@ -274,6 +313,20 @@ def test_errors():
         X**(1.71)
     with pytest.raises(ValueError):
         (-3)**X
+    with pytest.raises(ValueError):
+        (Identity('Z')**2)*(Y > 0)
+    with pytest.raises(ValueError):
+        (Y > 0) * (Identity('Z')**2)
+    with pytest.raises(ValueError):
+        ((Y > 0) | (Identity('Z') < 3)) * (Identity('Z')**2)
+    with pytest.raises(ValueError):
+        Y**2 + (0 <= Y) * Y
+    with pytest.raises(ValueError):
+        (Y <= 0)*(Y**2) + (0 <= Y)*Y**(Rat(1, 2))
+    with pytest.raises(ValueError):
+        (Y <= 0)*(Y**2) + (0 <= Identity('Z'))*Y**(Rat(1, 2))
+    with pytest.raises(ValueError):
+        (Y <= 0)*(Y**2) + (0 <= Identity('Z'))*Identity('Z')**(Rat(1, 2))
 
     # TypeErrors from 'return NotImplemented'.
     with pytest.raises(TypeError):
@@ -284,7 +337,6 @@ def test_errors():
         X / 'a'
     with pytest.raises(TypeError):
         X**'s'
-
 
 def test_add_polynomials_power_one():
     # TODO: Update parser to handle this edge case.

@@ -29,7 +29,7 @@ ExtRealsNeg = RealsNeg + sympy.FiniteSet(-sympy.oo)
 
 UnitInterval = sympy.Interval(0, 1)
 
-ContainersFinite = (sympy.FiniteSet, frozenset, set, list, tuple)
+ContainersFinite = (sympy.FiniteSet, sympy.Tuple, frozenset, set, list, tuple)
 
 def get_symbols(expr):
     atoms = expr.atoms()

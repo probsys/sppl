@@ -27,10 +27,6 @@ from .math_util import logflip
 from .math_util import lognorm
 from .math_util import logsumexp
 
-from .events import EventAnd
-from .events import EventFinite
-from .events import EventInterval
-from .events import EventOr
 
 from .sym_util import ContainersFinite
 from .sym_util import are_disjoint
@@ -41,6 +37,10 @@ from .sym_util import powerset
 from .sym_util import sym_log
 from .sym_util import sympify_number
 
+from .transforms import EventAnd
+from .transforms import EventFinite
+from .transforms import EventInterval
+from .transforms import EventOr
 from .transforms import Identity
 
 EmptySet = Singletons.EmptySet
@@ -634,16 +634,16 @@ def simplify_nominal_event(event, support):
         raise ValueError('Nominal variables cannot be in real intervals: %s'
             % (event,))
     if isinstance(event, EventFinite):
-        if not isinstance(event.expr, Identity):
+        if not isinstance(event.subexpr, Identity):
             raise ValueError('Nominal variables cannot be transformed: %s'
-                % (event.expr,))
+                % (event.subexpr,))
         return support.difference(event.values) if event.complement \
             else support.intersection(event.values)
     if isinstance(event, EventAnd):
-        values = [simplify_nominal_event(e, support) for e in event.events]
+        values = [simplify_nominal_event(e, support) for e in event.subexprs]
         return get_intersection(values)
     if isinstance(event, EventOr):
-        values = [simplify_nominal_event(e, support) for e in event.events]
+        values = [simplify_nominal_event(e, support) for e in event.subexprs]
         return get_union(values)
     assert False, 'Unknown event %s' % (str(event),)
 

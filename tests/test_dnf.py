@@ -27,29 +27,29 @@ def test_to_dnf_changes():
 
     event = A & (B | C)
     result = event.to_dnf()
-    assert len(result.events) == 2
-    assert A & B in result.events
-    assert A & C in result.events
+    assert len(result.subexprs) == 2
+    assert A & B in result.subexprs
+    assert A & C in result.subexprs
 
     event = (A & (B | C)) | D
     result = event.to_dnf()
-    assert len(result.events) == 3
-    assert A & B in result.events
-    assert A & C in result.events
-    assert D in result.events
+    assert len(result.subexprs) == 3
+    assert A & B in result.subexprs
+    assert A & C in result.subexprs
+    assert D in result.subexprs
 
     event = (A & (B | C)) | (D & E)
     result = event.to_dnf()
-    assert len(result.events) == 3
-    assert A & B in result.events
-    assert A & C in result.events
-    assert D & E in result.events
+    assert len(result.subexprs) == 3
+    assert A & B in result.subexprs
+    assert A & C in result.subexprs
+    assert D & E in result.subexprs
 
     event = (A | (B | C)) & (D & E)
     result = event.to_dnf()
-    assert A & D & E in result.events
-    assert B & D & E in result.events
-    assert C & D & E in result.events
+    assert A & D & E in result.subexprs
+    assert B & D & E in result.subexprs
+    assert C & D & E in result.subexprs
 
 def test_to_dnf_invert():
     A = X0 < 0
