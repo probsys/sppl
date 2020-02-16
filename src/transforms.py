@@ -108,6 +108,10 @@ class Transform(object):
         x_val = sympify_number(x)
         coeffs = [x_val*c for c in poly_self.coeffs]
         return Poly(poly_self.subexpr, coeffs)
+    def __mul__event(self, x):
+        if not isinstance(x, Event):
+            raise TypeError
+        return Piecewise((self,), (x,))
     def __mul__poly(self, x):
         if not isinstance(x, Transform):
             raise TypeError
@@ -125,6 +129,11 @@ class Transform(object):
         # Try to multiply x as a number.
         try:
             return self.__mul__number(x)
+        except TypeError:
+            pass
+        # Try to multiply x as an event.
+        try:
+            return self.__mul__event(x)
         except TypeError:
             pass
         # Try to multiply x as a polynomial.
@@ -596,11 +605,104 @@ class Poly(Transform):
         return hash(x)
 
 # ==============================================================================
+# Non-injective Piecewise Transform.
+
+class Piecewise(Transform):
+    def __init__(self, subexprs, events):
+        self.subexprs = [make_subexpr(subexpr) for subexpr in subexprs]
+        self.events = [make_event(event) for event in events]
+        self.symbol = get_piecewise_symbol(self.subexprs, self.events)
+        self.domains = get_piecewise_domains(self.events)
+    def symbols(self):
+        return (self.symbol,)
+    def domain(self):
+        return sympy.Union(*self.domains)
+    def range(self):
+        ranges = [subexpr.range() for subexpr in self.subexprs]
+        return sympy.Union(*ranges)
+    def evaluate(self, assignment):
+        raise NotImplementedError()
+    def ffwd(self, x):
+        index = next(i for i, domain in enumerate(self.domains) if x in domain)
+        return self.subexprs[index].ffwd(x)
+    def finv(self, x):
+        inv = get_piecewise_inverse(
+            lambda subexpr: subexpr.finv(x),
+            self.subexprs, self.domains)
+        return sympy.Union(*inv)
+    def invert_finite(self, values):
+        inv = get_piecewise_inverse(
+            lambda subexpr: subexpr.invert_finite(values),
+            self.subexprs, self.domains)
+        return sympy.Union(*inv)
+    def invert_interval(self, interval):
+        inv = get_piecewise_inverse(
+            lambda subexpr: subexpr.invert_interval(interval),
+            self.subexprs, self.domains)
+        return sympy.Union(*inv)
+    def __add__(self, x):
+        if isinstance(x, Piecewise):
+            subexprs = self.subexprs + x.subexprs
+            events = self.events + x.events
+            return Piecewise(subexprs, events)
+        return super().__add__(x)
+    def __eq__(self, x):
+        return isinstance(x, Piecewise) \
+            and self.subexprs == x.subexprs \
+            and self.events == x.events
+    def __repr__(self):
+        return 'Piecewise(events=%s, %s)' \
+            % (repr(self.events), repr(self.subexprs))
+    def __str__(self):
+        strings = [
+            '(%s) * Indicator[%s]' % (str(subexpr), str(event))
+            for subexpr, event in zip(self.subexprs, self.events)
+        ]
+        return ' + '.join(strings)
+    def __hash__(self):
+        x = (self.__class__, self.subexprs, self.events)
+        return hash(x)
+
+def get_piecewise_symbol(subexprs, events):
+    if len(subexprs) != len(events):
+        raise ValueError('Piecewise requires same no. of subexprs and events.')
+    symbols_subexprs = set(chain(*[s.symbols() for s in subexprs]))
+    if len(symbols_subexprs) > 1:
+        raise ValueError('Piecewise cannot have multi-symbol subexpressions.')
+    symbols_events = set(chain(*[e.symbols() for e in events]))
+    if len(symbols_subexprs) > 1:
+        raise ValueError('Piecewise cannot have multi-symbol events.')
+    if symbols_subexprs != symbols_events:
+        raise ValueError('Piecewise events and subexprs need same symbols.')
+    return list(symbols_subexprs)[0]
+
+def get_piecewise_domains(events):
+    domains = [event.solve() for event in events]
+    for i, di in enumerate(domains):
+        for j, dj in enumerate(domains):
+            if i == j:
+                continue
+            intersection = sympy.Intersection(di, dj)
+            if intersection is not EmptySet:
+                raise ValueError('Piecewise events %s and %s overlap'
+                    % (di, dj))
+    return domains
+
+def get_piecewise_inverse(f_inv, subexprs, domains):
+    inverses = [f_inv(subexpr) for subexpr in subexprs]
+    return [sympy.Intersection(i, d) for i, d in zip(inverses, domains)]
+
+# ==============================================================================
 # Non-injective Boolean-valued Transforms.
 
 class Event(Transform):
     def range(self):
         return sympy.FiniteSet(0, 1)
+
+    def __mul__(self, x):
+        if isinstance(x, Transform):
+            return Piecewise((x,), (self,))
+        return super().__mul__(x)
 
     # Event methods.
     def solve(self):
@@ -897,6 +999,12 @@ def make_subexpr(subexpr):
         return subexpr
     raise TypeError('Invalid subexpr %s with type %s'
         % (subexpr, str(type(subexpr))))
+
+def make_event(event):
+    if isinstance(event, Event):
+        return event
+    raise TypeError('Invalid event %s with type %s'
+        % (event, str(type(event))))
 
 def polyify(expr):
     if isinstance(expr, Poly):
