@@ -34,7 +34,6 @@ from .sym_util import are_identical
 from .sym_util import get_intersection
 from .sym_util import get_union
 from .sym_util import powerset
-from .sym_util import sym_log
 from .sym_util import sympify_number
 
 from .transforms import EventAnd
