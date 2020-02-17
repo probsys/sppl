@@ -6,8 +6,8 @@ import pytest
 import numpy
 import sympy
 
-from spn.distributions import OrdinalDistribution
-from spn.distributions import SumDistribution
+from spn.spn import OrdinalDistribution
+from spn.spn import SumSPN
 from spn.math_util import allclose
 from spn.math_util import logdiffexp
 from spn.math_util import logsumexp
@@ -19,39 +19,39 @@ rng = numpy.random.RandomState(1)
 
 def test_ordinal_distribution_poisson():
     X = Identity('X')
-    dist = Poisson(X, mu=5)
+    spn = Poisson(X, mu=5)
 
-    a = dist.logprob((1 <= X) <= 7)
-    b = dist.logprob(X << {1,2,3,4,5,6,7})
-    c = logsumexp([dist.logprob(X << {i}) for i in range(1, 8)])
+    a = spn.logprob((1 <= X) <= 7)
+    b = spn.logprob(X << {1,2,3,4,5,6,7})
+    c = logsumexp([spn.logprob(X << {i}) for i in range(1, 8)])
     assert allclose(a, b)
     assert allclose(a, c)
     assert allclose(b, c)
 
-    dist_condition = dist.condition(10 <= X)
-    assert dist_condition.conditioned
-    assert dist_condition.support == sympy.Range(10, sympy.oo)
-    assert dist_condition.logZ == logdiffexp(0, dist.logprob(X<=9))
+    spn_condition = spn.condition(10 <= X)
+    assert spn_condition.conditioned
+    assert spn_condition.support == sympy.Range(10, sympy.oo)
+    assert spn_condition.logZ == logdiffexp(0, spn.logprob(X<=9))
 
     assert allclose(
-        dist_condition.logprob(X <= 10),
-        dist_condition.logprob(X << {10}))
+        spn_condition.logprob(X <= 10),
+        spn_condition.logprob(X << {10}))
     assert allclose(
-        dist_condition.logprob(X <= 10),
-        dist_condition.logpdf(10))
+        spn_condition.logprob(X <= 10),
+        spn_condition.logpdf(10))
 
-    samples = dist_condition.sample(100, rng)
+    samples = spn_condition.sample(100, rng)
     assert all(10 <= s[X] for s in samples)
 
     # Unify X = 5 with left interval to make one distribution.
     event = ((1 <= X) < 5) | ((3*X + 1) << {16})
-    dist_condition = dist.condition(event)
-    assert isinstance(dist_condition, OrdinalDistribution)
-    assert dist_condition.conditioned
-    assert dist_condition.xl == 1
-    assert dist_condition.xu == 5
-    assert dist_condition.support == sympy.Range(1, 6, 1)
-    samples = dist_condition.sample(100, rng)
+    spn_condition = spn.condition(event)
+    assert isinstance(spn_condition, OrdinalDistribution)
+    assert spn_condition.conditioned
+    assert spn_condition.xl == 1
+    assert spn_condition.xu == 5
+    assert spn_condition.support == sympy.Range(1, 6, 1)
+    samples = spn_condition.sample(100, rng)
 
     # XXX An XFAIL, event.evaluate({X: 5.0}) is False because of floating
     # point comparison to integer.
@@ -59,36 +59,36 @@ def test_ordinal_distribution_poisson():
         assert all(event.evaluate(s) for s in samples)
 
     # Ignore X = 14/3 as a probability zero condition.
-    dist_condition = dist.condition(((1 <= X) < 5) | (3*X + 1) << {15})
-    assert isinstance(dist_condition, OrdinalDistribution)
-    assert dist_condition.conditioned
-    assert dist_condition.xl == 1
-    assert dist_condition.xu == 4
-    assert dist_condition.support == sympy.Range(1, 5, 1)
+    spn_condition = spn.condition(((1 <= X) < 5) | (3*X + 1) << {15})
+    assert isinstance(spn_condition, OrdinalDistribution)
+    assert spn_condition.conditioned
+    assert spn_condition.xl == 1
+    assert spn_condition.xu == 4
+    assert spn_condition.support == sympy.Range(1, 5, 1)
 
     # Make a mixture of two components.
-    dist_condition = dist.condition(((1 <= X) < 5) | (3*X + 1) << {22})
-    assert isinstance(dist_condition, SumDistribution)
-    assert dist_condition.distributions[0].conditioned
-    assert dist_condition.distributions[0].xl == 1
-    assert dist_condition.distributions[0].xu == 4
-    assert dist_condition.distributions[0].support == sympy.Range(1, 5, 1)
-    assert dist_condition.distributions[1].conditioned
-    assert dist_condition.distributions[1].xl == 7
-    assert dist_condition.distributions[1].xu == 7
-    assert dist_condition.distributions[1].support == {7}
+    spn_condition = spn.condition(((1 <= X) < 5) | (3*X + 1) << {22})
+    assert isinstance(spn_condition, SumSPN)
+    assert spn_condition.children[0].conditioned
+    assert spn_condition.children[0].xl == 1
+    assert spn_condition.children[0].xu == 4
+    assert spn_condition.children[0].support == sympy.Range(1, 5, 1)
+    assert spn_condition.children[1].conditioned
+    assert spn_condition.children[1].xl == 7
+    assert spn_condition.children[1].xu == 7
+    assert spn_condition.children[1].support == {7}
 
     # Condition on probability zero event.
     with pytest.raises(ValueError):
-        dist.condition(((-3 <= X) < 0) | (3*X + 1) << {20})
+        spn.condition(((-3 <= X) < 0) | (3*X + 1) << {20})
 
 def test_ordinal_randint():
     X = Identity('X')
-    dist = Randint(X, low=0, high=5)
-    assert dist.logprob(X < 5) == dist.logprob(X <= 4) == 0
+    spn = Randint(X, low=0, high=5)
+    assert spn.logprob(X < 5) == spn.logprob(X <= 4) == 0
     # i.e., X is not in [0, 3]
-    dist_condition = dist.condition(~((X+1) << {1, 4}))
-    assert isinstance(dist_condition, SumDistribution)
-    assert dist_condition.distributions[0].support == sympy.Range(1, 3)
-    assert dist_condition.distributions[1].support == sympy.Range(4, 5)
-    assert dist_condition
+    spn_condition = spn.condition(~((X+1) << {1, 4}))
+    assert isinstance(spn_condition, SumSPN)
+    assert spn_condition.children[0].support == sympy.Range(1, 3)
+    assert spn_condition.children[1].support == sympy.Range(4, 5)
+    assert spn_condition

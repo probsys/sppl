@@ -4,7 +4,7 @@
 import scipy.stats
 import sympy
 
-from .distributions import OrdinalDistribution
+from .spn import OrdinalDistribution
 
 from .sym_util import Integers
 from .sym_util import IntegersPos

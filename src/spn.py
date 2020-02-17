@@ -46,9 +46,9 @@ EmptySet = Singletons.EmptySet
 inf = float('inf')
 
 # ==============================================================================
-# Distribution base class.
+# SPN (base class).
 
-class Distribution(object):
+class SPN(object):
     def __init__(self):
         raise NotImplementedError()
     def sample(self, N, rng):
@@ -89,7 +89,7 @@ class Distribution(object):
         x_val = sympify_number(x)
         if not 0 < x < 1:
             raise ValueError('Weight %s must be in (0, 1)' % (str(x),))
-        return PartialSumDistribution([self], [x_val])
+        return PartialSumSPN([self], [x_val])
     def __rmul__(self, x):
         # Try to multiply x as a number.
         try:
@@ -101,52 +101,52 @@ class Distribution(object):
     def __mul__(self, x):
         return x * self
 
-    def __and__dist(self, x):
-        if isinstance(x, PartialSumDistribution):
+    def __and__spn(self, x):
+        if isinstance(x, PartialSumSPN):
             raise TypeError()
-        if not isinstance(x, Distribution):
+        if not isinstance(x, SPN):
             raise TypeError()
-        return ProductDistribution([self, x])
+        return ProductSPN([self, x])
     def __and__(self, x):
-        # Try to & x as a Distribution.
+        # Try to & x as a SPN.
         try:
-            return self.__and__dist(x)
+            return self.__and__spn(x)
         except TypeError:
             pass
         # Failed.
         return NotImplemented
 
 # ==============================================================================
-# Sum distribution.
+# Sum SPN.
 
-class SumDistribution(Distribution):
-    """Weighted mixture of distributions."""
+class SumSPN(SPN):
+    """Weighted mixture of SPNs."""
 
-    def __init__(self, distributions, weights):
-        self.distributions = tuple(distributions)
+    def __init__(self, spns, weights):
+        self.children = tuple(spns)
         self.weights = tuple(weights)
         self.indexes = tuple(range(len(self.weights)))
         assert allclose(float(logsumexp(weights)),  0)
 
-        symbols = [d.get_symbols() for d in distributions]
+        symbols = [spn.get_symbols() for spn in spns]
         if not are_identical(symbols):
             raise ValueError('Mixture must have identical symbols.')
-        self.symbols = self.distributions[0].get_symbols()
+        self.symbols = self.children[0].get_symbols()
 
     def get_symbols(self):
         return self.symbols
 
     def sample(self, N, rng):
-        f_sample = lambda i, n: self.distributions[i].sample(n, rng)
+        f_sample = lambda i, n: self.children[i].sample(n, rng)
         return self.sample_many(f_sample, N, rng)
 
     def sample_subset(self, symbols, N, rng):
         f_sample = lambda i, n : \
-            self.distributions[i].sample_subset(symbols, n, rng)
+            self.children[i].sample_subset(symbols, n, rng)
         return self.sample_many(f_sample, N, rng)
 
     def sample_func(self, func, N, rng):
-        f_sample = lambda i, n : self.distributions[i].sample_func(func, n, rng)
+        f_sample = lambda i, n : self.children[i].sample_func(func, n, rng)
         return self.sample_many(f_sample, N, rng)
 
     def sample_many(self, func, N, rng):
@@ -157,70 +157,70 @@ class SumDistribution(Distribution):
         return list(chain.from_iterable(samples))
 
     def logprob(self, event):
-        logps = [dist.logprob(event) for dist in self.distributions]
+        logps = [spn.logprob(event) for spn in self.children]
         return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
 
     def logpdf(self, x):
-        logps = [dist.logpdf(x) for dist in self.distributions]
+        logps = [spn.logpdf(x) for spn in self.children]
         return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
 
     def condition(self, event):
-        logps_condt = [dist.logprob(event) for dist in self.distributions]
+        logps_condt = [spn.logprob(event) for spn in self.children]
         indexes = [i for i, lp in enumerate(logps_condt) if not isinf_neg(lp)]
         logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
-        dists = [self.distributions[i].condition(event) for i in indexes]
+        children = [self.children[i].condition(event) for i in indexes]
         weights = lognorm(logps_joint)
-        return SumDistribution(dists, weights) if len(dists) > 1 \
-            else dists[0]
+        return SumSPN(children, weights) if len(children) > 1 \
+            else children[0]
 
-class ExposedSumDistribution(SumDistribution):
-    def __init__(self, distributions, weights, symbol):
-        """Weighted mixture of distributions with exposed internal choice."""
-        K = len(distributions)
+class ExposedSumSPN(SumSPN):
+    def __init__(self, spns, weights, symbol):
+        """Weighted mixture of SPNs with exposed internal choice."""
+        K = len(spns)
         nominals = [NominalDistribution(symbol, {i: 1}) for i in range(K)]
-        distributions_extended = [
-            ProductDistribution([nominal, distribution])
-            for nominal, distribution in zip(nominals, distributions)
+        spns_exposed = [
+            ProductSPN([nominal, spn])
+            for nominal, spn in zip(nominals, spns)
         ]
-        super().__init__(distributions_extended, weights)
+        super().__init__(spns_exposed, weights)
 
-class PartialSumDistribution(Distribution):
-    """Weighted mixture of distributions that do not yet sum to unity."""
-    def __init__(self, distributions, weights):
-        self.distributions = distributions
+class PartialSumSPN(SPN):
+    """Weighted mixture of SPNs that do not yet sum to unity."""
+    def __init__(self, spns, weights):
+        self.children = spns
         self.weights = weights
         self.indexes = list(range(len(self.weights)))
         assert sum(weights) <  1
 
-        symbols = [d.get_symbols() for d in distributions]
+        symbols = [spn.get_symbols() for spn in spns]
         if not are_identical(symbols):
             raise ValueError('Mixture must have identical symbols.')
-        self.symbols = self.distributions[0].get_symbols()
+        self.symbols = self.children[0].get_symbols()
 
     def __and__(self, x):
         raise TypeError('Weights do not sum to one.')
     def __rand__(self, x):
         raise TypeError('Weights do not sum to one.')
     def __mul__(self, x):
-        raise TypeError('Cannot multiply PartialSumDistribution by constant.')
+        raise TypeError('Cannot multiply PartialSumSPN by constant.')
     def __rmul__(self, x):
-        raise TypeError('Cannot multiply PartialSumDistribution by constant.')
+        raise TypeError('Cannot multiply PartialSumSPN by constant.')
 
     def __or__partialsum(self, x):
-        if not isinstance(x, PartialSumDistribution):
+        if not isinstance(x, PartialSumSPN):
             raise TypeError()
         weights = self.weights + x.weights
         cumsum = float(sum(weights))
         if allclose(cumsum, 1):
             weights = [log(w) for w in weights]
-            distributions = self.distributions + x.distributions
-            return SumDistribution(distributions, weights)
+            children = self.children + x.children
+            return SumSPN(children, weights)
         if cumsum < 1:
-            distributions = self.distributions + x.distributions
-            return PartialSumDistribution(distributions, weights)
+            children = self.children + x.children
+            return PartialSumSPN(children, weights)
         raise ValueError('Weights sum to more than one.')
     def __or__(self, x):
-        # Try to | x as a PartialSumDistribution
+        # Try to | x as a PartialSumSPN
         try:
             return self.__or__partialsum(x)
         except TypeError:
@@ -231,15 +231,15 @@ class PartialSumDistribution(Distribution):
 # ==============================================================================
 # Product base class.
 
-class ProductDistribution(Distribution):
-    """Tuple of independent distributions."""
+class ProductSPN(SPN):
+    """List of independent SPNs."""
 
-    def __init__(self, distributions):
-        self.distributions = tuple(chain.from_iterable([
-            (dist.distributions if isinstance(dist, type(self)) else [dist])
-            for dist in distributions
+    def __init__(self, spns):
+        self.children = tuple(chain.from_iterable([
+            (spn.children if isinstance(spn, type(self)) else [spn])
+            for spn in spns
         ]))
-        symbols = [d.get_symbols() for d in self.distributions]
+        symbols = [spn.get_symbols() for spn in self.children]
         if not are_disjoint(symbols):
             raise ValueError('Product must have disjoint symbols')
         self.lookup = {s:i for i, syms in enumerate(symbols) for s in syms}
@@ -249,7 +249,7 @@ class ProductDistribution(Distribution):
         return self.symbols
 
     def sample(self, N, rng):
-        samples = [dist.sample(N, rng) for dist in self.distributions]
+        samples = [spn.sample(N, rng) for spn in self.children]
         return merge_samples(samples)
 
     def sample_subset(self, symbols, N, rng):
@@ -263,7 +263,7 @@ class ProductDistribution(Distribution):
                 index_to_symbols[key].append(symbol)
         # Obtain the samples.
         samples = [
-            self.distributions[i].sample_subset(symbols_i, N, rng)
+            self.children[i].sample_subset(symbols_i, N, rng)
             for i, symbols_i in index_to_symbols.items()
         ]
         # Merge the samples.
@@ -275,8 +275,8 @@ class ProductDistribution(Distribution):
         return func_evaluate(self, func, samples)
 
     def logpdf(self, x):
-        assert len(x) == len(self.distributions)
-        logps = [dist.logpdf(v) for (dist, v) in zip(self.distributions, x)
+        assert len(x) == len(self.children)
+        logps = [spn.logpdf(v) for (spn, v) in zip(self.children, x)
             if x is not None]
         return logsumexp(logps)
 
@@ -293,7 +293,7 @@ class ProductDistribution(Distribution):
         # Compute probabilities of all the conjunctions.
         (logps_pos, logps_neg) = ([], [])
         for J in subsets:
-            # Find indexes of distributions that are involved in clauses J.
+            # Find indexes of children that are involved in clauses J.
             keys = set(chain.from_iterable(dnf_factor[j].keys() for j in J))
             # Factorize events across the product.
             logprobs = [
@@ -323,7 +323,7 @@ class ProductDistribution(Distribution):
             self.make_disjoint_conjunction(dnf_factor, i)
             for i in dnf_factor
         ]
-        # Construct the ProductDistribution weights.
+        # Construct the ProductSPN weights.
         ws = [self.get_clause_weight(clause) for clause in clauses]
         return logsumexp(ws)
 
@@ -336,20 +336,20 @@ class ProductDistribution(Distribution):
             self.make_disjoint_conjunction(dnf_factor, i)
             for i in dnf_factor
         ]
-        # Construct the ProductDistribution weights.
+        # Construct the ProductSPN weights.
         ws = [self.get_clause_weight(clause) for clause in clauses]
         indexes = [i for (i, w) in enumerate(ws) if not isinf_neg(w)]
         if not indexes:
             raise ValueError('Conditioning event "%s" has probability zero' %
                 (event,))
         weights = lognorm([ws[i] for i in indexes])
-        # Construct the new ProductDistributions.
+        # Construct the new ProductSPNs.
         ds = [self.get_clause_conditioned(clauses[i]) for i in indexes]
-        products = [ProductDistribution(d) for d in ds]
+        products = [ProductSPN(d) for d in ds]
         if len(products) == 1:
             return products[0]
-        # Return SumDistribution of the products.
-        return SumDistribution(products, weights)
+        # Return SumSPN of the products.
+        return SumSPN(products, weights)
 
     def make_disjoint_conjunction(self, dnf_factor, i):
         clause = dict(dnf_factor[i])
@@ -362,17 +362,17 @@ class ProductDistribution(Distribution):
         return clause
 
     def get_clause_conditioned(self, clause):
-        # Return distributions conditioned on a clause (one conjunction).
+        # Return children conditioned on a clause (one conjunction).
         return [
-            dist.condition(clause[k]) if (k in clause) else dist
-            for k, dist in enumerate(self.distributions)
+            spn.condition(clause[k]) if (k in clause) else spn
+            for k, spn in enumerate(self.children)
         ]
 
     def get_clause_weight(self, clause):
         # Return probability of a clause (one conjunction).
         return sum([
-            dist.logprob(clause[k]) if (k in clause) else 0
-            for k, dist in enumerate(self.distributions)
+            spn.logprob(clause[k]) if (k in clause) else 0
+            for k, spn in enumerate(self.children)
         ])
 
     def get_clause_weight_subset(self, dnf_factor, J, key):
@@ -382,12 +382,12 @@ class ProductDistribution(Distribution):
             return -inf
         # Compute probability of events.
         event = events[0] if (len(events) == 1) else EventAnd(events)
-        return self.distributions[key].logprob(event)
+        return self.children[key].logprob(event)
 
 # ==============================================================================
 # Basic Distribution base class.
 
-class DistributionBasic(Distribution):
+class LeafSPN(SPN):
     # pylint: disable=no-member
     def get_symbols(self):
         return frozenset({self.symbol})
@@ -402,7 +402,7 @@ class DistributionBasic(Distribution):
 # ==============================================================================
 # RealDistribution base class.
 
-class RealDistribution(DistributionBasic):
+class RealDistribution(LeafSPN):
     """Base class for distribution with a cumulative distribution function."""
 
     def __init__(self, symbol, dist, support, conditioned=None):
@@ -496,12 +496,12 @@ class RealDistribution(DistributionBasic):
             # TODO: Normalize the weights with greater precision, e.g.,
             # https://stats.stackexchange.com/questions/66616/converting-normalizing-very-small-likelihood-values-to-probability
             weights = lognorm([weights_unorm[i] for i in indexes])
-            distributions = [
+            children = [
                 (type(self))(self.symbol, self.dist, values.args[i], True)
                 for i in indexes
             ]
-            return SumDistribution(distributions, weights) \
-                if 1 < len(indexes) else distributions[0]
+            return SumSPN(children, weights) \
+                if 1 < len(indexes) else children[0]
 
         assert False, 'Unknown set type: %s' % (values,)
 
@@ -597,7 +597,7 @@ class OrdinalDistribution(RealDistribution):
 # ==============================================================================
 # Nominal distribution.
 
-class NominalDistribution(DistributionBasic):
+class NominalDistribution(LeafSPN):
     """Atomic distribution, no cumulative distribution function."""
 
     def __init__(self, symbol, dist):
@@ -658,13 +658,13 @@ def simplify_nominal_event(event, support):
         return get_union(values)
     assert False, 'Unknown event %s' % (str(event),)
 
-def func_evaluate(dist, func, samples):
-    args = func_symbols(dist, func)
+def func_evaluate(spn, func, samples):
+    args = func_symbols(spn, func)
     sample_kwargs = [{X.token: s[X] for X in args} for s in samples]
     return [func(**kwargs) for kwargs in sample_kwargs]
 
-def func_symbols(dist, func):
-    symbols = dist.get_symbols()
+def func_symbols(spn, func):
+    symbols = spn.get_symbols()
     args = [Identity(a) for a in getfullargspec(func).args]
     unknown = [a for a in args if a not in symbols]
     if unknown:

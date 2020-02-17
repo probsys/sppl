@@ -41,14 +41,14 @@ def test_prior():
 
 def test_condition():
     model_condition = model.condition(X << {4} | X << {10})
-    assert len(model_condition.distributions) == 2
-    assert model_condition.distributions[0].support == {4}
-    assert model_condition.distributions[1].support == {10}
+    assert len(model_condition.children) == 2
+    assert model_condition.children[0].support == {4}
+    assert model_condition.children[1].support == {10}
 
     model_condition = model.condition((0 < X < 4))
-    assert len(model_condition.distributions) == 2
-    assert model_condition.distributions[0].support \
-        == model_condition.distributions[1].support
+    assert len(model_condition.children) == 2
+    assert model_condition.children[0].support \
+        == model_condition.children[1].support
     assert allclose(
-        model_condition.distributions[0].logprob(X < 1),
-        model_condition.distributions[1].logprob(X < 1))
+        model_condition.children[0].logprob(X < 1),
+        model_condition.children[1].logprob(X < 1))
