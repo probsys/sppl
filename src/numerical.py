@@ -4,7 +4,7 @@
 import scipy.stats
 import sympy
 
-from .distributions import NumericalDistribution
+from .spn import NumericalDistribution
 
 from .sym_util import Reals
 from .sym_util import RealsNeg

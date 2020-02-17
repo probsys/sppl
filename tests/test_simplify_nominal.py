@@ -3,7 +3,7 @@
 
 import pytest
 
-from spn.distributions import simplify_nominal_event
+from spn.spn import simplify_nominal_event
 from spn.transforms import Identity
 
 X = Identity('X')
