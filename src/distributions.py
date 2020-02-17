@@ -243,8 +243,8 @@ class ProductDistribution(Distribution):
         symbols = [d.get_symbols() for d in self.distributions]
         if not are_disjoint(symbols):
             raise ValueError('Product must have disjoint symbols')
-        self.symbols = frozenset(get_union(symbols))
         self.lookup = {s:i for i, syms in enumerate(symbols) for s in syms}
+        self.symbols = frozenset(get_union(symbols))
 
     def get_symbols(self):
         return self.symbols
