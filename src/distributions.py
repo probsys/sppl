@@ -600,14 +600,14 @@ class NominalDistribution(DistributionBasic):
         assert allclose(float(sum(self.weights)),  1)
 
     def logpdf(self, x):
-        return sym_log(self.dist[x]) if x in self.dist else -inf
+        return log(self.dist[x]) if x in self.dist else -inf
 
     def logprob(self, event):
         # TODO: Consider using 1 - Pr[Event] for negation to avoid
         # iterating over domain.
         values = simplify_nominal_event(event, self.support)
         p_event = sum(self.dist[x] for x in values)
-        return sym_log(p_event)
+        return log(p_event) if p_event != 0 else -inf
 
     def condition(self, event):
         values = simplify_nominal_event(event, self.support)
