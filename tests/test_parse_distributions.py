@@ -1,9 +1,9 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-import pytest
-
 from math import log
+
+import pytest
 
 from spn.distributions import NumericalDistribution
 from spn.distributions import PartialSumDistribution

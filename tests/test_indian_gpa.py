@@ -1,8 +1,6 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-import numpy as np
-
 from spn.math_util import allclose
 from spn.numerical import Uniform
 from spn.ordinal import Atomic
