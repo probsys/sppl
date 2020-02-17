@@ -174,7 +174,19 @@ class SumDistribution(Distribution):
         return SumDistribution(dists, weights) if len(dists) > 1 \
             else dists[0]
 
+class ExposedSumDistribution(SumDistribution):
+    def __init__(self, distributions, weights, symbol):
+        """Weighted mixture of distributions with exposed internal choice."""
+        K = len(distributions)
+        nominals = [NominalDistribution(symbol, {i: 1}) for i in range(K)]
+        distributions_extended = [
+            ProductDistribution([nominal, distribution])
+            for nominal, distribution in zip(nominals, distributions)
+        ]
+        super().__init__(distributions_extended, weights)
+
 class PartialSumDistribution(Distribution):
+    """Weighted mixture of distributions that do not yet sum to unity."""
     def __init__(self, distributions, weights):
         self.distributions = distributions
         self.weights = weights
