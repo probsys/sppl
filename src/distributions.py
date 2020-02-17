@@ -294,12 +294,12 @@ class ProductDistribution(Distribution):
         # Compute probabilities of all the conjunctions.
         (logps_pos, logps_neg) = ([], [])
         for J in subsets:
-            # Find symbols involved in clauses J.
-            symbols = set(chain.from_iterable(dnf_factor[j].keys() for j in J))
+            # Find indexes of distributions that are involved in clauses J.
+            keys = set(chain.from_iterable(dnf_factor[j].keys() for j in J))
             # Factorize events across the product.
             logprobs = [
-                self.get_clause_weight_subset(dnf_factor, J, symbol)
-                for symbol in symbols
+                self.get_clause_weight_subset(dnf_factor, J, key)
+                for key in keys
             ]
             logprob = sum(logprobs)
             # Add probability to either positive or negative sums.
@@ -376,14 +376,14 @@ class ProductDistribution(Distribution):
             for k, dist in enumerate(self.distributions)
         ])
 
-    def get_clause_weight_subset(self, dnf_factor, J, symbol):
-        # Return probability of conjunction of |J| clauses, for given symbol.
-        events = [dnf_factor[j][symbol] for j in J if symbol in dnf_factor[j]]
+    def get_clause_weight_subset(self, dnf_factor, J, key):
+        # Return probability of conjunction of |J| clauses, for given key.
+        events = [dnf_factor[j][key] for j in J if key in dnf_factor[j]]
         if not events:
             return -inf
         # Compute probability of events.
         event = events[0] if (len(events) == 1) else EventAnd(events)
-        return self.distributions[symbol].logprob(event)
+        return self.distributions[key].logprob(event)
 
 # ==============================================================================
 # Basic Distribution base class.
