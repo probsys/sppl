@@ -1,6 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from functools import reduce
 from spn.transforms import EventAnd
 from spn.transforms import EventBasic
 from spn.transforms import EventOr
@@ -61,3 +62,29 @@ def factor_dnf_symbols(event, lookup):
         return events
 
     assert False, 'Invalid DNF event: %s' % (event,)
+
+def dnf_to_disjoint_union(event):
+    # Given an event in DNF, return a list L of conjunctions that are
+    # disjoint from one another and whose disjunction is equal to event.
+    #
+    # For example, if A, B, C are conjunctions
+    # event = A or B or C
+    # The output is
+    # L = [A, B and ~A, C and ~A and ~B, ...]
+    if isinstance(event, (EventBasic, EventAnd)):
+        return [event]
+    return [
+        reduce(lambda state, event: state & ~event, event.subexprs[:i],
+            initial=event.subexprs[i])
+        for i in range(len(event.subexprs))
+    ]
+
+def make_disjoint_conjunction_factored(dnf_factor, i):
+    clause = dict(dnf_factor[i])
+    for j in range(i):
+        for k in dnf_factor[j]:
+            if k in clause:
+                clause[k] &= (~dnf_factor[j][k])
+            else:
+                clause[k] = (~dnf_factor[j][k])
+    return clause

@@ -17,6 +17,7 @@ from sympy import Interval
 from sympy import Range
 from sympy import Union
 
+from .dnf import dnf_to_disjoint_union
 from .dnf import factor_dnf_symbols
 
 from .math_util import allclose
@@ -316,42 +317,58 @@ class ProductSPN(SPN):
     def logprob_disjoint_union(self, event):
         # Adopting disjoint union principle.
         # Disjoint union algorithm (yields mixture of products).
+
+        # Yields A or B or C
         expr_dnf = event.to_dnf()
+
+        # Yields [A, B & ~A, C and ~A and ~B]
+        exprs_disjoint = dnf_to_disjoint_union(expr_dnf)
+
+        # Convert each item in exprs_disjoint to dnf.
+        exprs_disjoint_dnf = [e.to_dnf() for e in exprs_disjoint]
+
+        # Factor each DNF expression.
+        exprs_disjoint_dnf_factors = [
+            factor_dnf_symbols(e, self.lookup) for e in exprs_disjoint_dnf]
+
+        # Obtain the clauses in each DNF expression.
+
         dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
         # Obtain the n disjoint clauses.
-        clauses = [
-            self.make_disjoint_conjunction(dnf_factor, i)
-            for i in dnf_factor
-        ]
+        # clauses = [
+        #     self.make_disjoint_conjunction(dnf_factor, i)
+        #     for i in dnf_factor
+        # ]
         # Construct the ProductSPN weights.
         ws = [self.get_clause_weight(clause) for clause in clauses]
         return logsumexp(ws)
 
     def condition(self, event):
+        pass
         # Disjoint union algorithm (yields mixture of products).
-        expr_dnf = event.to_dnf()
-        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
-        # Obtain the n disjoint clauses.
-        clauses = [
-            self.make_disjoint_conjunction(dnf_factor, i)
-            for i in dnf_factor
-        ]
-        # Construct the ProductSPN weights.
-        ws = [self.get_clause_weight(clause) for clause in clauses]
-        indexes = [i for (i, w) in enumerate(ws) if not isinf_neg(w)]
-        if not indexes:
-            raise ValueError('Conditioning event "%s" has probability zero' %
-                (event,))
-        weights = lognorm([ws[i] for i in indexes])
-        # Construct the new ProductSPNs.
-        ds = [self.get_clause_conditioned(clauses[i]) for i in indexes]
-        products = [ProductSPN(d) for d in ds]
-        if len(products) == 1:
-            return products[0]
-        # Return SumSPN of the products.
-        return SumSPN(products, weights)
+        # expr_dnf = event.to_dnf()
+        # dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
+        # # Obtain the n disjoint clauses.
+        # clauses = [
+        #     self.make_disjoint_conjunction(dnf_factor, i)
+        #     for i in dnf_factor
+        # ]
+        # # Construct the ProductSPN weights.
+        # ws = [self.get_clause_weight(clause) for clause in clauses]
+        # indexes = [i for (i, w) in enumerate(ws) if not isinf_neg(w)]
+        # if not indexes:
+        #     raise ValueError('Conditioning event "%s" has probability zero' %
+        #         (event,))
+        # weights = lognorm([ws[i] for i in indexes])
+        # # Construct the new ProductSPNs.
+        # ds = [self.get_clause_conditioned(clauses[i]) for i in indexes]
+        # products = [ProductSPN(d) for d in ds]
+        # if len(products) == 1:
+        #     return products[0]
+        # # Return SumSPN of the products.
+        # return SumSPN(products, weights)
 
-    def make_disjoint_conjunction(self, dnf_factor, i):
+    def make_disjoint_conjunction_factored(self, dnf_factor, i):
         clause = dict(dnf_factor[i])
         for j in range(i):
             for k in dnf_factor[j]:
