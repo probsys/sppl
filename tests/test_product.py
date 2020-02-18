@@ -197,3 +197,17 @@ def test_product_condition_or_probabilithy_zero():
         == sympy.Interval.Lopen(0, sympy.oo)
     assert spn_condition.children[1].symbol == Y
     assert not spn_condition.children[1].conditioned
+
+@pytest.mark.xfail(
+    reason='https://github.com/probcomp/sum-product-dsl/issues/12',
+    strict=True)
+def test_disjoint_union_xfail():
+    X = Identity('X')
+    Y = Identity('Y')
+    spn = ProductSPN([Norm(X, loc=0, scale=1), Norm(Y, loc=0, scale=2)])
+
+    event = ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3))
+    lp_ie = spn.logprob_inclusion_exclusion(event)
+    lp_du = spn.logprob_disjoint_union(event)
+
+    assert allclose(lp_ie, lp_du)
