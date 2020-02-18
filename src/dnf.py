@@ -10,6 +10,24 @@ def factor_dnf(event):
     return factor_dnf_symbols(event, lookup)
 
 def factor_dnf_symbols(event, lookup):
+    # Given an event (in DNF) and a dictionary lookup mapping symbols
+    # to integers, this function returns a dictionary of dictionary R
+    # R[i][j] is a conjunction events in the i-th DNF clause whose symbols
+    # are assigned to integer j in the lookup dictionary.
+    #
+    # For example, if e is any predicate
+    # event = (e(X0) & e(X1) & ~e(X2)) | (~e(X1) & e(X2) & e(X3) & e(X4)))
+    # lookup = {X0: 0, X1: 1, X2: 0, X3: 1, X4: 2}
+    # The output is
+    # R = {
+    #   0 : { // First clause
+    #       0: e(X0) & ~e(X2),
+    #       1: e(X1)},
+    #   1 : { // Second clause
+    #       0: e(X2),
+    #       1: ~e(X1) & e(X3)},
+    #       2: e(X4)},
+    # }
     if isinstance(event, EventBasic):
         # Literal term.
         symbols = event.symbols()
