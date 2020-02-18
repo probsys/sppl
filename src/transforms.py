@@ -849,7 +849,8 @@ class EventFinite(EventBasic):
         return 'EventFinite(%s, %s, complement=%s)' \
             % (repr(self.subexpr), repr(self.values), repr(self.complement))
     def __str__(self):
-        return '%s << %s' % (str(self.subexpr), str(self.values))
+        result = '%s << %s' % (str(self.subexpr), str(self.values))
+        return result if not self.complement else '~(%s)' % (result,)
     def __invert__(self):
         return EventFinite(self.subexpr, self.values, not self.complement)
 
