@@ -13,7 +13,13 @@ from spn.transforms import Sqrt
 
 (X0, X1, X2, X3, X4, X5) = [Identity("X%d" % (i,)) for i in range(6)]
 
-events = [X0<0, (X1<<(0,1)) & (X2<0), (X1<0) | (X2<0), (X0<0) | ((X1<0) & (X2<0))]
+events = [
+    X0 < 0,
+    (X1<<(0,1)) & (X2<0),
+    (X1<0) | (X2<0),
+    (X0<0) | ((X1<0) & ~(X2<0)),
+    ((X0<0) & ~(0<X2)) | ((X1<0) & ~(X2<0)),
+]
 @pytest.mark.parametrize('event', events)
 def test_to_dnf_no_change(event):
     assert event.to_dnf() == event
