@@ -5,6 +5,7 @@ import pytest
 
 from spn.dnf import factor_dnf
 from spn.dnf import factor_dnf_symbols
+from spn.dnf import find_dnf_non_disjoint_clauses
 
 from spn.transforms import ExpNat
 from spn.transforms import Identity
@@ -171,3 +172,41 @@ def test_factor_dnf_symbols_3():
     assert dnf[1][0] == E
     assert dnf[1][1] == G
     assert dnf[1][2] == F
+
+def test_find_dnf_non_disjoint_clauses():
+    X = Identity('X')
+    Y = Identity('Y')
+    Z = Identity('Z')
+
+    event = (X > 0) | (Y < 0)
+    overlaps = find_dnf_non_disjoint_clauses(event)
+    assert overlaps == [(0, 1)]
+
+    overlaps = find_dnf_non_disjoint_clauses(event, indexes=[1])
+    assert overlaps == []
+
+    overlaps = find_dnf_non_disjoint_clauses(event, indexes=[2])
+    assert overlaps == []
+
+    event = (X > 0) | ((X < 0) & (Y < 0))
+    overlaps = find_dnf_non_disjoint_clauses(event)
+    assert overlaps == []
+
+    event = ((X > 0) & (Z < 0)) | ((X < 0) & (Y < 0)) | ((X > 1))
+    overlaps = find_dnf_non_disjoint_clauses(event)
+    assert overlaps == [(0, 2)]
+
+    overlaps = find_dnf_non_disjoint_clauses(event, indexes=[1, 2])
+    assert overlaps == []
+
+    event = ((X > 0) & (Z < 0)) | ((X < 0) & (Y < 0)) | ((X > 1) & (Z > 1))
+    overlaps = find_dnf_non_disjoint_clauses(event)
+    assert overlaps == []
+
+    event = ((X**2 < 9)) | (1 < X)
+    overlaps = find_dnf_non_disjoint_clauses(event)
+    assert overlaps == [(0, 1)]
+
+    event = ((X**2 < 9) & (0 < X < 1)) | (1 < X)
+    overlaps = find_dnf_non_disjoint_clauses(event)
+    assert overlaps == []

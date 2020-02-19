@@ -18,6 +18,7 @@ from sympy import Range
 from sympy import Union
 
 from .dnf import factor_dnf_symbols
+from .dnf import find_dnf_non_disjoint_clauses
 
 from .math_util import allclose
 from .math_util import flip
@@ -281,7 +282,7 @@ class ProductSPN(SPN):
         return logsumexp(logps)
 
     def logprob(self, event):
-        return self.logprob_disjoint_union(event)
+        return self.logprob_inclusion_exclusion(event)
 
     def logprob_inclusion_exclusion(self, event):
         # Adopting Inclusion--Exclusion principle:
@@ -313,55 +314,32 @@ class ProductSPN(SPN):
         logp_neg = logsumexp(logps_neg) if logps_neg else -inf
         return logdiffexp(logp_pos, logp_neg)
 
-    def logprob_disjoint_union(self, event):
-        # Adopting disjoint union principle.
-        # Disjoint union algorithm (yields mixture of products).
-        expr_dnf = event.to_dnf()
-        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
-        # Obtain the n disjoint clauses.
-        clauses = [
-            self.make_disjoint_conjunction(dnf_factor, i)
-            for i in dnf_factor
-        ]
-        # Construct the ProductSPN weights.
-        ws = [self.get_clause_weight(clause) for clause in clauses]
-        return logsumexp(ws)
-
     def condition(self, event):
-        # Disjoint union algorithm (yields mixture of products).
-        expr_dnf = event.to_dnf()
-        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
-        # Obtain the n disjoint clauses.
-        clauses = [
-            self.make_disjoint_conjunction(dnf_factor, i)
-            for i in dnf_factor
-        ]
-        # Construct the ProductSPN weights.
-        ws = [self.get_clause_weight(clause) for clause in clauses]
-        indexes = [i for (i, w) in enumerate(ws) if not isinf_neg(w)]
+        event_dnf = event.to_dnf()
+
+        # Discard all probability zero clauses or fail if all are.
+        dnf_factor = factor_dnf_symbols(event_dnf, self.lookup)
+        logps = [self.get_clause_weight(clause) for clause in dnf_factor]
+        indexes = [i for (i, lp) in enumerate(logps) if not isinf_neg(lp)]
         if not indexes:
-            raise ValueError('Conditioning event "%s" has probability zero' %
-                (event,))
-        weights = lognorm([ws[i] for i in indexes])
-        # Construct the new ProductSPNs.
-        ds = [self.get_clause_conditioned(clauses[i]) for i in indexes]
-        products = [ProductSPN(d) for d in ds]
-        if len(products) == 1:
-            return products[0]
-        # Return SumSPN of the products.
-        return SumSPN(products, weights)
+            raise ValueError('Conditioning event "%s" has probability zero'
+                % (str(event),))
 
-    def make_disjoint_conjunction(self, dnf_factor, i):
-        clause = dict(dnf_factor[i])
-        for j in range(i):
-            for k in dnf_factor[j]:
-                if k in clause:
-                    clause[k] &= (~dnf_factor[j][k])
-                else:
-                    clause[k] = (~dnf_factor[j][k])
-        return clause
+        # Fail if remaining clauses are not pairwise disjoint (Github #12).
+        non_disjoint_clauses = find_dnf_non_disjoint_clauses(event, indexes)
+        if non_disjoint_clauses:
+            raise ValueError('Cannot condition Product on a disjunction'
+                'with non-disjoint clauses: %s, %s'
+                % (str(event), str(non_disjoint_clauses)))
 
-    def get_clause_conditioned(self, clause):
+        # Return a sum of products.
+        assert allclose(logsumexp(logps), self.logprob(event))
+        weights = lognorm([logps[i] for i in indexes])
+        childrens = [self.get_clause_children(dnf_factor[i]) for i in indexes]
+        products = [ProductSPN(children) for children in childrens]
+        return SumSPN(products, weights) if len(products) > 1 else products[0]
+
+    def get_clause_children(self, clause):
         # Return children conditioned on a clause (one conjunction).
         return [
             spn.condition(clause[k]) if (k in clause) else spn
