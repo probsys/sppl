@@ -35,14 +35,14 @@ def factor_dnf_symbols(event, lookup):
     #       2: e(X4)},
     # ]
     if isinstance(event, EventBasic):
-        # Literal term.
+        # Literal.
         symbols = event.symbols()
         assert len(symbols) == 1
         key = lookup[symbols[0]]
         return [{key: event}]
 
     if isinstance(event, EventAnd):
-        # Product term.
+        # Conjunction.
         assert all(isinstance(e, EventBasic) for e in event.subexprs)
         mappings = [factor_dnf_symbols(e, lookup) for e in event.subexprs]
         events = {}
@@ -56,7 +56,7 @@ def factor_dnf_symbols(event, lookup):
         return [events]
 
     if isinstance(event, EventOr):
-        # Sum term.
+        # Disjunction.
         assert all(isinstance(e, (EventAnd, EventBasic)) for e in event.subexprs)
         mappings = [factor_dnf_symbols(e, lookup) for e in event.subexprs]
         events = [None] * len(mappings)
