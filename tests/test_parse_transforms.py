@@ -25,6 +25,7 @@ from spn.transforms import EventFinite
 from spn.transforms import EventInterval
 from spn.transforms import EventOr
 
+from spn.sym_util import EmptySet
 from spn.transforms import Piecewise
 
 X = Identity("X")
@@ -413,6 +414,13 @@ def test_event_inequality_parse():
     # Since and short circuits and 5 < X is not False,
     # return value of expression is X < 10
     assert (5 < X < 10) == (X < 10)
+
+    # Yields a finite set.
+    assert ((5 < X) < 5) == EventFinite(X, EmptySet)
+    assert ((5 < X) <= 5) == EventFinite(X, EmptySet)
+    assert ((5 <= X) < 5) == EventFinite(X, EmptySet)
+    assert ((5 <= X) <= 5) == EventFinite(X, sympy.FiniteSet(5))
+    assert ~((10 < X) < 5) == EventFinite(X, EmptySet, complement=True)
 
 def test_event_inequality_parse_errors():
     # EventInterval.

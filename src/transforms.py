@@ -797,7 +797,11 @@ class EventInterval(EventBasic):
         xn = sympify_number(x)
         interval = sympy.Interval(xn, self.values.right,
             left_open=left_open, right_open=self.values.right_open)
-        return EventInterval(self.subexpr, interval, complement=self.complement)
+        if isinstance(interval, sympy.Interval):
+            return EventInterval(self.subexpr, interval, complement=self.complement)
+        if isinstance(interval, ContainersFinite):
+            return EventFinite(self.subexpr, interval, complement=self.complement)
+        assert False, 'Unknown interval: %s' % (interval,)
     def __compute_lte__(self, x, right_open):
         # (a < Y) < x
         if not isinf_pos(self.values.right):
@@ -807,7 +811,11 @@ class EventInterval(EventBasic):
         xn = sympify_number(x)
         interval = sympy.Interval(self.values.left, xn,
             left_open=self.values.left_open, right_open=right_open)
-        return EventInterval(self.subexpr, interval, complement=self.complement)
+        if isinstance(interval, sympy.Interval):
+            return EventInterval(self.subexpr, interval, complement=self.complement)
+        if isinstance(interval, ContainersFinite):
+            return EventFinite(self.subexpr, interval, complement=self.complement)
+        assert False, 'Unknown interval: %s' % (interval,)
     def __gt__(self, x):
         return self.__compute_gte__(x, True)
     def __ge__(self, x):

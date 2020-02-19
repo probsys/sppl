@@ -603,3 +603,15 @@ def test_solver_finite_non_injective():
         sympy.Interval.open(1, oo))
     event = ~(abs(Y) << {1})
     assert event.solve() == solution
+    # Abs in EmptySet.
+    solution = Singletons.EmptySet
+    event = (abs(Y))**3 << set([])
+    assert event.solve() == solution
+    # Abs Not in EmptySet (yields all reals).
+    solution = sympy.Interval(-sympy.oo, sympy.oo)
+    event = ~(((abs(Y))**3) << set([]))
+    assert event.solve() == solution
+    # Log in Reals (yields positive reals).
+    solution = sympy.Interval.open(0, sympy.oo)
+    event = ~((LogNat(Y))**3 << set([]))
+    assert event.solve() == solution
