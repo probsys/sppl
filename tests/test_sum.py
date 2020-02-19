@@ -21,7 +21,7 @@ from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 
-def test_mixture_distribution_normal_gamma():
+def test_sum_normal_gamma():
     X = Identity('X')
     weights = [
         log(Fraction(2, 3)),
@@ -53,7 +53,7 @@ def test_mixture_distribution_normal_gamma():
         spn.weights[1] + spn.children[1].logprob(X < 0),
     ])
 
-def test_mixture_distribution_normal_gamma_exposed():
+def test_sum_normal_gamma_exposed():
     X = Identity('X')
     W = Identity('W')
     weights = [log(Fraction(2, 3)), log(Fraction(1, 3))]
