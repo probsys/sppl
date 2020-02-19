@@ -10,14 +10,14 @@ from sympy import Rational as Rat
 from sympy import oo
 
 from spn.transforms import Abs
+from spn.transforms import ExpNat
 from spn.transforms import Identity
+from spn.transforms import LogNat
+from spn.transforms import Piecewise
 from spn.transforms import Poly
 from spn.transforms import Pow
 from spn.transforms import Radical
 from spn.transforms import Reciprocal
-
-from spn.transforms import ExpNat
-from spn.transforms import LogNat
 from spn.transforms import Sqrt
 
 from spn.transforms import EventAnd
@@ -26,7 +26,6 @@ from spn.transforms import EventInterval
 from spn.transforms import EventOr
 
 from spn.sym_util import EmptySet
-from spn.transforms import Piecewise
 
 X = Identity("X")
 Y = X
