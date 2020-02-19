@@ -1,9 +1,15 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from spn.transforms import EventAnd
-from spn.transforms import EventBasic
-from spn.transforms import EventOr
+from itertools import combinations
+
+from sympy import Intersection
+
+from .sym_util import EmptySet
+
+from .transforms import EventAnd
+from .transforms import EventBasic
+from .transforms import EventOr
 
 def factor_dnf(event):
     lookup = {s:s for s in event.symbols()}
@@ -61,3 +67,58 @@ def factor_dnf_symbols(event, lookup):
         return events
 
     assert False, 'Invalid DNF event: %s' % (event,)
+
+def solve_dnf_symbolwise(dnf_factor, indexes=None):
+    # Given a factored event (in DNF) where distinct symbols have
+    # distinct keys, returns a dictionary of dictionary R
+    # R[i][s] is the solution of the events in the i-th DNF clause with
+    # symbol s.
+    #
+    # For example, if e is any predicate
+    # event = (e(X0) & e(X1) & ~e(X2)) | (~e(X1) & e(X2) & e(X3) & ~e(X3)))
+    # The output is
+    # R = [
+    #   { // First clause
+    #       X0: solve(e(X0)),
+    #       X1: solve(e(X1)),
+    #       X2: solve(e(X2))},
+    #   { // Second clause
+    #       X0: solve(~e(X1)),
+    #       X2: solve(e(X2)),
+    #       X3: solve(e(X3) & ~e(X3))},
+    # ]
+    solutions = [None]*len(dnf_factor)
+    for i, event_mapping in enumerate(dnf_factor):
+        if indexes is not None and i not in indexes:
+            continue
+        solutions[i] = {}
+        for symbol, ev in event_mapping.items():
+            solutions[i][symbol] = ev.solve()
+    return solutions
+
+def find_dnf_non_disjoint_clauses(event, indexes=None):
+    # Given an event in DNF, returns list of pairs of clauses that appear
+    # in indexes and whose solutions have a non-empty intersections.
+    dnf_factor = factor_dnf(event)
+    solutions = solve_dnf_symbolwise(dnf_factor, indexes)
+    non_disjoint = []
+
+    clauses = range(len(dnf_factor)) if indexes is None else indexes
+    for i, j in combinations(clauses, 2):
+        # Intersections of events in i with those in j.
+        intersections_symbols_i = {
+            symbol: Intersection(solutions[i][symbol], solutions[j][symbol])
+                if (symbol in solutions[j]) else solutions[i][symbol]
+            for symbol in solutions[i]
+        }
+        # Intersections of events only in j.
+        intersections_symbols_j = {
+            symbol: solutions[j][symbol]
+            for symbol in solutions[j] if symbol not in solutions[i]
+        }
+        # Clauses are non disjoint if all intersections are non empty.
+        intersections = {**intersections_symbols_i, **intersections_symbols_j}
+        if all(s is not EmptySet for s in intersections.values()):
+            non_disjoint.append((i, j))
+
+    return non_disjoint
