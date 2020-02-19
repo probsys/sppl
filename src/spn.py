@@ -319,9 +319,10 @@ class ProductSPN(SPN):
         expr_dnf = event.to_dnf()
         dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
         # Obtain the n disjoint clauses.
+        n_clauses = len(dnf_factor)
         clauses = [
             self.make_disjoint_conjunction(dnf_factor, i)
-            for i in dnf_factor
+            for i in range(n_clauses)
         ]
         # Construct the ProductSPN weights.
         ws = [self.get_clause_weight(clause) for clause in clauses]
@@ -332,9 +333,10 @@ class ProductSPN(SPN):
         expr_dnf = event.to_dnf()
         dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
         # Obtain the n disjoint clauses.
+        n_clauses = len(dnf_factor)
         clauses = [
             self.make_disjoint_conjunction(dnf_factor, i)
-            for i in dnf_factor
+            for i in range(n_clauses)
         ]
         # Construct the ProductSPN weights.
         ws = [self.get_clause_weight(clause) for clause in clauses]
