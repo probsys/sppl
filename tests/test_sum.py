@@ -89,3 +89,23 @@ def test_sum_normal_gamma_exposed():
     assert isinstance(spn_condition.children[0], NominalDistribution)
     assert isinstance(spn_condition.children[1], NumericalDistribution)
     assert spn_condition.logprob(X < 5) == children[1].logprob(X < 5)
+
+def test_sum_normal_nominal():
+    X = Identity('X')
+    children = [
+        Norm(X, loc=0, scale=1),
+        NominalDistribution(X, {'low': 0.3, 'high': 0.7}),
+    ]
+    weights = [log(Fraction(4,7)), log(Fraction(3, 7))]
+    spn = SumSPN(children, weights)
+
+    # TODO: Need to fix.
+    with pytest.raises(ValueError):
+        spn.logprob(X < 0)
+
+    # TODO: Need to fix.
+    with pytest.raises(AssertionError):
+        spn.logprob(X << {'a'})
+
+    with pytest.raises(ValueError):
+        spn.logprob(X**2 << {1})
