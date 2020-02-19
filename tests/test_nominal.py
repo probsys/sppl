@@ -60,3 +60,7 @@ def test_nominal_distribution():
     assert allclose(spn_condition.logprob(X << {'a'}), -log(2))
     assert allclose(spn_condition.logprob(X << {'b'}), -log(2))
     assert spn_condition.logprob(X << {'c'}) == -float('inf')
+
+    # Cannot transform nominal variable.
+    with pytest.raises(ValueError):
+        spn_condition.logprob(X**2 << {1})
