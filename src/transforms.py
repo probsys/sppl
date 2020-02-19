@@ -31,6 +31,8 @@ from .sym_util import sympify_number
 # Transform base class.
 
 class Transform(object):
+    subexpr = None
+
     def symbols(self):
         raise NotImplementedError()
     def domain(self):
@@ -287,7 +289,6 @@ class Transform(object):
 
 class Injective(Transform):
     def invert_finite(self, values):
-        # pylint: disable=no-member
         values_prime = sympy.Union(*[self.finv(x) for x in values])
         return self.subexpr.invert(values_prime)
     def invert_interval(self, interval):
@@ -296,12 +297,12 @@ class Injective(Transform):
         a_prime = next(iter(self.finv(a)))
         b_prime = next(iter(self.finv(b)))
         interval_prime = transform_interval(interval, a_prime, b_prime)
-        # pylint: disable=no-member
         return self.subexpr.invert(interval_prime)
 
 class Identity(Injective):
     def __init__(self, token):
         assert isinstance(token, str)
+        self.subexpr = self
         self.token = token
     def symbols(self):
         return (self,)

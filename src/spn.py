@@ -366,7 +366,7 @@ class ProductSPN(SPN):
 # Basic Distribution base class.
 
 class LeafSPN(SPN):
-    # pylint: disable=no-member
+    symbol = None
     def get_symbols(self):
         return frozenset({self.symbol})
     def sample(self, N, rng):
