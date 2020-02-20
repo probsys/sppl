@@ -652,18 +652,15 @@ class Piecewise(Transform):
         index = next(i for i, domain in enumerate(self.domains) if x in domain)
         return self.subexprs[index].ffwd(x)
     def finv(self, y):
-        xs_list = get_piecewise_inverse(
-            lambda subexpr: subexpr.finv(y),
+        xs_list = get_piecewise_inverse(lambda subexpr: subexpr.finv(y),
             self.subexprs, self.domains)
         return sympy.Union(*xs_list)
     def invert_finite(self, ys):
-        xs_list = get_piecewise_inverse(
-            lambda subexpr: subexpr.invert_finite(ys),
+        xs_list = get_piecewise_inverse(lambda subexpr: subexpr.invert(ys),
             self.subexprs, self.domains)
         return sympy.Union(*xs_list)
     def invert_interval(self, ys):
-        xs_list = get_piecewise_inverse(
-            lambda subexpr: subexpr.invert_interval(ys),
+        xs_list = get_piecewise_inverse(lambda subexpr: subexpr.invert(ys),
             self.subexprs, self.domains)
         return sympy.Union(*xs_list)
     def __add__(self, x):
