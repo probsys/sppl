@@ -7,6 +7,7 @@ from math import isinf
 
 import sympy
 
+from sympy.core import Atom
 from sympy.core.relational import Relational
 
 UniversalSet = sympy.UniversalSet
@@ -83,15 +84,14 @@ def is_number(x):
     except TypeError:
         return False
 
-def complement_universal_symbolic(values):
+def complement_nominal_set(values):
     if values is UniversalSet:
         return EmptySet
-    if isinstance(values, ContainersFinite):
+    if isinstance(values, sympy.FiniteSet):
         return sympy.Complement(UniversalSet, values)
     if isinstance(values, sympy.Complement):
         values_not = values.args[1]
-        assert isinstance(values_not, sympy.FiniteSet)
-        assert all(isinstance(v, sympy.Symbol) for v in values_not)
+        assert is_nominal_set(values_not)
         return values_not
     assert False, 'Invalid values to complement symbolic: %s' % (str(values),)
 
@@ -122,3 +122,29 @@ def sympy_solver(expr):
         raise ValueError('Expression "%s" is not invertible.' % (expr,))
 
     return result
+
+class NominalValue(Atom):
+    def __eq__(self, x):
+        if isinstance(x, NominalValue):
+            return x.args == self.args
+        if isinstance(x, str):
+            return (x,) == self.args
+        return False
+    def __hash__(self):
+        return hash(self.args[0])
+    def __str__(self):
+        return self.args[0]
+    def __repr__(self):
+        return self.args[0]
+    def _eval_Eq(self, x):
+        if isinstance(x, NominalValue) and x.args == self.args:
+            return sympy.true
+        return sympy.false
+
+def NominalSet(*values):
+    return sympy.FiniteSet(*[NominalValue(v) for v in values])
+
+def is_nominal_set(x):
+    if not isinstance(x, sympy.FiniteSet):
+        return False
+    return all(isinstance(y, NominalValue) for y in x)

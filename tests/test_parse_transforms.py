@@ -27,6 +27,7 @@ from spn.transforms import EventInterval
 from spn.transforms import EventOr
 
 from spn.sym_util import EmptySet
+from spn.sym_util import NominalSet
 from spn.sym_util import UniversalSet
 
 X = Identity("X")
@@ -520,9 +521,9 @@ def test_event_containment_real():
         ((1 <= X) & ((X <= 1) | (2 <= X)) & (X <= 2))
 
 def test_event_containment_nominal():
-    assert X << {'a'} == EventFiniteNominal(X, {'a'})
+    assert X << {'a'} == EventFiniteNominal(X, NominalSet('a'))
     assert ~(X << {'a'}) == EventFiniteNominal(X,
-        sympy.Complement(UniversalSet, sympy.FiniteSet('a')))
+        sympy.Complement(UniversalSet, NominalSet('a')))
     assert ~(~(X << {'a'})) == X << {'a'}
 
 def test_event_containment_mixed():
@@ -531,12 +532,12 @@ def test_event_containment_mixed():
         == (X << {1,2}) | (X << {'a'}) \
         == EventOr([
         EventFiniteReal(X, {1, 2}),
-        EventFiniteNominal(X, {'a'})
+        EventFiniteNominal(X, NominalSet('a'))
     ])
     # De Morgan's law (implicit).
     assert (~(X << {1, 2, 'a'})) == ~(X << {1,2}) & ~(X << {'a'})
     # https://github.com/probcomp/sum-product-dsl/issues/22
-    # and of EventBasic does not yet perform simplifications.
+    # Taking the And of EventBasic does not perform simplifications.
     assert ~(~(X << {1, 2, 'a'})) == EventOr([
         ((1 <= X) & ((X <= 1) | (2 <= X)) & (X <= 2)),
         X << {'a'}

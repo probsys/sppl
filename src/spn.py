@@ -30,6 +30,8 @@ from .math_util import logsumexp
 
 from .sym_util import ContainersFinite
 from .sym_util import EmptySet
+from .sym_util import NominalSet
+from .sym_util import NominalValue
 from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_intersection
@@ -38,6 +40,8 @@ from .sym_util import powerset
 from .sym_util import sympify_number
 
 from .transforms import EventAnd
+from .transforms import EventBasic
+from .transforms import EventCompound
 from .transforms import EventFiniteNominal
 from .transforms import EventFiniteReal
 from .transforms import EventInterval
@@ -449,6 +453,9 @@ class RealDistribution(LeafSPN):
         if isinstance(values, Union):
             logps = [self.logprob_values(v) for v in values.args]
             return logsumexp(logps)
+        if isinstance(values, Complement):
+            (A, B) = values.args
+            return self.logprob_values(A - Intersection(A, B))
         assert False, 'Unknown set type: %s' % (values,)
 
     def logprob_finite(self, values):
@@ -587,10 +594,10 @@ class NominalDistribution(LeafSPN):
         assert isinstance(symbol, Identity)
         assert all(isinstance(x, str) for x in dist)
         self.symbol = symbol
-        self.dist = {x: Fraction(w) for x, w in dist.items()}
+        self.dist = {NominalValue(x): Fraction(w) for x, w in dist.items()}
         # Derived attributes.
-        self.support = frozenset(self.dist)
-        self.outcomes = list(self.dist.keys())
+        self.support = NominalSet(*dist.keys())
+        self.outcomes = list(self.dist)
         self.weights = [float(x) for x in self.dist.values()]
         assert allclose(float(sum(self.weights)),  1)
 
@@ -600,19 +607,29 @@ class NominalDistribution(LeafSPN):
     def logprob(self, event):
         # TODO: Consider using 1 - Pr[Event] for negation to avoid
         # iterating over domain.
-        values = simplify_nominal_event(event, self.support)
+        # if is_event_transformed(event):
+        #     raise ValueError('Nominal variable cannot be transformed: %s'
+        #         % (str(event),))
+        solution = event.solve()
+        values = Intersection(self.support, solution)
         p_event = sum(self.dist[x] for x in values)
         return log(p_event) if p_event != 0 else -inf
 
     def condition(self, event):
-        values = simplify_nominal_event(event, self.support)
+        # if is_event_transformed(event):
+        #     raise ValueError('Nominal variable cannot be transformed: %s'
+        #         % (str(event),))
+        solution = event.solve()
+        values = Intersection(self.support, solution)
         p_event = sum([self.dist[x] for x in values])
-        if isinf_neg(p_event):
+        if p_event == 0:
             raise ValueError('Conditioning event "%s" has probability zero' %
                 (str(event),))
+        if p_event == 1:
+            return self
         dist = {
-            x : (self.dist[x] / p_event) if x in values else 0
-            for x in self.outcomes
+            str(x) : (self.dist[x] / p_event) if x in values else 0
+            for x in self.support
         }
         return NominalDistribution(self.symbol, dist)
 
@@ -624,33 +641,12 @@ class NominalDistribution(LeafSPN):
 # ==============================================================================
 # Utilities.
 
-def simplify_nominal_event(event, support):
-    if isinstance(event, (EventInterval, EventFiniteReal)):
-        if not isinstance(event.subexpr, Identity):
-            raise ValueError('Nominal variables cannot be transformed: %s'
-                % (event.subexpr,))
-        return EmptySet
-    if isinstance(event, EventFiniteNominal):
-        if not isinstance(event.subexpr, Identity):
-            raise ValueError('Nominal variables cannot be transformed: %s'
-                % (event.subexpr,))
-        solution = event.solve()
-        if isinstance(solution, FiniteSet):
-            values = [str(x) for x in solution]
-            return support.intersection(values)
-        if isinstance(solution, Complement):
-            from .sym_util import complement_universal_symbolic
-            values_symbolic = complement_universal_symbolic(solution)
-            values = [str(x) for x in values_symbolic]
-            return support.difference(values)
-        assert False, 'Unknown intersection'
-    if isinstance(event, EventAnd):
-        values = [simplify_nominal_event(e, support) for e in event.subexprs]
-        return get_intersection(values)
-    if isinstance(event, EventOr):
-        values = [simplify_nominal_event(e, support) for e in event.subexprs]
-        return get_union(values)
-    assert False, 'Unknown event %s' % (str(event),)
+def is_event_transformed(event):
+    if isinstance(event, EventBasic):
+        return not isinstance(event.subexpr, Identity)
+    if isinstance(event, EventCompound):
+        return any(map(is_event_transformed, event.subexprs))
+    assert False, 'Unknown event: %s' % (event,)
 
 def func_evaluate(spn, func, samples):
     args = func_symbols(spn, func)

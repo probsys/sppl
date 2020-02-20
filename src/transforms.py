@@ -26,9 +26,11 @@ from .sym_util import ExtRealsPos
 from .sym_util import Reals
 from .sym_util import UniversalSet
 
+from .sym_util import NominalSet
 from .sym_util import ContainersFinite
-from .sym_util import complement_universal_symbolic
+from .sym_util import complement_nominal_set
 from .sym_util import is_number
+from .sym_util import is_nominal_set
 from .sym_util import sympify_number
 
 # ==============================================================================
@@ -62,6 +64,9 @@ class Transform(object):
         if isinstance(intersection, sympy.Union):
             xs_list = [self.invert(ys_i) for ys_i in intersection.args]
             return sympy.Union(*xs_list)
+        if isinstance(intersection, sympy.Complement):
+            (A, B) = intersection.args
+            return self.invert(A - sympy.Intersection(A, B))
         assert False, 'Unknown intersection: %s' % (intersection,)
     def invert_finite(self, ys):
         raise NotImplementedError()
@@ -284,8 +289,8 @@ class Transform(object):
     def __lshift__(self, x):
         if isinstance(x, ContainersFinite):
             values = list(x)
-            values_num = frozenset([v for v in values if is_number(v)])
-            values_str = frozenset([v for v in values if isinstance(v, str)])
+            values_num = sympy.FiniteSet(*[v for v in values if is_number(v)])
+            values_str = NominalSet(*[v for v in values if isinstance(v, str)])
             if len(values_num) + len(values_str) != len(values):
                 raise ValueError('Only numeric or symbolic values, not %s'
                     % (str(x,)))
@@ -903,9 +908,9 @@ class EventFiniteNominal(EventBasic):
         special = values is EmptySet \
             or values is UniversalSet \
             or isinstance(values, sympy.Complement)
-        assert special or isinstance(values, ContainersFinite)
+        assert special or is_nominal_set(values)
         self.subexpr = subexpr
-        self.values = values if special else sympy.FiniteSet(*values)
+        self.values = values if special else values
         self.transformed = not isinstance(self.subexpr, Identity)
         self.complemented = isinstance(values, sympy.Complement)
 
@@ -929,7 +934,7 @@ class EventFiniteNominal(EventBasic):
                     return UniversalSet
                 else:
                     return EmptySet
-            return complement_universal_symbolic(self.values)
+            return complement_nominal_set(self.values)
 
     def invert_finite(self, ys):
         if ys == sympy.FiniteSet(0):
@@ -947,7 +952,7 @@ class EventFiniteNominal(EventBasic):
             if self.complemented else '%s' % (str(set(self.values)),)
         return '%s << %s' % (str(self.subexpr), str_values)
     def __invert__(self):
-        values_not = complement_universal_symbolic(self.values)
+        values_not = complement_nominal_set(self.values)
         return EventFiniteNominal(self.subexpr, values_not)
 
 class EventCompound(Event):

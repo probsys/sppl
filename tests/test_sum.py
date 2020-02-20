@@ -7,6 +7,7 @@ from math import log
 import pytest
 
 import numpy
+import sympy
 
 from spn.spn import ExposedSumSPN
 from spn.spn import NominalDistribution
@@ -14,10 +15,13 @@ from spn.spn import NumericalDistribution
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 from spn.math_util import allclose
+from spn.math_util import isinf_neg
 from spn.math_util import logsumexp
+from spn.math_util import logdiffexp
 from spn.numerical import Gamma
 from spn.numerical import Norm
 from spn.transforms import Identity
+from spn.sym_util import NominalSet
 
 rng = numpy.random.RandomState(1)
 
@@ -90,26 +94,48 @@ def test_sum_normal_gamma_exposed():
     assert isinstance(spn_condition.children[1], NumericalDistribution)
     assert spn_condition.logprob(X < 5) == children[1].logprob(X < 5)
 
-def test_sum_normal_nominal():
+def test_sum_numerical_nominal():
     X = Identity('X')
     children = [
         Norm(X, loc=0, scale=1),
-        NominalDistribution(X, {'low': 0.3, 'high': 0.7}),
+        NominalDistribution(X, {'low': Fraction(3, 10), 'high': Fraction(7, 10)}),
     ]
     weights = [log(Fraction(4,7)), log(Fraction(3, 7))]
+
     spn = SumSPN(children, weights)
 
     assert allclose(
         spn.logprob(X < 0),
-        log(Fraction(4,7)) + log(Fraction(1,2))
+        log(Fraction(4,7)) + log(Fraction(1,2)))
+
+    assert allclose(
+        spn.logprob(X << {'low'}),
+        log(Fraction(3,7)) + log(Fraction(3, 10)))
+
+    assert allclose(
+        spn.logprob(~(X << {'low'})),
+        logdiffexp(0, spn.logprob((X << {'low'}))))
+
+    assert isinf_neg(spn.logprob((X < 0) & (X << {'low'})))
+
+    assert allclose(
+        spn.logprob((X < 0) | (X << {'low'})),
+        logsumexp([spn.logprob(X < 0), spn.logprob(X << {'low'})]))
+
+    assert isinf_neg(spn.logprob(X << {'a'}))
+    assert allclose(spn.logprob(~(X << {'a'})), 0)
+
+    assert allclose(
+        spn.logprob(X**2 < 9),
+        log(Fraction(4, 7)) + spn.children[0].logprob(X**2 < 9)
     )
 
-    # TODO: Need to fix.
-    with pytest.raises(AssertionError):
-        spn.logprob(X << {'a'})
-    # TODO: Need to fix.
-    with pytest.raises(AssertionError):
-        spn.logprob(~(X << {'a'}))
-    # TODO: Need to fix.
-    with pytest.raises(ValueError):
-        spn.logprob(X**2 << {1})
+    spn_condition = spn.condition(X**2 < 9)
+    assert isinstance(spn_condition, NumericalDistribution)
+    assert spn_condition.support == sympy.Interval.open(-3, 3)
+
+    spn_condition = spn.condition((X**2 < 9) | X << {'low'})
+    assert isinstance(spn_condition, SumSPN)
+    assert spn_condition.children[0].support == sympy.Interval.open(-3, 3)
+    assert spn_condition.children[1].support == NominalSet('low', 'high')
+    assert isinf_neg(spn_condition.children[1].logprob(X << {'high'}))
