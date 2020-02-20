@@ -70,7 +70,7 @@ def factor_dnf_symbols(event, lookup):
 
 def solve_dnf_symbolwise(dnf_factor, indexes=None):
     # Given a factored event (in DNF) where distinct symbols have
-    # distinct keys, returns a dictionary of dictionary R
+    # distinct keys, returns a list R of dictionaries where
     # R[i][s] is the solution of the events in the i-th DNF clause with
     # symbol s.
     #
