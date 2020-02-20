@@ -249,8 +249,8 @@ def test_product_disjoint_union_properties():
         Norm(Z, loc=0, scale=2),
     ])
 
-    for event  in [
-        (X > 0) | (X < 3),
+    for event in [
+        (1/X < 4) | (X > 7),
         (X > 0) | (Y < 3),
         ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3)) | ~(X<<{1, 2}),
         ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3)) | (Z < 0),
