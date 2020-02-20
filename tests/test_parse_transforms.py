@@ -2,7 +2,6 @@
 # See LICENSE.txt
 
 import pytest
-
 import sympy
 
 from sympy import Interval
@@ -10,22 +9,25 @@ from sympy import Rational as Rat
 from sympy import oo
 
 from spn.transforms import Abs
+from spn.transforms import ExpNat
 from spn.transforms import Identity
+from spn.transforms import LogNat
+from spn.transforms import Piecewise
 from spn.transforms import Poly
 from spn.transforms import Pow
 from spn.transforms import Radical
 from spn.transforms import Reciprocal
-
-from spn.transforms import ExpNat
-from spn.transforms import LogNat
 from spn.transforms import Sqrt
 
 from spn.transforms import EventAnd
-from spn.transforms import EventFinite
+from spn.transforms import EventFiniteNominal
+from spn.transforms import EventFiniteReal
 from spn.transforms import EventInterval
 from spn.transforms import EventOr
 
-from spn.transforms import Piecewise
+from spn.sym_util import EmptySet
+from spn.sym_util import NominalSet
+from spn.sym_util import UniversalSet
 
 X = Identity("X")
 Y = X
@@ -208,7 +210,7 @@ def test_parse_18():
     event = EventInterval(expr_prime, Interval(-oo, 9))
     assert (expr <= 9) == event
 
-    event_not = EventInterval(expr_prime, Interval(-oo, 9), complement=True)
+    event_not = EventInterval(expr_prime, Interval.open(9, oo))
     assert ~(expr <= 9) == event_not
 
     expr = (3*Abs(Z))**4 - (3*Abs(Z))**2
@@ -232,7 +234,7 @@ def test_parse_19():
         EventOr([
             EventInterval(expr, Interval(-oo, 9)),
             EventInterval(expr, Interval.open(11, oo))]),
-        EventInterval(expr, Interval.open(-oo, 10), complement=True)
+        EventInterval(expr, Interval(10, oo))
     ])
     assert event == event_prime
 
@@ -273,7 +275,7 @@ def test_parse_26_piecewise_one_expr_basic_event():
         [EventInterval(Y, sympy.Interval.Ropen(0, 5))],
     )
     assert ((0 <= Y) < 5)*(~(Y < 1)) == Piecewise(
-        [EventInterval(Y, sympy.Interval.Ropen(-sympy.oo, 1), complement=True)],
+        [EventInterval(Y, sympy.Interval(1, sympy.oo))],
         [EventInterval(Y, sympy.Interval.Ropen(0, 5))],
     )
     assert 10*(0 <= Y) == Poly(
@@ -286,6 +288,13 @@ def test_parse_26_piecewise_one_expr_compound_event():
         [EventOr([
             EventInterval(Y, sympy.Interval.open(-sympy.oo, 0)),
             EventInterval(Y, sympy.Interval.open(0, sympy.oo)),
+            ])])
+
+    assert (Y**2)*(~((3 < Y) <= 4)) == Piecewise(
+        [Poly(Y, [0, 0, 1])],
+        [EventOr([
+            EventInterval(Y, sympy.Interval(-sympy.oo, 3)),
+            EventInterval(Y, sympy.Interval.open(4, sympy.oo)),
             ])])
 
 def test_parse_27_piecewise_many():
@@ -414,6 +423,40 @@ def test_event_inequality_parse():
     # return value of expression is X < 10
     assert (5 < X < 10) == (X < 10)
 
+    # Yields a finite set .
+    assert ((5 < X) < 5) == EventFiniteReal(X, EmptySet)
+    assert ((5 < X) <= 5) == EventFiniteReal(X, EmptySet)
+    assert ((5 <= X) < 5) == EventFiniteReal(X, EmptySet)
+    assert ((5 <= X) <= 5) == EventFiniteReal(X, sympy.FiniteSet(5))
+
+    # Negated single interval.
+    assert ~(5 < X) == (X <= 5)
+    assert ~(5 <= X) == (X < 5)
+    assert ~(X < 5) == (5 <= X)
+    assert ~(X <= 5) == (5 < X)
+
+    # Negated union of two intervals.
+    assert ~(5 < (X < 10)) \
+        == ~((5 < X) < 10) \
+        == (X <= 5) | (10 <= X)
+    assert ~(5 <= (X < 10)) \
+        == ~((5 <= X) < 10) \
+        == (X < 5) | (10 <= X)
+    assert ~(5 < (X <= 10)) \
+        == ~((5 < X) <= 10) \
+        == (X <= 5) | (10 < X)
+    assert ~(5 <= (X <= 10)) \
+        == ~((5 <= X) <= 10) \
+        == (X < 5) | (10 < X)
+    assert ~((10 < X) < 5) \
+        == ~(10 < (X < 5)) \
+        == EventInterval(X, sympy.Interval(-oo, oo))
+
+    # A complicated negated union.
+    assert ((~(X < 5)) < 10) \
+        == ((5 <= X) < 10) \
+        == EventInterval(X, sympy.Interval.Ropen(5, 10))
+
 def test_event_inequality_parse_errors():
     # EventInterval.
     with pytest.raises(ValueError):
@@ -429,11 +472,9 @@ def test_event_inequality_parse_errors():
         5 < (X << (10, 12))
     with pytest.raises(TypeError):
         (X << (10, 12)) < 5
-    # Complement.
+    # Complement., since ~(X < 10) = (10 <= X)
     with pytest.raises(ValueError):
         5 < (~(X < 10))
-    with pytest.raises(ValueError):
-        (~(X < 5)) < 10
     # Type mismatch.
     with pytest.raises(TypeError):
         X < 'a'
@@ -457,11 +498,46 @@ def test_event_inequality_string():
     assert str((X < 10) | (X < 5)) == '(X < 10) | (X < 5)'
 
 def test_event_containment_string():
-    assert str(X << [10, 1]) == 'X << [10, 1]'
+    assert str(X << [10, 1]) == 'X << {1, 10}'
     assert str(X << {1, 2}) == 'X << {1, 2}'
     assert str(X << sympy.FiniteSet(1, 11)) == 'X << {1, 11}'
 
-def test_event_containment():
+def test_event_containment_real():
     assert (X << Interval(0, 10)) == EventInterval(X, Interval(0, 10))
     for values in [sympy.FiniteSet(0, 10), [0, 10], {0, 10}]:
-        assert (X << values) == EventFinite(X, values)
+        assert (X << values) == EventFiniteReal(X, sympy.FiniteSet(0, 10))
+    with pytest.raises(ValueError):
+        X << {1, None}
+    assert X << {1, 2} == EventFiniteReal(X, {1, 2})
+    assert ~(X << {1, 2}) == EventOr([
+        EventInterval(X, sympy.Interval.Ropen(-oo, 1)),
+        EventInterval(X, sympy.Interval.open(1, 2)),
+        EventInterval(X, sympy.Interval.Lopen(2, oo)),
+    ])
+    # https://github.com/probcomp/sum-product-dsl/issues/22
+    # and of EventBasic does not yet perform simplifications.
+    assert ~(~(X << {1, 2})) == \
+        ((1 <= X) & ((X <= 1) | (2 <= X)) & (X <= 2))
+
+def test_event_containment_nominal():
+    assert X << {'a'} == EventFiniteNominal(X, NominalSet('a'))
+    assert ~(X << {'a'}) == EventFiniteNominal(X,
+        sympy.Complement(UniversalSet, NominalSet('a')))
+    assert ~(~(X << {'a'})) == X << {'a'}
+
+def test_event_containment_mixed():
+    # Splits into an Or.
+    assert X << {1, 2, 'a'} \
+        == (X << {1,2}) | (X << {'a'}) \
+        == EventOr([
+        EventFiniteReal(X, {1, 2}),
+        EventFiniteNominal(X, NominalSet('a'))
+    ])
+    # De Morgan's law (implicit).
+    assert (~(X << {1, 2, 'a'})) == ~(X << {1,2}) & ~(X << {'a'})
+    # https://github.com/probcomp/sum-product-dsl/issues/22
+    # Taking the And of EventBasic does not perform simplifications.
+    assert ~(~(X << {1, 2, 'a'})) == EventOr([
+        ((1 <= X) & ((X <= 1) | (2 <= X)) & (X <= 2)),
+        X << {'a'}
+    ])

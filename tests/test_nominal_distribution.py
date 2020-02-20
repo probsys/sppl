@@ -5,13 +5,12 @@ from fractions import Fraction
 from math import log
 
 import pytest
-
 import numpy
 
-from spn.spn import NominalDistribution
-
-from spn.transforms import Identity
 from spn.math_util import allclose
+from spn.spn import NominalDistribution
+from spn.sym_util import NominalSet
+from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 
@@ -56,7 +55,15 @@ def test_nominal_distribution():
         spn.sample_func(lambda Y: Y, 100, rng)
 
     spn_condition = spn.condition(X<<{'a', 'b'})
-    assert spn_condition.support == {'a', 'b', 'c'}
+    assert spn_condition.support == NominalSet('a', 'b', 'c')
     assert allclose(spn_condition.logprob(X << {'a'}), -log(2))
     assert allclose(spn_condition.logprob(X << {'b'}), -log(2))
     assert spn_condition.logprob(X << {'c'}) == -float('inf')
+
+    # Numeric transforms of nominal variable have probability zero.
+    # We can consider disallowing numeric transforms.
+    spn_condition.logprob(X**2 << {1})
+
+    with pytest.raises(ValueError):
+        spn.condition(X << {'python'})
+    assert spn.condition(~(X << {'python'})) == spn

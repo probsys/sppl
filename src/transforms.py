@@ -1,6 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from functools import reduce
 from itertools import chain
 from itertools import product
 from math import isinf
@@ -23,14 +24,21 @@ from .sym_util import EmptySet
 from .sym_util import ExtReals
 from .sym_util import ExtRealsPos
 from .sym_util import Reals
+from .sym_util import UniversalSet
 
+from .sym_util import NominalSet
 from .sym_util import ContainersFinite
+from .sym_util import complement_nominal_set
+from .sym_util import is_number
+from .sym_util import is_nominal_set
 from .sym_util import sympify_number
 
 # ==============================================================================
 # Transform base class.
 
 class Transform(object):
+    subexpr = None
+
     def symbols(self):
         raise NotImplementedError()
     def domain(self):
@@ -42,11 +50,11 @@ class Transform(object):
         raise NotImplementedError()
     def ffwd(self, x):
         raise NotImplementedError()
-    def finv(self, x):
+    def finv(self, y):
         raise NotImplementedError()
 
-    def invert(self, x):
-        intersection = sympy.Intersection(self.range(), x)
+    def invert(self, ys):
+        intersection = sympy.Intersection(self.range(), ys)
         if intersection is EmptySet:
             return EmptySet
         if isinstance(intersection, ContainersFinite):
@@ -54,12 +62,15 @@ class Transform(object):
         if isinstance(intersection, sympy.Interval):
             return self.invert_interval(intersection)
         if isinstance(intersection, sympy.Union):
-            intervals = [self.invert(y) for y in intersection.args]
-            return sympy.Union(*intervals)
+            xs_list = [self.invert(ys_i) for ys_i in intersection.args]
+            return sympy.Union(*xs_list)
+        if isinstance(intersection, sympy.Complement):
+            (A, B) = intersection.args
+            return self.invert(A - sympy.Intersection(A, B))
         assert False, 'Unknown intersection: %s' % (intersection,)
-    def invert_finite(self, values):
+    def invert_finite(self, ys):
         raise NotImplementedError()
-    def invert_interval(self, interval):
+    def invert_interval(self, ys):
         # Should be called on subset of range.
         raise NotImplementedError()
 
@@ -277,7 +288,23 @@ class Transform(object):
     # Containment
     def __lshift__(self, x):
         if isinstance(x, ContainersFinite):
-            return EventFinite(self, x)
+            values = list(x)
+            values_num = sympy.FiniteSet(*[v for v in values if is_number(v)])
+            values_str = NominalSet(*[v for v in values if isinstance(v, str)])
+            if len(values_num) + len(values_str) != len(values):
+                raise ValueError('Only numeric or symbolic values, not %s'
+                    % (str(x,)))
+            if values_num and values_str:
+                event_num = EventFiniteReal(self, values_num)
+                event_str = EventFiniteNominal(self, values_str)
+                return EventOr([event_num, event_str])
+            if values_num:
+                return EventFiniteReal(self, values_num)
+            if values_str:
+                return EventFiniteNominal(self, values_str)
+            assert len(values) == 0
+            return EventFiniteReal(self, values)
+
         if isinstance(x, sympy.Interval):
             return EventInterval(self, x)
         return NotImplemented
@@ -286,22 +313,21 @@ class Transform(object):
 # Injective (one-to-one) Transforms.
 
 class Injective(Transform):
-    def invert_finite(self, values):
-        # pylint: disable=no-member
-        values_prime = sympy.Union(*[self.finv(x) for x in values])
-        return self.subexpr.invert(values_prime)
-    def invert_interval(self, interval):
-        assert isinstance(interval, sympy.Interval)
-        (a, b) = (interval.left, interval.right)
+    def invert_finite(self, ys):
+        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        return self.subexpr.invert(ys_prime)
+    def invert_interval(self, ys):
+        assert isinstance(ys, sympy.Interval)
+        (a, b) = (ys.left, ys.right)
         a_prime = next(iter(self.finv(a)))
         b_prime = next(iter(self.finv(b)))
-        interval_prime = transform_interval(interval, a_prime, b_prime)
-        # pylint: disable=no-member
-        return self.subexpr.invert(interval_prime)
+        ys_prime = transform_interval(ys, a_prime, b_prime)
+        return self.subexpr.invert(ys_prime)
 
 class Identity(Injective):
     def __init__(self, token):
         assert isinstance(token, str)
+        self.subexpr = self
         self.token = token
     def symbols(self):
         return (self,)
@@ -316,14 +342,14 @@ class Identity(Injective):
     def ffwd(self, x):
         # assert x in self.domain()
         return x
-    def finv(self, x):
-        if not x in self.range():
+    def finv(self, y):
+        if not y in self.range():
             return EmptySet
-        return {x}
-    def invert_finite(self, values):
-        return values
-    def invert_interval(self, interval):
-        return interval
+        return {y}
+    def invert_finite(self, ys):
+        return ys
+    def invert_interval(self, ys):
+        return ys
     def __eq__(self, x):
         return isinstance(x, Identity) and self.token == x.token
     def __repr__(self):
@@ -346,15 +372,15 @@ class Radical(Injective):
     def range(self):
         return ExtRealsPos
     def evaluate(self, assignment):
-        y = self.subexpr.evaluate(assignment)
-        return self.ffwd(y)
+        x = self.subexpr.evaluate(assignment)
+        return self.ffwd(x)
     def ffwd(self, x):
         assert x in self.domain()
         return sympy.Pow(x, sympy.Rational(1, self.degree))
-    def finv(self, x):
-        if x not in self.range():
+    def finv(self, y):
+        if y not in self.range():
             return EmptySet
-        return {sympy.Pow(x, sympy.Rational(self.degree, 1))}
+        return {sympy.Pow(y, sympy.Rational(self.degree, 1))}
     def __eq__(self, x):
         return isinstance(x, Radical) \
             and self.subexpr == x.subexpr \
@@ -380,15 +406,15 @@ class Exp(Injective):
     def range(self):
         return ExtRealsPos
     def evaluate(self, assignment):
-        y = self.subexpr.evaluate(assignment)
-        return self.ffwd(y)
+        x = self.subexpr.evaluate(assignment)
+        return self.ffwd(x)
     def ffwd(self, x):
         assert x in self.domain()
         return sympy.Pow(self.base, x)
-    def finv(self, x):
-        if not x in self.range():
+    def finv(self, y):
+        if not y in self.range():
             return EmptySet
-        return {sympy.log(x, self.base) if x > 0 else -oo}
+        return {sympy.log(y, self.base) if y > 0 else -oo}
     def __eq__(self, x):
         return isinstance(x, Exp) \
             and self.subexpr == x.subexpr \
@@ -416,15 +442,15 @@ class Log(Injective):
     def range(self):
         return ExtReals
     def evaluate(self, assignment):
-        y = self.subexpr.evaluate(assignment)
-        return self.ffwd(y)
+        x = self.subexpr.evaluate(assignment)
+        return self.ffwd(x)
     def ffwd(self, x):
         assert x in self.domain()
         return {sympy.log(x, self.base) if x > 0 else -oo}
-    def finv(self, x):
-        if not x in self.range():
+    def finv(self, y):
+        if not y in self.range():
             return EmptySet
-        return {sympy.Pow(self.base, x)}
+        return {sympy.Pow(self.base, y)}
     def __eq__(self, x):
         return isinstance(x, Log) \
             and self.subexpr == x.subexpr \
@@ -455,25 +481,25 @@ class Abs(Transform):
     def range(self):
         return ExtRealsPos
     def evaluate(self, assignment):
-        y = self.subexpr.evaluate(assignment)
-        return self.ffwd(y)
+        x = self.subexpr.evaluate(assignment)
+        return self.ffwd(x)
     def ffwd(self, x):
         assert x in self.domain()
         return x if x > 0 else -x
-    def finv(self, x):
-        if not x in self.range():
+    def finv(self, y):
+        if not y in self.range():
             return EmptySet
-        return {x, -x}
-    def invert_finite(self, values):
-        values_prime = sympy.Union(*[self.finv(x) for x in values])
-        return self.subexpr.invert(values_prime)
-    def invert_interval(self, interval):
-        assert isinstance(interval, sympy.Interval)
-        (a, b) = (interval.left, interval.right)
-        interval_pos = transform_interval(interval, a, b)
-        interval_neg = transform_interval(interval, -b, -a, flip=True)
-        interval_inv = interval_pos + interval_neg
-        return self.subexpr.invert(interval_inv)
+        return {y, -y}
+    def invert_finite(self, ys):
+        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        return self.subexpr.invert(ys_prime)
+    def invert_interval(self, ys):
+        assert isinstance(ys, sympy.Interval)
+        (a, b) = (ys.left, ys.right)
+        ys_pos = transform_interval(ys, a, b)
+        ys_neg = transform_interval(ys, -b, -a, flip=True)
+        ys_prime = ys_pos + ys_neg
+        return self.subexpr.invert(ys_prime)
     def __eq__(self, x):
         return isinstance(x, Abs) and self.subexpr == x.subexpr
     def __repr__(self):
@@ -496,35 +522,35 @@ class Reciprocal(Transform):
     def range(self):
         return Reals - sympy.FiniteSet(0)
     def evaluate(self, assignment):
-        y = self.subexpr.evaluate(assignment)
-        return self.ffwd(y)
+        x = self.subexpr.evaluate(assignment)
+        return self.ffwd(x)
     def ffwd(self, x):
         assert x in self.domain()
         return 0 if isinf(x) else sympy.Rational(1, x)
-    def finv(self, x):
-        if x not in self.range():
+    def finv(self, y):
+        if y not in self.range():
             return EmptySet
-        if x == 0:
+        if y == 0:
             return {-oo, oo}
-        return {sympy.Rational(1, x)}
-    def invert_finite(self, values):
-        values_prime = sympy.Union(*[self.finv(x) for x in values])
-        return self.subexpr.invert(values_prime)
-    def invert_interval(self, interval):
-        (a, b) = (interval.left, interval.right)
+        return {sympy.Rational(1, y)}
+    def invert_finite(self, ys):
+        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        return self.subexpr.invert(ys_prime)
+    def invert_interval(self, ys):
+        (a, b) = (ys.left, ys.right)
         if (0 <= a < b):
-            assert 0 < a or interval.left_open
+            assert 0 < a or ys.left_open
             a_inv = sympy.Rational(1, a) if 0 < a else oo
             b_inv = sympy.Rational(1, b) if (not isinf(b)) else 0
-            interval_inv = transform_interval(interval, b_inv, a_inv, flip=True)
-            return self.subexpr.invert(interval_inv)
+            ys_prime = transform_interval(ys, b_inv, a_inv, flip=True)
+            return self.subexpr.invert(ys_prime)
         if (a < b <= 0):
-            assert b < 0 or interval.right_open
+            assert b < 0 or ys.right_open
             a_inv = sympy.Rational(1, a) if (not isinf(a)) else 0
             b_inv = sympy.Rational(1, b) if b < 0 else -oo
-            interval_inv = transform_interval(interval, b_inv, a_inv, flip=True)
-            return self.subexpr.invert(interval_inv)
-        assert False, 'Impossible Reciprocal interval: %s ' % (interval,)
+            ys_prime = transform_interval(ys, b_inv, a_inv, flip=True)
+            return self.subexpr.invert(ys_prime)
+        assert False, 'Impossible Reciprocal interval: %s ' % (ys,)
     def __eq__(self, x):
         return isinstance(x, Reciprocal) \
             and self.subexpr == x.subexpr
@@ -555,27 +581,27 @@ class Poly(Transform):
         neg_inf = sympy.FiniteSet(-oo) if result.left == -oo else EmptySet
         return sympy.Union(result, pos_inf, neg_inf)
     def evaluate(self, assignment):
-        y = self.subexpr.evaluate(assignment)
-        return self.ffwd(y)
+        x = self.subexpr.evaluate(assignment)
+        return self.ffwd(x)
     def ffwd(self, x):
         assert x in self.domain()
         return self.symexpr.subs(symX, x) \
             if not isinf(x) else limit(self.symexpr, symX, x)
-    def finv(self, x):
-        if not x in self.range():
+    def finv(self, y):
+        if not y in self.range():
             return EmptySet
-        return solve_poly_equality(self.symexpr, x)
-    def invert_finite(self, values):
-        values_prime = sympy.Union(*[self.finv(x) for x in values])
-        return self.subexpr.invert(values_prime)
-    def invert_interval(self, interval):
-        assert isinstance(interval, sympy.Interval)
-        (a, b) = (interval.left, interval.right)
-        (lo, ro) = (not interval.left_open, interval.right_open)
-        xvals_a = solve_poly_inequality(self.symexpr, a, lo, extended=False)
-        xvals_b = solve_poly_inequality(self.symexpr, b, ro, extended=False)
-        xvals = xvals_a.complement(xvals_b)
-        return self.subexpr.invert(xvals)
+        return solve_poly_equality(self.symexpr, y)
+    def invert_finite(self, ys):
+        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        return self.subexpr.invert(ys_prime)
+    def invert_interval(self, ys):
+        assert isinstance(ys, sympy.Interval)
+        (a, b) = (ys.left, ys.right)
+        (lo, ro) = (not ys.left_open, ys.right_open)
+        ys_prime_a = solve_poly_inequality(self.symexpr, a, lo, extended=False)
+        ys_prime_b = solve_poly_inequality(self.symexpr, b, ro, extended=False)
+        ys_prime = ys_prime_a.complement(ys_prime_b)
+        return self.subexpr.invert(ys_prime)
     def __eq__(self, x):
         return isinstance(x, Poly) \
             and self.subexpr == x.subexpr \
@@ -625,21 +651,21 @@ class Piecewise(Transform):
     def ffwd(self, x):
         index = next(i for i, domain in enumerate(self.domains) if x in domain)
         return self.subexprs[index].ffwd(x)
-    def finv(self, x):
-        inv = get_piecewise_inverse(
-            lambda subexpr: subexpr.finv(x),
+    def finv(self, y):
+        xs_list = get_piecewise_inverse(
+            lambda subexpr: subexpr.finv(y),
             self.subexprs, self.domains)
-        return sympy.Union(*inv)
-    def invert_finite(self, values):
-        inv = get_piecewise_inverse(
-            lambda subexpr: subexpr.invert_finite(values),
+        return sympy.Union(*xs_list)
+    def invert_finite(self, ys):
+        xs_list = get_piecewise_inverse(
+            lambda subexpr: subexpr.invert_finite(ys),
             self.subexprs, self.domains)
-        return sympy.Union(*inv)
-    def invert_interval(self, interval):
-        inv = get_piecewise_inverse(
-            lambda subexpr: subexpr.invert_interval(interval),
+        return sympy.Union(*xs_list)
+    def invert_interval(self, ys):
+        xs_list = get_piecewise_inverse(
+            lambda subexpr: subexpr.invert_interval(ys),
             self.subexprs, self.domains)
-        return sympy.Union(*inv)
+        return sympy.Union(*xs_list)
     def __add__(self, x):
         if isinstance(x, Piecewise):
             subexprs = self.subexprs + x.subexprs
@@ -726,42 +752,28 @@ class Event(Transform):
         # return EventOr([self, event])
 
 class EventBasic(Event):
-    def __init__(self, subexpr, values, complement=False):
-        assert isinstance(values, (sympy.Interval,) + ContainersFinite)
-        self.values = values
-        self.subexpr = subexpr
-        self.complement = complement
+    values = None
+    subexpr = None
+
     def symbols(self):
         return self.subexpr.symbols()
     def domain(self):
         return self.subexpr.domain()
     def evaluate(self, assignment):
-        y = self.subexpr.evaluate(assignment)
-        return self.ffwd(y)
+        x = self.subexpr.evaluate(assignment)
+        return self.ffwd(x)
     def ffwd(self, x):
-        # In    Complement      Result
-        # T     F               T
-        # F     F               F
-        # T     T               F
-        # F     T               T
-        return (x in self.values) ^ bool(self.complement)
-    def finv(self, x):
-        if x not in self.range():
-            return EmptySet
-        if x == 1:
-            if not self.complement:
-                return self.values
-            else:
-                return sympy.Complement(Reals, sympy.sympify(self.values))
-        if x == 0:
-            if not self.complement:
-                return sympy.Complement(Reals, sympy.sympify(self.values))
-            else:
-                return self.values
-        assert False, 'Impossible value %s.'
-    def invert_finite(self, values):
-        values_prime = sympy.Union(*[self.finv(x) for x in values])
-        return self.subexpr.invert(values_prime)
+        return x in self.values
+
+    # Disable < on Events.
+    def __gt__(self, x):
+        raise TypeError()
+    def __ge__(self, x):
+        raise TypeError()
+    def __lt__(self, x):
+        raise TypeError()
+    def __le__(self, x):
+        raise TypeError()
 
     # Event methods.
     def to_dnf_list(self):
@@ -783,30 +795,50 @@ class EventBasic(Event):
     def __eq__(self, event):
         return isinstance(event, type(self)) \
             and (self.values == event.values) \
-            and (self.subexpr == event.subexpr) \
-            and (self.complement == event.complement)
+            and (self.subexpr == event.subexpr)
 
 class EventInterval(EventBasic):
+    def __init__(self, subexpr, values):
+        assert isinstance(values, sympy.Interval)
+        self.subexpr = subexpr
+        self.values = values
+    def finv(self, y):
+        if y not in self.range():
+            return EmptySet
+        if y == 1:
+            return self.values
+        if y == 0:
+            return sympy.Complement(Reals, self.values)
+    def invert_finite(self, ys):
+        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        return self.subexpr.invert(ys_prime)
+
+    # Support chaining notation (a < X) < b
+    # Overrides the behavior of < from Transform.
     def __compute_gte__(self, x, left_open):
         # x < (Y < b)
         if not isinf_neg(self.values.left):
             raise ValueError('cannot compute %s < %s' % (x, str(self)))
-        if self.complement:
-            raise ValueError('cannot compute < with complement')
         xn = sympify_number(x)
         interval = sympy.Interval(xn, self.values.right,
             left_open=left_open, right_open=self.values.right_open)
-        return EventInterval(self.subexpr, interval, complement=self.complement)
+        if isinstance(interval, sympy.Interval):
+            return EventInterval(self.subexpr, interval)
+        if isinstance(interval, ContainersFinite):
+            return EventFiniteReal(self.subexpr, interval)
+        assert False, 'Unknown interval: %s' % (interval,)
     def __compute_lte__(self, x, right_open):
         # (a < Y) < x
         if not isinf_pos(self.values.right):
             raise ValueError('cannot compute %s < %s' % (str(self), x))
-        if self.complement:
-            raise ValueError('cannot compute < with complement')
         xn = sympify_number(x)
         interval = sympy.Interval(self.values.left, xn,
             left_open=self.values.left_open, right_open=right_open)
-        return EventInterval(self.subexpr, interval, complement=self.complement)
+        if isinstance(interval, sympy.Interval):
+            return EventInterval(self.subexpr, interval)
+        if isinstance(interval, ContainersFinite):
+            return EventFiniteReal(self.subexpr, interval)
+        assert False, 'Unknown interval: %s' % (interval,)
     def __gt__(self, x):
         return self.__compute_gte__(x, True)
     def __ge__(self, x):
@@ -816,10 +848,18 @@ class EventInterval(EventBasic):
     def __le__(self, x):
         return self.__compute_lte__(x, False)
     def __invert__(self):
-        return EventInterval(self.subexpr, self.values, not self.complement)
+        values_not = sympy.Complement(Reals, self.values)
+        if values_not is EmptySet:
+            return EventFiniteReal(self.subexpr, values_not)
+        if isinstance(values_not, sympy.Interval):
+            return EventInterval(self.subexpr, values_not)
+        if isinstance(values_not, sympy.Union):
+            event_l = EventInterval(self.subexpr, values_not.args[0])
+            event_r = EventInterval(self.subexpr, values_not.args[1])
+            return EventOr([event_l, event_r])
+        assert False, 'Unknown complemented interval: %s' % (values_not,)
     def __repr__(self):
-        return 'EventInterval(%s, %s, complement=%s)' \
-            % (repr(self.subexpr), repr(self.values), repr(self.complement))
+        return 'EventInterval(%s, %s)' % (repr(self.subexpr), repr(self.values))
     def __str__(self):
         sym = str(self.subexpr)
         comp_l = '<' if self.values.left_open else '<='
@@ -831,28 +871,89 @@ class EventInterval(EventBasic):
             result = '%s %s %s' % (x_l, comp_l, sym)
         else:
             result = '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
-        return result if not self.complement else '~(%s)' % (result,)
+        return result
 
-class EventFinite(EventBasic):
-    # TODO: Consider allowing 0 < (X << {1, 2})
-    # treating the RHS as a Boolean-valued function.
-    def __gt__(self, x):
-        raise TypeError()
-    def __ge__(self, x):
-        raise TypeError()
-    def __lt__(self, x):
-        raise TypeError()
-    def __le__(self, x):
-        raise TypeError()
+class EventFiniteReal(EventBasic):
+    def __init__(self, subexpr, values):
+        assert isinstance(values, ContainersFinite) or values is EmptySet
+        assert all(is_number(v) for v in values)
+        self.subexpr = subexpr
+        self.values = sympy.FiniteSet(*values)
+    def finv(self, y):
+        if y not in self.range():
+            return EmptySet
+        if y == 1:
+            return self.values
+        if y == 0:
+            return sympy.Complement(Reals, self.values)
+    def invert_finite(self, ys):
+        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        return self.subexpr.invert(ys_prime)
 
     def __repr__(self):
-        return 'EventFinite(%s, %s, complement=%s)' \
-            % (repr(self.subexpr), repr(self.values), repr(self.complement))
+        return 'EventFiniteReal(%s, %s)' \
+            % (repr(self.subexpr), repr(self.values))
     def __str__(self):
-        result = '%s << %s' % (str(self.subexpr), str(self.values))
-        return result if not self.complement else '~(%s)' % (result,)
+        return '%s << %s' % (str(self.subexpr), str(self.values))
     def __invert__(self):
-        return EventFinite(self.subexpr, self.values, not self.complement)
+        values_not = sympy.Complement(Reals, self.values)
+        if values_not is Reals:
+            return EventInterval(self.subexpr, sympy.Interval(-oo, oo))
+        assert isinstance(values_not, sympy.Union)
+        events = [EventInterval(self.subexpr, v) for v in values_not.args]
+        return EventOr(events)
+
+class EventFiniteNominal(EventBasic):
+    def __init__(self, subexpr, values):
+        special = values is EmptySet \
+            or values is UniversalSet \
+            or isinstance(values, sympy.Complement)
+        assert special or is_nominal_set(values)
+        self.subexpr = subexpr
+        self.values = values if special else values
+        self.transformed = not isinstance(self.subexpr, Identity)
+        self.complemented = isinstance(values, sympy.Complement)
+
+    def finv(self, y):
+        if y not in self.range():
+            return EmptySet
+        if y == 1:
+            if self.values is EmptySet:
+                return EmptySet
+            if self.transformed:
+                if not self.complemented:
+                    return EmptySet
+                else:
+                    return UniversalSet
+            return self.values
+        if y == 0:
+            if self.values is EmptySet:
+                return UniversalSet
+            if self.transformed:
+                if not self.complemented:
+                    return UniversalSet
+                else:
+                    return EmptySet
+            return complement_nominal_set(self.values)
+
+    def invert_finite(self, ys):
+        if ys == sympy.FiniteSet(0):
+            return self.finv(0)
+        if ys == sympy.FiniteSet(1):
+            return self.finv(1)
+        if ys == sympy.FiniteSet(1, 2):
+            return UniversalSet
+
+    def __repr__(self):
+        return 'EventFiniteNominal(%s, %s)' \
+            % (repr(self.subexpr), repr(self.values))
+    def __str__(self):
+        str_values = '(%s)' % (str(self.values,)) \
+            if self.complemented else '%s' % (str(set(self.values)),)
+        return '%s << %s' % (str(self.subexpr), str_values)
+    def __invert__(self):
+        values_not = complement_nominal_set(self.values)
+        return EventFiniteNominal(self.subexpr, values_not)
 
 class EventCompound(Event):
     def __init__(self, subexprs):
@@ -875,13 +976,13 @@ class EventOr(EventCompound):
         # Cannot asses on multi-symbol Event.
         ys = [event.ffwd(x) for event in self.subexprs]
         return any(ys)
-    def finv(self, x):
+    def finv(self, y):
         # Cannot invert multi-symbol Event.
-        ys = [event.finv(x) for event in self.subexprs]
-        return sympy.Union(*ys)
-    def invert_finite(self, values):
-        solutions = [event.invert(values) for event in self.subexprs]
-        return sympy.Union(*solutions)
+        xs_list = [event.finv(y) for event in self.subexprs]
+        return sympy.Union(*xs_list)
+    def invert_finite(self, ys):
+        xs_list = [event.invert(ys) for event in self.subexprs]
+        return sympy.Union(*xs_list)
 
     # Event methods.
     def to_dnf_list(self):
@@ -907,7 +1008,7 @@ class EventOr(EventCompound):
         return isinstance(event, EventOr) and (self.subexprs == event.subexprs)
     def __invert__(self):
         sub_events = [~event for event in self.subexprs]
-        return EventAnd(sub_events)
+        return reduce(lambda state, e: state & e, sub_events)
     def __repr__(self):
         return 'EventOr(%s)' % (repr(self.subexprs,))
     def __str__(self):
@@ -925,13 +1026,13 @@ class EventAnd(EventCompound):
         # Cannot asses on multi-symbol Event.
         ys = [event.ffwd(x) for event in self.subexprs]
         return all(ys)
-    def finv(self, x):
+    def finv(self, y):
         # Cannot invert multi-symbol Event.
-        ys = [event.finv(x) for event in self.subexprs]
-        return sympy.Intersection(*ys)
-    def invert_finite(self, values):
-        solutions = [event.invert(values) for event in self.subexprs]
-        return sympy.Intersection(*solutions)
+        xs_list = [event.finv(y) for event in self.subexprs]
+        return sympy.Intersection(*xs_list)
+    def invert_finite(self, ys):
+        xs_list = [event.invert(ys) for event in self.subexprs]
+        return sympy.Intersection(*xs_list)
 
     # Event methods.
     def to_dnf_list(self):
@@ -960,7 +1061,7 @@ class EventAnd(EventCompound):
         return isinstance(event, EventAnd) and (self.subexprs == event.subexprs)
     def __invert__(self):
         sub_events = [~event for event in self.subexprs]
-        return EventOr(sub_events)
+        return reduce(lambda state, e: state | e, sub_events)
     def __repr__(self):
         return 'EventAnd(%s)' % (repr(self.subexprs,))
     def __str__(self):

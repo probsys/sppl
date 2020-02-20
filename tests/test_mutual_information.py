@@ -5,10 +5,10 @@ from math import log
 
 import numpy
 
-from spn.spn import ProductSPN
-from spn.spn import SumSPN
 from spn.math_util import allclose
 from spn.numerical import Norm
+from spn.spn import ProductSPN
+from spn.spn import SumSPN
 from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)

@@ -10,8 +10,7 @@ from math import exp
 from math import isfinite
 from math import log
 
-from sympy import S as Singletons
-
+from sympy import Complement
 from sympy import Intersection
 from sympy import Interval
 from sympy import Range
@@ -28,22 +27,21 @@ from .math_util import logflip
 from .math_util import lognorm
 from .math_util import logsumexp
 
-
 from .sym_util import ContainersFinite
+from .sym_util import EmptySet
+from .sym_util import NominalSet
+from .sym_util import NominalValue
 from .sym_util import are_disjoint
 from .sym_util import are_identical
-from .sym_util import get_intersection
 from .sym_util import get_union
 from .sym_util import powerset
 from .sym_util import sympify_number
 
 from .transforms import EventAnd
-from .transforms import EventFinite
-from .transforms import EventInterval
-from .transforms import EventOr
+from .transforms import EventBasic
+from .transforms import EventCompound
 from .transforms import Identity
 
-EmptySet = Singletons.EmptySet
 inf = float('inf')
 
 # ==============================================================================
@@ -178,7 +176,7 @@ class ExposedSumSPN(SumSPN):
     def __init__(self, spns, weights, symbol):
         """Weighted mixture of SPNs with exposed internal choice."""
         K = len(spns)
-        nominals = [NominalDistribution(symbol, {i: 1}) for i in range(K)]
+        nominals = [NominalDistribution(symbol, {str(i): 1}) for i in range(K)]
         spns_exposed = [
             ProductSPN([nominal, spn])
             for nominal, spn in zip(nominals, spns)
@@ -366,7 +364,7 @@ class ProductSPN(SPN):
 # Basic Distribution base class.
 
 class LeafSPN(SPN):
-    # pylint: disable=no-member
+    symbol = None
     def get_symbols(self):
         return frozenset({self.symbol})
     def sample(self, N, rng):
@@ -444,6 +442,9 @@ class RealDistribution(LeafSPN):
         if isinstance(values, Union):
             logps = [self.logprob_values(v) for v in values.args]
             return logsumexp(logps)
+        if isinstance(values, Complement):
+            (A, B) = values.args
+            return self.logprob_values(A - Intersection(A, B))
         assert False, 'Unknown set type: %s' % (values,)
 
     def logprob_finite(self, values):
@@ -580,11 +581,12 @@ class NominalDistribution(LeafSPN):
 
     def __init__(self, symbol, dist):
         assert isinstance(symbol, Identity)
+        assert all(isinstance(x, str) for x in dist)
         self.symbol = symbol
-        self.dist = {x: Fraction(w) for x, w in dist.items()}
+        self.dist = {NominalValue(x): Fraction(w) for x, w in dist.items()}
         # Derived attributes.
-        self.support = frozenset(self.dist)
-        self.outcomes = list(self.dist.keys())
+        self.support = NominalSet(*dist.keys())
+        self.outcomes = list(self.dist)
         self.weights = [float(x) for x in self.dist.values()]
         assert allclose(float(sum(self.weights)),  1)
 
@@ -594,19 +596,29 @@ class NominalDistribution(LeafSPN):
     def logprob(self, event):
         # TODO: Consider using 1 - Pr[Event] for negation to avoid
         # iterating over domain.
-        values = simplify_nominal_event(event, self.support)
+        # if is_event_transformed(event):
+        #     raise ValueError('Nominal variable cannot be transformed: %s'
+        #         % (str(event),))
+        solution = event.solve()
+        values = Intersection(self.support, solution)
         p_event = sum(self.dist[x] for x in values)
         return log(p_event) if p_event != 0 else -inf
 
     def condition(self, event):
-        values = simplify_nominal_event(event, self.support)
+        # if is_event_transformed(event):
+        #     raise ValueError('Nominal variable cannot be transformed: %s'
+        #         % (str(event),))
+        solution = event.solve()
+        values = Intersection(self.support, solution)
         p_event = sum([self.dist[x] for x in values])
-        if isinf_neg(p_event):
+        if p_event == 0:
             raise ValueError('Conditioning event "%s" has probability zero' %
                 (str(event),))
+        if p_event == 1:
+            return self
         dist = {
-            x : (self.dist[x] / p_event) if x in values else 0
-            for x in self.outcomes
+            str(x) : (self.dist[x] / p_event) if x in values else 0
+            for x in self.support
         }
         return NominalDistribution(self.symbol, dist)
 
@@ -618,23 +630,12 @@ class NominalDistribution(LeafSPN):
 # ==============================================================================
 # Utilities.
 
-def simplify_nominal_event(event, support):
-    if isinstance(event, EventInterval):
-        raise ValueError('Nominal variables cannot be in real intervals: %s'
-            % (event,))
-    if isinstance(event, EventFinite):
-        if not isinstance(event.subexpr, Identity):
-            raise ValueError('Nominal variables cannot be transformed: %s'
-                % (event.subexpr,))
-        return support.difference(event.values) if event.complement \
-            else support.intersection(event.values)
-    if isinstance(event, EventAnd):
-        values = [simplify_nominal_event(e, support) for e in event.subexprs]
-        return get_intersection(values)
-    if isinstance(event, EventOr):
-        values = [simplify_nominal_event(e, support) for e in event.subexprs]
-        return get_union(values)
-    assert False, 'Unknown event %s' % (str(event),)
+def is_event_transformed(event):
+    if isinstance(event, EventBasic):
+        return not isinstance(event.subexpr, Identity)
+    if isinstance(event, EventCompound):
+        return any(map(is_event_transformed, event.subexprs))
+    assert False, 'Unknown event: %s' % (event,)
 
 def func_evaluate(spn, func, samples):
     args = func_symbols(spn, func)

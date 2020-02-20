@@ -3,9 +3,8 @@
 
 import pytest
 
-from spn.transforms import Identity
-
 from spn.transforms import ExpNat as exp
+from spn.transforms import Identity
 from spn.transforms import LogNat as log
 
 X = Identity('X')

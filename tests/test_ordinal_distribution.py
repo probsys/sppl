@@ -52,11 +52,7 @@ def test_ordinal_distribution_poisson():
     assert spn_condition.xu == 5
     assert spn_condition.support == sympy.Range(1, 6, 1)
     samples = spn_condition.sample(100, rng)
-
-    # XXX An XFAIL, event.evaluate({X: 5.0}) is False because of floating
-    # point comparison to integer.
-    with pytest.raises(AssertionError):
-        assert all(event.evaluate(s) for s in samples)
+    assert all(event.evaluate(s) for s in samples)
 
     # Ignore X = 14/3 as a probability zero condition.
     spn_condition = spn.condition(((1 <= X) < 5) | (3*X + 1) << {15})

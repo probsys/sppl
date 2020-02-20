@@ -4,18 +4,17 @@
 from math import log
 
 import pytest
-
-import numpy
 import scipy.stats
 import sympy
+import numpy
 
-from spn.spn import NumericalDistribution
-from spn.spn import SumSPN
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
 from spn.numerical import Gamma
 from spn.numerical import Norm
+from spn.spn import NumericalDistribution
+from spn.spn import SumSPN
 from spn.sym_util import Reals
 from spn.transforms import Identity
 
