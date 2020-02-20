@@ -182,12 +182,7 @@ class ExposedSumSPN(SumSPN):
     def __init__(self, spns, weights, symbol):
         """Weighted mixture of SPNs with exposed internal choice."""
         K = len(spns)
-        nominals = [
-            # TODO: Give these better names once we patch
-            # the string situation in Github #25.
-            NominalDistribution(symbol, {'b%d' % (i,): 1})
-            for i in range(K)
-        ]
+        nominals = [NominalDistribution(symbol, {str(i): 1}) for i in range(K)]
         spns_exposed = [
             ProductSPN([nominal, spn])
             for nominal, spn in zip(nominals, spns)

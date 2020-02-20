@@ -78,6 +78,8 @@ def sym_log(x):
     return sympy.log(x)
 
 def is_number(x):
+    if isinstance(x, str):
+        return False
     try:
         sympify_number(x)
         return True

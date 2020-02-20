@@ -64,20 +64,20 @@ def test_sum_normal_gamma_exposed():
     children = [Norm(X, loc=0, scale=1), Gamma(X, loc=0, a=1)]
     spn = ExposedSumSPN(children, weights, W)
 
-    assert spn.logprob(W << {'b0'}) == log(Fraction(2, 3))
-    assert spn.logprob(W << {'b1'}) == log(Fraction(1, 3))
-    assert allclose(spn.logprob((W << {'b0'}) | (W << {'b1'})), 0)
-    assert spn.logprob((W << {'b0'}) & (W << {'b1'})) == -float('inf')
+    assert spn.logprob(W << {'0'}) == log(Fraction(2, 3))
+    assert spn.logprob(W << {'1'}) == log(Fraction(1, 3))
+    assert allclose(spn.logprob((W << {'0'}) | (W << {'1'})), 0)
+    assert spn.logprob((W << {'0'}) & (W << {'1'})) == -float('inf')
 
     assert allclose(
-        spn.logprob((W << {'b0', 'b1'}) & (X < 0)),
+        spn.logprob((W << {'0', 'b1'}) & (X < 0)),
         spn.logprob(X < 0))
 
     assert allclose(
-        spn.logprob((W << {'b0'}) & (X < 0)),
+        spn.logprob((W << {'0'}) & (X < 0)),
         spn.weights[0] + children[0].logprob(X < 0))
 
-    spn_condition = spn.condition((W << {'b1'}) | (W << {'b0'}))
+    spn_condition = spn.condition((W << {'1'}) | (W << {'0'}))
     assert isinstance(spn_condition, SumSPN)
     assert len(spn_condition.weights) == 2
     assert \
@@ -88,7 +88,7 @@ def test_sum_normal_gamma_exposed():
             and allclose(spn_condition.weights[0], log(Fraction(2,3))
         )
 
-    spn_condition = spn.condition((W << {'b1'}))
+    spn_condition = spn.condition((W << {'1'}))
     assert isinstance(spn_condition, ProductSPN)
     assert isinstance(spn_condition.children[0], NominalDistribution)
     assert isinstance(spn_condition.children[1], NumericalDistribution)

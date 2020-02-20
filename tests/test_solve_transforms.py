@@ -634,10 +634,10 @@ def test_solver_finite_symbolic():
     event = ~(Y**2 << {'a', 'b'})
     assert event.solve() == UniversalSet
     # Solve Identity mixed.
-    event = Y << {9, 'a', 'b'}
+    event = Y << {9, 'a', '7'}
     assert event.solve() == sympy.Union(
         sympy.FiniteSet(9),
-        NominalSet('a', 'b'))
+        NominalSet('a', '7'))
     # Solve Transform mixed.
     event = Y**2 << {9, 'a', 'b'}
     assert event.solve() == {-3, 3}
@@ -674,8 +674,3 @@ def test_solver_finite_symbolic():
     assert event.solve() == sympy.Complement(
         sympy.Interval(-3, 3),
         NominalSet('a'))
-
-    # GOTCHA: '7' is parsed both as a string and as a number
-    # https://github.com/probcomp/sum-product-dsl/issues/25
-    with pytest.raises(ValueError):
-        event = Y << {9, '7'}
