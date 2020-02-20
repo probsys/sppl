@@ -32,13 +32,13 @@ def test_solve_poly_inequaltiy_pos_inf():
 
 
 def test_solve_poly_inequaltiy_neg_inf():
-    assert solve_poly_inequality(x**2-10*x+100, -oo, True) == EmptySet
-    assert solve_poly_inequality(x**2-10*x+100, -oo, False) == EmptySet
+    assert solve_poly_inequality(x**2-10*x+100, -oo, True) is EmptySet
+    assert solve_poly_inequality(x**2-10*x+100, -oo, False) is EmptySet
 
-    assert solve_poly_inequality(x**3-10*x, -oo, True) == EmptySet
+    assert solve_poly_inequality(x**3-10*x, -oo, True) is EmptySet
     assert solve_poly_inequality(x**3-10*x, -oo, False) == FiniteSet(-oo)
 
-    assert solve_poly_inequality(-x**2+10*x+100, -oo, True) == EmptySet
+    assert solve_poly_inequality(-x**2+10*x+100, -oo, True) is EmptySet
     assert solve_poly_inequality(-x**2+10*x+100, -oo, False) == FiniteSet(-oo, oo)
 
 

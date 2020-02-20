@@ -505,13 +505,13 @@ def test_solver_25_constant():
     event = (0*Y + 1) << {1}
     assert event.solve() == Reals
     event = (0*Y + 1) << {0}
-    assert event.solve() == EmptySet
+    assert event.solve() is EmptySet
     event = (0.9 < (0*Y + 1)) < 1
-    assert event.solve() == EmptySet
+    assert event.solve() is EmptySet
     event = (0.9 < (0*Y + 1)**2) <= 1
     assert event.solve() == Reals
     event = (0.9 < (0*Y + 2)**2) <= 1
-    assert event.solve() == EmptySet
+    assert event.solve() is EmptySet
     event = (0*Y + 2)**2 << {4}
     assert event.solve() == Reals
 
@@ -547,7 +547,7 @@ def test_solver_27_piecewise_many():
     # TODO: Consider banning the restriction of a function
     # to a segment outside of its domain.
     expr = (Y < 0)*Y**(Rat(1, 2))
-    assert (expr < 1).solve() == EmptySet
+    assert (expr < 1).solve() is EmptySet
 
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
@@ -648,7 +648,7 @@ def test_solver_finite_symbolic():
     assert event.solve() == NominalSet('b')
     # Solve a conjunction with no intersection.
     event = (Y << {'a', 'b'}) & (Y << {'c'})
-    assert event.solve() == EmptySet
+    assert event.solve() is EmptySet
     # Solve a disjunction with complement.
     event = (Y << {'a', 'b'}) & ~(Y << {'c'})
     assert event.solve() == NominalSet('a', 'b')
@@ -667,7 +667,7 @@ def test_solver_finite_symbolic():
         sympy.Complement(UniversalSet, NominalSet('a')))
     # Intersection of interval and symbolic.
     event = (Y**2 <= 9) & (Y << {'a'})
-    assert event.solve() == EmptySet
+    assert event.solve() is EmptySet
     # Intersection of interval and not symbolic.
     event = (Y**2 <= 9) & ~(Y << {'a'})
     assert event.solve() == sympy.Complement(
