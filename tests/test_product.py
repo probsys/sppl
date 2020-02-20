@@ -64,7 +64,7 @@ def test_product_distribution_normal_gamma_basic():
     with pytest.raises(ValueError):
         spn.sample_func(lambda X1, X5: X1 + X4, 1, rng)
 
-def test_inclusion_exclusion_basic():
+def test_product_inclusion_exclusion_basic():
     X = Identity('X')
     Y = Identity('Y')
     spn = ProductSPN([Norm(X, loc=0, scale=1), Gamma(Y, a=1)])
@@ -197,7 +197,6 @@ def test_product_condition_basic():
         spn.condition((X > 0) & (Y < 0.5) | ((X <= 1) & (Y < 3)))
 
 def test_product_condition_or_probabilithy_zero():
-    # Condition on (exp(|3*X**2|) > 0) | (log(Y) < 0.5)
     X = Identity('X')
     Y = Identity('Y')
     spn = ProductSPN([Norm(X, loc=0, scale=1), Gamma(Y, a=1)])
