@@ -63,7 +63,7 @@ def sympify_number(x):
         if not sym.is_number:
             raise TypeError(msg)
         return sym
-    except (sympy.SympifyError, TypeError):
+    except (sympy.SympifyError, AttributeError, TypeError):
         raise TypeError(msg)
 
 def sym_log(x):
