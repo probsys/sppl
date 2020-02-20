@@ -1,6 +1,8 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from functools import reduce
+from itertools import chain
 from itertools import combinations
 
 from sympy import Intersection
@@ -97,8 +99,10 @@ def solve_dnf_symbolwise(dnf_factor, indexes=None):
     return solutions
 
 def find_dnf_non_disjoint_clauses(event, indexes=None):
-    # Given an event in DNF, returns list of pairs of clauses that appear
-    # in indexes and whose solutions have a non-empty intersections.
+    # Given an event in DNF, returns list of pairs of clauses
+    # whose solutions have a non-empty intersections.
+    # The "indexes" parameter is used to specify the clauses to consider
+    # (all are considered by default).
     dnf_factor = factor_dnf(event)
     solutions = solve_dnf_symbolwise(dnf_factor, indexes)
     non_disjoint = []
@@ -116,9 +120,35 @@ def find_dnf_non_disjoint_clauses(event, indexes=None):
             symbol: solutions[j][symbol]
             for symbol in solutions[j] if symbol not in solutions[i]
         }
-        # Clauses are non disjoint if all intersections are non empty.
+        # Clauses are non disjoint if all symbols intersect.
         intersections = {**intersections_symbols_i, **intersections_symbols_j}
         if all(s is not EmptySet for s in intersections.values()):
             non_disjoint.append((i, j))
 
     return non_disjoint
+
+def event_to_disjoint_union(event):
+    event_dnf = event.to_dnf()
+    # Base case.
+    if isinstance(event_dnf, (EventBasic, EventAnd)):
+        return event_dnf
+    # Find indexes of pairs of clauses that overlap.
+    overlap = find_dnf_non_disjoint_clauses(event_dnf)
+    if not overlap:
+        return event_dnf
+    # Create the cascading negated clauses.
+    n_clauses = len(event_dnf.subexprs)
+    overlap_dict = {i : [prev for (prev, j) in overlap if (j == i)]
+        for i in range(n_clauses)
+    }
+    clauses_disjoint = [
+        reduce(
+            lambda state, event: state & ~event,
+            (event_dnf.subexprs[j] for j in overlap_dict[i]),
+            event_dnf.subexprs[i])
+        for i in range(n_clauses)
+    ]
+    # Recursively find the solutions for each clause.
+    solutions = [event_to_disjoint_union(clause) for clause in clauses_disjoint]
+    # Return the merged solution.
+    return reduce(lambda a, b: a|b, solutions)

@@ -3,6 +3,7 @@
 
 import pytest
 
+from spn.dnf import event_to_disjoint_union
 from spn.dnf import factor_dnf
 from spn.dnf import factor_dnf_symbols
 from spn.dnf import find_dnf_non_disjoint_clauses
@@ -231,3 +232,17 @@ def test_find_dnf_non_disjoint_clauses():
     event = ((X**2 < 9) & (0 < X < 1)) | (1 < X)
     overlaps = find_dnf_non_disjoint_clauses(event)
     assert overlaps == []
+
+def test_event_to_disjiont_union():
+    X = Identity('X')
+    Y = Identity('Y')
+    Z = Identity('Z')
+
+    for event  in [
+        (X > 0) | (X < 3),
+        (X > 0) | (Y < 3),
+        ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3)) | (Z < 0),
+        ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3)) | (Z < 0) | ~(X <<{1, 3}),
+    ]:
+        event_dnf = event_to_disjoint_union(event)
+        assert not find_dnf_non_disjoint_clauses(event_dnf)

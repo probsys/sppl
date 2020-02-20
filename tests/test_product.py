@@ -8,6 +8,7 @@ import pytest
 import numpy
 import sympy
 
+from spn.dnf import event_to_disjoint_union
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
@@ -64,7 +65,7 @@ def test_product_distribution_normal_gamma_basic():
     with pytest.raises(ValueError):
         spn.sample_func(lambda X1, X5: X1 + X4, 1, rng)
 
-def test_inclusion_exclusion_basic():
+def test_product_inclusion_exclusion_basic():
     X = Identity('X')
     Y = Identity('Y')
     spn = ProductSPN([Norm(X, loc=0, scale=1), Gamma(Y, a=1)])
@@ -146,17 +147,15 @@ def test_product_condition_basic():
     assert dXY_and.children[1].support == sympy.Interval.Ropen(0, 0.5)
 
     # Condition on (X > 0) | (Y < 0.5)
-    # Cannot condition on non-disjoint union (Github #12).
     event = (X > 0) | (Y < 0.5)
-    with pytest.raises(ValueError):
-        spn.condition((X > 0) | (Y < 0.5))
-        # assert isinstance(dXY_or, SumSPN)
-        # assert all(isinstance(d, ProductSPN) for d in dXY_or.children)
-        # assert allclose(dXY_or.logprob(X > 0),dXY_or.weights[0])
-        # samples = dXY_or.sample(100, rng)
-        # assert all(event.evaluate(sample) for sample in samples)
+    dXY_or = spn.condition((X > 0) | (Y < 0.5))
+    assert isinstance(dXY_or, SumSPN)
+    assert all(isinstance(d, ProductSPN) for d in dXY_or.children)
+    assert allclose(dXY_or.logprob(X > 0),dXY_or.weights[0])
+    samples = dXY_or.sample(100, rng)
+    assert all(event.evaluate(sample) for sample in samples)
 
-    # Condition on a kosher disjoint union with one term in second clause.
+    # Condition on a disjoint union with one term in second clause.
     dXY_disjoint_one = spn.condition((X > 0) & (Y < 0.5) | (X <= 0))
     assert isinstance(dXY_disjoint_one, SumSPN)
     component_0 = dXY_disjoint_one.children[0]
@@ -173,7 +172,7 @@ def test_product_condition_basic():
     assert component_1.children[1].symbol == Identity('Y')
     assert not component_1.children[1].conditioned
 
-    # Condition on a kosher disjoint union with two terms in each clause
+    # Condition on a disjoint union with two terms in each clause
     dXY_disjoint_two = spn.condition((X > 0) & (Y < 0.5) | ((X <= 0) & ~(Y < 3)))
     assert isinstance(dXY_disjoint_two, SumSPN)
     component_0 = dXY_disjoint_two.children[0]
@@ -191,13 +190,11 @@ def test_product_condition_basic():
     assert component_1.children[1].conditioned
     assert component_1.children[1].support == sympy.Interval(3, sympy.oo)
 
-    spn.condition((X > 0) & (Y < 0.5) | ((X <= 1) & ~(Y < 3)))
-
-    with pytest.raises(ValueError):
-        spn.condition((X > 0) & (Y < 0.5) | ((X <= 1) & (Y < 3)))
+    # Some various conditioning.
+    spn.condition((X > 0) & (Y < 0.5) | ((X <= 1) | ~(Y < 3)))
+    spn.condition((X > 0) & (Y < 0.5) | ((X <= 1) & (Y < 3)))
 
 def test_product_condition_or_probabilithy_zero():
-    # Condition on (exp(|3*X**2|) > 0) | (log(Y) < 0.5)
     X = Identity('X')
     Y = Identity('Y')
     spn = ProductSPN([Norm(X, loc=0, scale=1), Gamma(Y, a=1)])
@@ -225,34 +222,40 @@ def test_product_condition_or_probabilithy_zero():
     assert spn_condition.children[1].conditioned
     assert spn_condition.children[0].support == sympy.Interval(1, sympy.oo)
 
-    # This is a very important case we should be able to handle
-    # after fixing Github #12.
-    # Specifically, we have (X < 2) & ~(1 < exp(|3X**2|) is empty.
-    # Thus Y remains unconditioned
-    # and X is partitioned into (-oo, 0) U (0, oo) with equal weight.
-    with pytest.raises(ValueError):
-        event = (Exp(abs(3*X**2)) > 1) | ((Log(Y) < 0.5) & (X < 2))
-        spn_condition = spn.condition(event)
-        assert isinstance(spn_condition, ProductSPN)
-        assert isinstance(spn_condition.children[0], SumSPN)
-        assert spn_condition.children[0].weights == (-log(2), -log(2))
-        assert spn_condition.children[0].children[0].conditioned
-        assert spn_condition.children[0].children[1].conditioned
-        assert spn_condition.children[0].children[0].support \
-            == sympy.Interval.Ropen(-sympy.oo, 0)
-        assert spn_condition.children[0].children[1].support \
-            == sympy.Interval.Lopen(0, sympy.oo)
-        assert spn_condition.children[1].symbol == Y
-        assert not spn_condition.children[1].conditioned
+    # We have (X < 2) & ~(1 < exp(|3X**2|) is empty.
+    # Thus Y remains unconditioned,
+    #   and X is partitioned into (-oo, 0) U (0, oo) with equal weight.
+    event = (Exp(abs(3*X**2)) > 1) | ((Log(Y) < 0.5) & (X < 2))
+    spn_condition = spn.condition(event)
+    assert isinstance(spn_condition, ProductSPN)
+    assert isinstance(spn_condition.children[0], SumSPN)
+    assert spn_condition.children[0].weights == (-log(2), -log(2))
+    assert spn_condition.children[0].children[0].conditioned
+    assert spn_condition.children[0].children[1].conditioned
+    assert spn_condition.children[0].children[0].support \
+        == sympy.Interval.Ropen(-sympy.oo, 0)
+    assert spn_condition.children[0].children[1].support \
+        == sympy.Interval.Lopen(0, sympy.oo)
+    assert spn_condition.children[1].symbol == Y
+    assert not spn_condition.children[1].conditioned
 
-@pytest.mark.xfail(
-    reason='https://github.com/probcomp/sum-product-dsl/issues/12',
-    strict=True)
-def test_condition_non_disjoint_union_xfail():
+def test_product_disjoint_union_properties():
     X = Identity('X')
     Y = Identity('Y')
-    spn = ProductSPN([Norm(X, loc=0, scale=1), Norm(Y, loc=0, scale=2)])
+    Z = Identity('Z')
+    spn = ProductSPN([
+        Norm(X, loc=0, scale=1),
+        Norm(Y, loc=0, scale=2),
+        Norm(Z, loc=0, scale=2),
+    ])
 
-    event = ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3))
-    assert spn.logprob_disjoint_union(event) < 0
-    spn.condition(event)
+    for event  in [
+        (X > 0) | (X < 3),
+        (X > 0) | (Y < 3),
+        ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3)) | ~(X<<{1, 2}),
+        ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3)) | (Z < 0),
+        ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3)) | (Z < 0) | ~(X <<{1, 3}),
+    ]:
+        clauses = event_to_disjoint_union(event)
+        logps = [spn.logprob(s) for s in clauses.subexprs]
+        assert allclose(logsumexp(logps), spn.logprob(event))
