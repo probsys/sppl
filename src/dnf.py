@@ -99,8 +99,10 @@ def solve_dnf_symbolwise(dnf_factor, indexes=None):
     return solutions
 
 def find_dnf_non_disjoint_clauses(event, indexes=None):
-    # Given an event in DNF, returns list of pairs of clauses that appear
-    # in indexes and whose solutions have a non-empty intersections.
+    # Given an event in DNF, returns list of pairs of clauses
+    # whose solutions have a non-empty intersections.
+    # The "indexes" parameter is used to specify the clauses to consider
+    # (all are considered by default).
     dnf_factor = factor_dnf(event)
     solutions = solve_dnf_symbolwise(dnf_factor, indexes)
     non_disjoint = []
@@ -118,7 +120,7 @@ def find_dnf_non_disjoint_clauses(event, indexes=None):
             symbol: solutions[j][symbol]
             for symbol in solutions[j] if symbol not in solutions[i]
         }
-        # Clauses are non disjoint if all intersections are non empty.
+        # Clauses are non disjoint if all symbols intersect.
         intersections = {**intersections_symbols_i, **intersections_symbols_j}
         if all(s is not EmptySet for s in intersections.values()):
             non_disjoint.append((i, j))
