@@ -9,18 +9,18 @@ from spn.transforms import Identity
 X = Identity('X')
 
 def test_simplify_nominal_event():
-    support = frozenset(range(100))
+    support = frozenset(['v%d' % (i,) for i in range(100)])
     snf = simplify_nominal_event
 
     # Eq.
-    assert snf(X << {5}, support) == {5}
-    assert snf(X << {-5}, support) == set()
+    assert snf(X << {'v5'}, support) == {'v5'}
+    assert snf(X << {'-v5'}, support) == set()
 
-    V = (4, 1, 10)
-    W = (12, -1, 8)
+    V = ('v4', 'v1', 'v10')
+    W = ('v12', 'x1', 'v8')
     E1 = V
-    E2 = (-5,) + V
-    E3 = (-5,)
+    E2 = ('x5',) + V
+    E3 = ('x5',)
     E4 = W
 
     # No complement.

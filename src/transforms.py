@@ -1,6 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from functools import reduce
 from itertools import chain
 from itertools import product
 from math import isinf
@@ -23,8 +24,11 @@ from .sym_util import EmptySet
 from .sym_util import ExtReals
 from .sym_util import ExtRealsPos
 from .sym_util import Reals
+from .sym_util import UniversalSet
 
 from .sym_util import ContainersFinite
+from .sym_util import complement_universal_symbolic
+from .sym_util import is_number
 from .sym_util import sympify_number
 
 # ==============================================================================
@@ -279,7 +283,23 @@ class Transform(object):
     # Containment
     def __lshift__(self, x):
         if isinstance(x, ContainersFinite):
-            return EventFinite(self, x)
+            values = list(x)
+            values_num = frozenset([v for v in values if is_number(v)])
+            values_str = frozenset([v for v in values if isinstance(v, str)])
+            if len(values_num) + len(values_str) != len(values):
+                raise ValueError('Only numeric or symbolic values, not %s'
+                    % (str(x,)))
+            if values_num and values_str:
+                event_num = EventFiniteReal(self, values_num)
+                event_str = EventFiniteNominal(self, values_str)
+                return EventOr([event_num, event_str])
+            if values_num:
+                return EventFiniteReal(self, values_num)
+            if values_str:
+                return EventFiniteNominal(self, values_str)
+            assert len(values) == 0
+            return EventFiniteReal(self, values)
+
         if isinstance(x, sympy.Interval):
             return EventInterval(self, x)
         return NotImplemented
@@ -727,11 +747,9 @@ class Event(Transform):
         # return EventOr([self, event])
 
 class EventBasic(Event):
-    def __init__(self, subexpr, values, complement=False):
-        assert isinstance(values, (sympy.Interval,) + ContainersFinite)
-        self.values = values
-        self.subexpr = subexpr
-        self.complement = complement
+    values = None
+    subexpr = None
+
     def symbols(self):
         return self.subexpr.symbols()
     def domain(self):
@@ -740,29 +758,17 @@ class EventBasic(Event):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
     def ffwd(self, x):
-        # In    Complement      Result
-        # T     F               T
-        # F     F               F
-        # T     T               F
-        # F     T               T
-        return (x in self.values) ^ bool(self.complement)
-    def finv(self, y):
-        if y not in self.range():
-            return EmptySet
-        if y == 1:
-            if not self.complement:
-                return self.values
-            else:
-                return sympy.Complement(Reals, sympy.sympify(self.values))
-        if y == 0:
-            if not self.complement:
-                return sympy.Complement(Reals, sympy.sympify(self.values))
-            else:
-                return self.values
-        assert False, 'Impossible value %s.'
-    def invert_finite(self, ys):
-        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
-        return self.subexpr.invert(ys_prime)
+        return x in self.values
+
+    # Disable < on Events.
+    def __gt__(self, x):
+        raise TypeError()
+    def __ge__(self, x):
+        raise TypeError()
+    def __lt__(self, x):
+        raise TypeError()
+    def __le__(self, x):
+        raise TypeError()
 
     # Event methods.
     def to_dnf_list(self):
@@ -784,37 +790,49 @@ class EventBasic(Event):
     def __eq__(self, event):
         return isinstance(event, type(self)) \
             and (self.values == event.values) \
-            and (self.subexpr == event.subexpr) \
-            and (self.complement == event.complement)
+            and (self.subexpr == event.subexpr)
 
 class EventInterval(EventBasic):
+    def __init__(self, subexpr, values):
+        assert isinstance(values, sympy.Interval)
+        self.subexpr = subexpr
+        self.values = values
+    def finv(self, y):
+        if y not in self.range():
+            return EmptySet
+        if y == 1:
+            return self.values
+        if y == 0:
+            return sympy.Complement(Reals, self.values)
+    def invert_finite(self, ys):
+        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        return self.subexpr.invert(ys_prime)
+
+    # Support chaining notation (a < X) < b
+    # Overrides the behavior of < from Transform.
     def __compute_gte__(self, x, left_open):
         # x < (Y < b)
         if not isinf_neg(self.values.left):
             raise ValueError('cannot compute %s < %s' % (x, str(self)))
-        if self.complement:
-            raise ValueError('cannot compute < with complement')
         xn = sympify_number(x)
         interval = sympy.Interval(xn, self.values.right,
             left_open=left_open, right_open=self.values.right_open)
         if isinstance(interval, sympy.Interval):
-            return EventInterval(self.subexpr, interval, complement=self.complement)
+            return EventInterval(self.subexpr, interval)
         if isinstance(interval, ContainersFinite):
-            return EventFinite(self.subexpr, interval, complement=self.complement)
+            return EventFiniteReal(self.subexpr, interval)
         assert False, 'Unknown interval: %s' % (interval,)
     def __compute_lte__(self, x, right_open):
         # (a < Y) < x
         if not isinf_pos(self.values.right):
             raise ValueError('cannot compute %s < %s' % (str(self), x))
-        if self.complement:
-            raise ValueError('cannot compute < with complement')
         xn = sympify_number(x)
         interval = sympy.Interval(self.values.left, xn,
             left_open=self.values.left_open, right_open=right_open)
         if isinstance(interval, sympy.Interval):
-            return EventInterval(self.subexpr, interval, complement=self.complement)
+            return EventInterval(self.subexpr, interval)
         if isinstance(interval, ContainersFinite):
-            return EventFinite(self.subexpr, interval, complement=self.complement)
+            return EventFiniteReal(self.subexpr, interval)
         assert False, 'Unknown interval: %s' % (interval,)
     def __gt__(self, x):
         return self.__compute_gte__(x, True)
@@ -825,10 +843,18 @@ class EventInterval(EventBasic):
     def __le__(self, x):
         return self.__compute_lte__(x, False)
     def __invert__(self):
-        return EventInterval(self.subexpr, self.values, not self.complement)
+        values_not = sympy.Complement(Reals, self.values)
+        if values_not is EmptySet:
+            return EventFiniteReal(self.subexpr, values_not)
+        if isinstance(values_not, sympy.Interval):
+            return EventInterval(self.subexpr, values_not)
+        if isinstance(values_not, sympy.Union):
+            event_l = EventInterval(self.subexpr, values_not.args[0])
+            event_r = EventInterval(self.subexpr, values_not.args[1])
+            return EventOr([event_l, event_r])
+        assert False, 'Unknown complemented interval: %s' % (values_not,)
     def __repr__(self):
-        return 'EventInterval(%s, %s, complement=%s)' \
-            % (repr(self.subexpr), repr(self.values), repr(self.complement))
+        return 'EventInterval(%s, %s)' % (repr(self.subexpr), repr(self.values))
     def __str__(self):
         sym = str(self.subexpr)
         comp_l = '<' if self.values.left_open else '<='
@@ -840,28 +866,89 @@ class EventInterval(EventBasic):
             result = '%s %s %s' % (x_l, comp_l, sym)
         else:
             result = '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
-        return result if not self.complement else '~(%s)' % (result,)
+        return result
 
-class EventFinite(EventBasic):
-    # TODO: Consider allowing 0 < (X << {1, 2})
-    # treating the RHS as a Boolean-valued function.
-    def __gt__(self, x):
-        raise TypeError()
-    def __ge__(self, x):
-        raise TypeError()
-    def __lt__(self, x):
-        raise TypeError()
-    def __le__(self, x):
-        raise TypeError()
+class EventFiniteReal(EventBasic):
+    def __init__(self, subexpr, values):
+        assert isinstance(values, ContainersFinite) or values is EmptySet
+        assert all(is_number(v) for v in values)
+        self.subexpr = subexpr
+        self.values = sympy.FiniteSet(*values)
+    def finv(self, y):
+        if y not in self.range():
+            return EmptySet
+        if y == 1:
+            return self.values
+        if y == 0:
+            return sympy.Complement(Reals, self.values)
+    def invert_finite(self, ys):
+        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        return self.subexpr.invert(ys_prime)
 
     def __repr__(self):
-        return 'EventFinite(%s, %s, complement=%s)' \
-            % (repr(self.subexpr), repr(self.values), repr(self.complement))
+        return 'EventFiniteReal(%s, %s)' \
+            % (repr(self.subexpr), repr(self.values))
     def __str__(self):
-        result = '%s << %s' % (str(self.subexpr), str(self.values))
-        return result if not self.complement else '~(%s)' % (result,)
+        return '%s << %s' % (str(self.subexpr), str(self.values))
     def __invert__(self):
-        return EventFinite(self.subexpr, self.values, not self.complement)
+        values_not = sympy.Complement(Reals, self.values)
+        if values_not is Reals:
+            return EventInterval(self.subexpr, sympy.Interval(-oo, oo))
+        assert isinstance(values_not, sympy.Union)
+        events = [EventInterval(self.subexpr, v) for v in values_not.args]
+        return EventOr(events)
+
+class EventFiniteNominal(EventBasic):
+    def __init__(self, subexpr, values):
+        special = values is EmptySet \
+            or values is UniversalSet \
+            or isinstance(values, sympy.Complement)
+        assert special or isinstance(values, ContainersFinite)
+        self.subexpr = subexpr
+        self.values = values if special else sympy.FiniteSet(*values)
+        self.transformed = not isinstance(self.subexpr, Identity)
+        self.complemented = isinstance(values, sympy.Complement)
+
+    def finv(self, y):
+        if y not in self.range():
+            return EmptySet
+        if y == 1:
+            if self.values is EmptySet:
+                return EmptySet
+            if self.transformed:
+                if not self.complemented:
+                    return EmptySet
+                else:
+                    return UniversalSet
+            return self.values
+        if y == 0:
+            if self.values is EmptySet:
+                return UniversalSet
+            if self.transformed:
+                if not self.complemented:
+                    return UniversalSet
+                else:
+                    return EmptySet
+            return complement_universal_symbolic(self.values)
+
+    def invert_finite(self, ys):
+        if ys == sympy.FiniteSet(0):
+            return self.finv(0)
+        if ys == sympy.FiniteSet(1):
+            return self.finv(1)
+        if ys == sympy.FiniteSet(1, 2):
+            return UniversalSet
+
+    def __repr__(self):
+        return 'EventFiniteNominal(%s, %s)' \
+            % (repr(self.subexpr), repr(self.values))
+    def __str__(self):
+        str_values = '(%s)' % (str(self.values,)) \
+            if self.complemented else '%s' % (str(set(self.values)),)
+        return '%s << %s' % (str(self.subexpr), str_values)
+    def __invert__(self):
+        values_not = complement_universal_symbolic(self.values)
+        return EventFiniteNominal(self.subexpr, values_not)
 
 class EventCompound(Event):
     def __init__(self, subexprs):

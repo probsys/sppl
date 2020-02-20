@@ -9,6 +9,8 @@ import sympy
 
 from sympy.core.relational import Relational
 
+UniversalSet = sympy.UniversalSet
+
 EmptySet = sympy.S.EmptySet
 Infinities = sympy.FiniteSet(-sympy.oo, sympy.oo)
 
@@ -73,6 +75,25 @@ def sym_log(x):
     if isinf(x):
         return float('inf')
     return sympy.log(x)
+
+def is_number(x):
+    try:
+        sympify_number(x)
+        return True
+    except TypeError:
+        return False
+
+def complement_universal_symbolic(values):
+    if values is UniversalSet:
+        return EmptySet
+    if isinstance(values, ContainersFinite):
+        return sympy.Complement(UniversalSet, values)
+    if isinstance(values, sympy.Complement):
+        values_not = values.args[1]
+        assert isinstance(values_not, sympy.FiniteSet)
+        assert all(isinstance(v, sympy.Symbol) for v in values_not)
+        return values_not
+    assert False, 'Invalid values to complement symbolic: %s' % (str(values),)
 
 def sympy_solver(expr):
     # Sympy is buggy and slow.  Use Transforms.

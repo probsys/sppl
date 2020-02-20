@@ -12,6 +12,7 @@ from sympy import oo
 
 from spn.math_util import allclose
 from spn.sym_util import sympy_solver
+from spn.sym_util import UniversalSet
 from spn.transforms import ExpNat
 from spn.transforms import Identity
 from spn.transforms import Log
@@ -615,3 +616,55 @@ def test_solver_finite_non_injective():
     solution = sympy.Interval.open(0, sympy.oo)
     event = ~((LogNat(Y))**3 << set([]))
     assert event.solve() == solution
+
+def test_solver_finite_symbolic():
+    # Transform can never be symbolic.
+    event = Y << {'a', 'b'}
+    assert event.solve() == sympy.FiniteSet('a', 'b')
+    # Complement the Identity.
+    event = ~(Y << {'a', 'b'})
+    assert event.solve() == sympy.Complement(
+        UniversalSet, sympy.FiniteSet('a', 'b'))
+    # Transform can never be symbolic.
+    event = Y**2 << {'a', 'b'}
+    assert event.solve() is Singletons.EmptySet
+    # Complement the Identity.
+    event = ~(Y**2 << {'a', 'b'})
+    assert event.solve() == UniversalSet
+    # Solve Identity mixed.
+    event = Y << {9, 'a', 'b'}
+    assert event.solve() == sympy.Union(sympy.FiniteSet(9), {'a', 'b'})
+    # Solve Transform mixed.
+    event = Y**2 << {9, 'a', 'b'}
+    assert event.solve() == {-3, 3}
+    # Solve a disjunction.
+    event = (Y << {'a', 'b'}) | (Y << {'c'})
+    assert event.solve() == sympy.FiniteSet('a', 'b', 'c')
+
+    # TODO: These test cases need to be fixed, so that
+    #   Intersection(FiniteSet('a'), FiniteSet('b'))
+    #   becomes EmptySet.
+    # Solve a conjunction with intersection.
+    event = (Y << {'a', 'b'}) & (Y << {'b', 'c'})
+    assert event.solve() == sympy.Union(
+        sympy.FiniteSet('b'),
+        sympy.Intersection(sympy.FiniteSet('a'), sympy.FiniteSet('c')))
+    # Solve a conjunction with no intersection.
+    event = (Y << {'a', 'b'}) & (Y << {'c'})
+    assert event.solve() == sympy.Intersection(
+        sympy.FiniteSet('a', 'b'),
+        sympy.FiniteSet('c'))
+
+    # TODO: Implement these test cases.
+    # event = (Y**2 < 3) | (Y << {'a'})
+    # event.solve()
+    # event = (Y**2 < 3) | ~(Y << {'a'})
+    # event.solve()
+    # event = (Y**2 < 3) & (Y << {'a'})
+    # event.solve()
+    # event = (Y**2 < 3) & ~(Y << {'a'})
+    # event.solve()
+    #
+    # Solve a disjunction with complement.
+    # event = (Y << {'a', 'b'}) | ~(Y << {'c'})
+    # event.solve()

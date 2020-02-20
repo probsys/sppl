@@ -12,6 +12,8 @@ from math import log
 
 from sympy import S as Singletons
 
+from sympy import Complement
+from sympy import FiniteSet
 from sympy import Intersection
 from sympy import Interval
 from sympy import Range
@@ -38,7 +40,8 @@ from .sym_util import powerset
 from .sym_util import sympify_number
 
 from .transforms import EventAnd
-from .transforms import EventFinite
+from .transforms import EventFiniteNominal
+from .transforms import EventFiniteReal
 from .transforms import EventInterval
 from .transforms import EventOr
 from .transforms import Identity
@@ -178,7 +181,12 @@ class ExposedSumSPN(SumSPN):
     def __init__(self, spns, weights, symbol):
         """Weighted mixture of SPNs with exposed internal choice."""
         K = len(spns)
-        nominals = [NominalDistribution(symbol, {i: 1}) for i in range(K)]
+        nominals = [
+            # TODO: Give these better names once we patch
+            # the string situation.
+            NominalDistribution(symbol, {'b%d' % (i,): 1})
+            for i in range(K)
+        ]
         spns_exposed = [
             ProductSPN([nominal, spn])
             for nominal, spn in zip(nominals, spns)
@@ -580,6 +588,7 @@ class NominalDistribution(LeafSPN):
 
     def __init__(self, symbol, dist):
         assert isinstance(symbol, Identity)
+        assert all(isinstance(x, str) for x in dist)
         self.symbol = symbol
         self.dist = {x: Fraction(w) for x, w in dist.items()}
         # Derived attributes.
@@ -619,15 +628,25 @@ class NominalDistribution(LeafSPN):
 # Utilities.
 
 def simplify_nominal_event(event, support):
-    if isinstance(event, EventInterval):
-        raise ValueError('Nominal variables cannot be in real intervals: %s'
-            % (event,))
-    if isinstance(event, EventFinite):
+    if isinstance(event, (EventInterval, EventFiniteReal)):
         if not isinstance(event.subexpr, Identity):
             raise ValueError('Nominal variables cannot be transformed: %s'
                 % (event.subexpr,))
-        return support.difference(event.values) if event.complement \
-            else support.intersection(event.values)
+        return EmptySet
+    if isinstance(event, EventFiniteNominal):
+        if not isinstance(event.subexpr, Identity):
+            raise ValueError('Nominal variables cannot be transformed: %s'
+                % (event.subexpr,))
+        solution = event.solve()
+        if isinstance(solution, FiniteSet):
+            values = [str(x) for x in solution]
+            return support.intersection(values)
+        if isinstance(solution, Complement):
+            from .sym_util import complement_universal_symbolic
+            values_symbolic = complement_universal_symbolic(solution)
+            values = [str(x) for x in values_symbolic]
+            return support.difference(values)
+        assert False, 'Unknown intersection'
     if isinstance(event, EventAnd):
         values = [simplify_nominal_event(e, support) for e in event.subexprs]
         return get_intersection(values)

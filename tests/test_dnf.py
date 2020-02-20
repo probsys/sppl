@@ -86,7 +86,7 @@ def test_factor_dnf():
     E30 = X3 > 10
     E31 = (Sqrt(2*X3)) < 0
     E40 = X4 > 0
-    E41 = X4 << [3, 1, 5]
+    E41 = X4 << [1, 5]
     E50 = 10*LogNat(X5) + 9 > 5
 
     expr = (E00)
@@ -116,19 +116,40 @@ def test_factor_dnf():
     assert dnf[1][0] == E01 & E10
 
     expr = (E00 & E01 & E10 & E30 & E40) | (E20 & E50 & E31 & ~E41)
+    # For the second clause we have:
+    #   ~E41 = (-oo, 1) U (1, 5) U (5, oo)
+    # so the second clause becomes
+    # = (E20 & E50 & E31 & ((-oo, 1) U (1, 5) U (5, oo)))
+    # = (E20 & E50 & E31 & (-oo, 1))
+    #   or (E20 & E50 & E31 & (1, 5))
+    #   or (E20 & E50 & E31 & (5, oo))
     expr_dnf = expr.to_dnf()
     dnf = factor_dnf(expr_dnf)
-    assert len(dnf) == 2
+    assert len(dnf) == 4
+    # clause 0
+    assert len(dnf[0]) == 4
     assert dnf[0][X0] == E00 & E01
     assert dnf[0][X1] == E10
     assert dnf[0][X3] == E30
     assert dnf[0][X4] == E40
-    assert len(dnf[0]) == 4
+    # clause 1
+    assert len(dnf[1]) == 4
     assert dnf[1][X3] == E31
     assert dnf[1][X2] == E20
-    assert dnf[1][X4] == ~E41
+    assert dnf[1][X4] == (X4 < 1)
     assert dnf[1][X5] == E50
-    assert len(dnf[1]) == 4
+    # clause 2
+    assert len(dnf[2]) == 4
+    assert dnf[2][X3] == E31
+    assert dnf[2][X2] == E20
+    assert dnf[2][X4] == (1 < (X4 < 5))
+    assert dnf[2][X5] == E50
+    # clause 3
+    assert len(dnf[3]) == 4
+    assert dnf[3][X3] == E31
+    assert dnf[3][X2] == E20
+    assert dnf[3][X4] == (5 < X4)
+    assert dnf[3][X5] == E50
 
 def test_factor_dnf_symbols_1():
     A = ExpNat(X0) > 0
