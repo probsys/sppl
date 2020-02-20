@@ -184,7 +184,7 @@ class ExposedSumSPN(SumSPN):
         K = len(spns)
         nominals = [
             # TODO: Give these better names once we patch
-            # the string situation.
+            # the string situation in Github #25.
             NominalDistribution(symbol, {'b%d' % (i,): 1})
             for i in range(K)
         ]
