@@ -7,12 +7,13 @@ import sympy
 
 from sympy import Interval
 from sympy import Rational as Rat
-from sympy import S as Singletons
 from sympy import oo
 
 from spn.math_util import allclose
-from spn.sym_util import sympy_solver
+from spn.sym_util import EmptySet
+from spn.sym_util import Reals
 from spn.sym_util import UniversalSet
+from spn.sym_util import sympy_solver
 from spn.transforms import ExpNat
 from spn.transforms import Identity
 from spn.transforms import Log
@@ -48,7 +49,7 @@ def test_solver_1_closed():
 
 def test_solver_2_open():
     # log(x) < 2 & (x < exp(2))
-    solution = Singletons.EmptySet
+    solution = EmptySet
 
     expr = (sympy.log(X) > 2) & (X < sympy.exp(2))
     answer = sympy_solver(expr)
@@ -72,7 +73,7 @@ def test_solver_2_closed():
 
 def test_solver_4():
     # (x >= 0) & (x <= 0)
-    solution = Singletons.Reals
+    solution = Reals
 
     expr = (X >= 0) | (X <= 0)
     answer = sympy_solver(expr)
@@ -502,17 +503,17 @@ def test_solver_24_negative_power_Rat():
 
 def test_solver_25_constant():
     event = (0*Y + 1) << {1}
-    assert event.solve() == Singletons.Reals
+    assert event.solve() == Reals
     event = (0*Y + 1) << {0}
-    assert event.solve() == Singletons.EmptySet
+    assert event.solve() == EmptySet
     event = (0.9 < (0*Y + 1)) < 1
-    assert event.solve() == Singletons.EmptySet
+    assert event.solve() == EmptySet
     event = (0.9 < (0*Y + 1)**2) <= 1
-    assert event.solve() == Singletons.Reals
+    assert event.solve() == Reals
     event = (0.9 < (0*Y + 2)**2) <= 1
-    assert event.solve() == Singletons.EmptySet
+    assert event.solve() == EmptySet
     event = (0*Y + 2)**2 << {4}
-    assert event.solve() == Singletons.Reals
+    assert event.solve() == Reals
 
 def test_solver_26_piecewise_one_expr_basic_event():
     event = (Y**2)*(0 <= Y) < 2
@@ -546,7 +547,7 @@ def test_solver_27_piecewise_many():
     # TODO: Consider banning the restriction of a function
     # to a segment outside of its domain.
     expr = (Y < 0)*Y**(Rat(1, 2))
-    assert (expr < 1).solve() == Singletons.EmptySet
+    assert (expr < 1).solve() == EmptySet
 
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
@@ -605,7 +606,7 @@ def test_solver_finite_non_injective():
     event = ~(abs(Y) << {1})
     assert event.solve() == solution
     # Abs in EmptySet.
-    solution = Singletons.EmptySet
+    solution = EmptySet
     event = (abs(Y))**3 << set([])
     assert event.solve() == solution
     # Abs Not in EmptySet (yields all reals).
@@ -627,7 +628,7 @@ def test_solver_finite_symbolic():
         UniversalSet, sympy.FiniteSet('a', 'b'))
     # Transform can never be symbolic.
     event = Y**2 << {'a', 'b'}
-    assert event.solve() is Singletons.EmptySet
+    assert event.solve() is EmptySet
     # Complement the Identity.
     event = ~(Y**2 << {'a', 'b'})
     assert event.solve() == UniversalSet

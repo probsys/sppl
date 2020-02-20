@@ -10,8 +10,6 @@ from math import exp
 from math import isfinite
 from math import log
 
-from sympy import S as Singletons
-
 from sympy import Complement
 from sympy import FiniteSet
 from sympy import Intersection
@@ -30,8 +28,8 @@ from .math_util import logflip
 from .math_util import lognorm
 from .math_util import logsumexp
 
-
 from .sym_util import ContainersFinite
+from .sym_util import EmptySet
 from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_intersection
@@ -46,7 +44,6 @@ from .transforms import EventInterval
 from .transforms import EventOr
 from .transforms import Identity
 
-EmptySet = Singletons.EmptySet
 inf = float('inf')
 
 # ==============================================================================
