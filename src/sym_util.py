@@ -150,3 +150,8 @@ def is_nominal_set(x):
     if not isinstance(x, sympy.FiniteSet):
         return False
     return all(isinstance(y, NominalValue) for y in x)
+
+def is_numeric_set(x):
+    if not isinstance(x, sympy.FiniteSet):
+        return False
+    return all(y.is_number for y in x)

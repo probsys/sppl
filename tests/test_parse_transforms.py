@@ -69,10 +69,7 @@ def test_parse_2_closed():
 def test_parse_4():
     # (x >= 0) & (x <= 0)
     expr = (X >= 0) | (X <= 0)
-    event = EventOr([
-        EventInterval(Y, Interval(0, oo)),
-        EventInterval(Y, Interval(-oo, 0))
-    ])
+    event = EventInterval(X, sympy.Interval(-oo, oo))
     assert expr == event
 
 def test_parse_5_open():
@@ -252,10 +249,8 @@ def test_parse_21__ci_():
     expr = LogNat(X**3 - 3*X + 3)
     expr_prime = LogNat(Poly(Y, [3, -3, 0, 1]))
     assert expr == expr_prime
-    assert ((1 <= expr) & (expr < 5)) == EventAnd([
-        EventInterval(expr, Interval(1, oo)),
-        EventInterval(expr, Interval.open(-oo, 5)),
-        ])
+    assert ((1 <= expr) & (expr < 5)) \
+        == EventInterval(expr, Interval.Ropen(1, 5))
 
 def test_parse_24_negative_power():
     assert X**(-3) == Reciprocal(Pow(X, 3))
@@ -386,7 +381,7 @@ def test_event_negation_de_morgan():
     assert expr_a == expr_b
 
 def test_event_sequential_parse():
-    A, B, C , D = (X > 10), (X < 5), (X < 0), (X < 7)
+    A, B, C , D = (X > 10), (X**2 < 5), (X**3 < 0), (2*X < 7)
     assert A & B & ~C == EventAnd([A, B, ~C])
     assert A & (B & ~C) == EventAnd([A, B, ~C])
     assert (A & B) & (~C & D) == EventAnd([A, B, ~C, D])
@@ -494,8 +489,8 @@ def test_event_inequality_string():
     assert str(5 <= (X < 10)) == '5 <= X < 10'
     assert str(5 < (X <= 10)) == '5 < X <= 10'
     assert str(5 <= (X <= 10)) == '5 <= X <= 10'
-    assert str((X < 10) & (X < 5)) == '(X < 10) & (X < 5)'
-    assert str((X < 10) | (X < 5)) == '(X < 10) | (X < 5)'
+    assert str((X < 10) & (X < 5)) == 'X < 5'
+    assert str((X < 10) | (X < 5)) == 'X < 10'
 
 def test_event_containment_string():
     assert str(X << [10, 1]) == 'X << {1, 10}'
@@ -540,3 +535,31 @@ def test_event_containment_mixed():
         ((1 <= X) & ((X <= 1) | (2 <= X)) & (X <= 2)),
         X << {'a'}
     ])
+
+def test_event_basic_simplifications():
+    assert (1 < X) & (3 < X) == (3 < X)
+    assert (1 < X) & (X < 5) == ((1 < X) < 5)
+    assert (X < 1) & (X >= -3) == ((-3 <= X) < 1)
+    assert (X >= -3) & (X << {1}) == X << {1}
+    assert (X << {1, -10}) & (X >= -3) == X << {1}
+    assert (X << {1, -10}) & (X << {-3}) == (X << EmptySet)
+    assert (X << {1, -3}) & (X << {-3}) == X << {-3}
+
+    assert (1 < X) | (3 < X) == (1 < X)
+    assert (1 < X) | (X << {2}) == (1 < X)
+    assert (X << {7}) | (1 < X)  == (1 < X)
+    assert (X << {-10}) | (1 < X) == EventOr([X<<{-10}, 1<X])
+    assert (X << {2}) | (X << {3,4}) == (X << {2, 3, 4})
+    assert (X << {'2'}) | (X << {'a'}) == X << {'2', 'a'}
+    assert (X << {'2'}) & (~(X << {'a'})) == (X << {'2'})
+    assert (X << {1}) & (~(X << {'a'})) == (X << {1})
+
+    assert (X << {2}) & (X << {'a'}) == X << EmptySet
+    assert (X << {'a'}) & (X << {1}) == X << EmptySet
+    assert (X << EmptySet) & (X << EmptySet) == X << EmptySet
+    assert (X << EmptySet) & (~(X << EmptySet)) == X << EmptySet
+
+    # TODO: Consider adding case for Complement in
+    # EventBasic.__or__
+    with pytest.raises(AssertionError):
+        assert (X << {1}) | (~(X << {'a'})) == ~(X << {'a'})

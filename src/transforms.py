@@ -31,6 +31,7 @@ from .sym_util import ContainersFinite
 from .sym_util import complement_nominal_set
 from .sym_util import is_number
 from .sym_util import is_nominal_set
+from .sym_util import is_numeric_set
 from .sym_util import sympify_number
 
 # ==============================================================================
@@ -776,6 +777,20 @@ class EventBasic(Event):
     def to_dnf_list(self):
         return [[self]]
     def __and__(self, event):
+        # Simplify.
+        if isinstance(event, EventBasic):
+            if event.subexpr == self.subexpr:
+                intersection = sympy.Intersection(self.values, event.values)
+                if intersection is EmptySet:
+                    return EventFiniteReal(self.subexpr, EmptySet)
+                if isinstance(intersection, sympy.FiniteSet):
+                    if is_nominal_set(intersection):
+                        return EventFiniteNominal(self.subexpr, intersection)
+                    if is_numeric_set(intersection):
+                        return EventFiniteReal(self.subexpr, intersection)
+                if isinstance(intersection, sympy.Interval):
+                    return EventInterval(self.subexpr, intersection)
+        # Linearize but do not simplify.
         if isinstance(event, EventAnd):
             events = (self,) + event.subexprs
             return EventAnd(events)
@@ -783,6 +798,20 @@ class EventBasic(Event):
             return EventAnd([self, event])
         return NotImplemented
     def __or__(self, event):
+        # Simplify.
+        if isinstance(event, EventBasic):
+            if event.subexpr == self.subexpr:
+                union = sympy.Union(self.values, event.values)
+                if union is EmptySet:
+                    return EventFiniteReal(self.subexpr, EmptySet)
+                if isinstance(union, sympy.FiniteSet):
+                    if is_nominal_set(union):
+                        return EventFiniteNominal(self.subexpr, union)
+                    if is_numeric_set(union):
+                        return EventFiniteReal(self.subexpr, union)
+                if isinstance(union, sympy.Interval):
+                    return EventInterval(self.subexpr, union)
+        # Linearize but do not simplify.
         if isinstance(event, EventOr):
             events = (self,) + event.subexprs
             return EventOr(events)
