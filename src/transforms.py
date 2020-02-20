@@ -916,7 +916,7 @@ class EventOr(EventCompound):
         return isinstance(event, EventOr) and (self.subexprs == event.subexprs)
     def __invert__(self):
         sub_events = [~event for event in self.subexprs]
-        return EventAnd(sub_events)
+        return reduce(lambda state, e: state & e, sub_events)
     def __repr__(self):
         return 'EventOr(%s)' % (repr(self.subexprs,))
     def __str__(self):
@@ -969,7 +969,7 @@ class EventAnd(EventCompound):
         return isinstance(event, EventAnd) and (self.subexprs == event.subexprs)
     def __invert__(self):
         sub_events = [~event for event in self.subexprs]
-        return EventOr(sub_events)
+        return reduce(lambda state, e: state | e, sub_events)
     def __repr__(self):
         return 'EventAnd(%s)' % (repr(self.subexprs,))
     def __str__(self):
