@@ -139,3 +139,11 @@ def test_sum_numerical_nominal():
     assert spn_condition.children[0].support == sympy.Interval.open(-3, 3)
     assert spn_condition.children[1].support == NominalSet('low', 'high')
     assert isinf_neg(spn_condition.children[1].logprob(X << {'high'}))
+
+    spn_condition = spn.condition((X**2 < 9) | ~(X << {'1'}))
+    assert spn_condition.children == spn_condition.children
+
+    # TODO: Condition on a non-disjoint union.
+    # Solving this event yields Reals, eliminating the Nominal branch.
+    with pytest.raises(AssertionError):
+        assert spn.condition((X**2 < 9) | ~(X << {1})) == spn
