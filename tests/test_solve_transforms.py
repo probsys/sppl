@@ -2,7 +2,6 @@
 # See LICENSE.txt
 
 import pytest
-
 import sympy
 
 from sympy import Interval

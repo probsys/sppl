@@ -2,7 +2,6 @@
 # See LICENSE.txt
 
 import pytest
-
 import sympy
 
 from sympy import Interval
@@ -21,8 +20,8 @@ from spn.transforms import Reciprocal
 from spn.transforms import Sqrt
 
 from spn.transforms import EventAnd
-from spn.transforms import EventFiniteReal
 from spn.transforms import EventFiniteNominal
+from spn.transforms import EventFiniteReal
 from spn.transforms import EventInterval
 from spn.transforms import EventOr
 

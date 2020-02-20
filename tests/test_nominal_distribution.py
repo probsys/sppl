@@ -5,14 +5,12 @@ from fractions import Fraction
 from math import log
 
 import pytest
-
 import numpy
 
-from spn.spn import NominalDistribution
-
-from spn.transforms import Identity
 from spn.math_util import allclose
+from spn.spn import NominalDistribution
 from spn.sym_util import NominalSet
+from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 

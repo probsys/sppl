@@ -11,7 +11,6 @@ from math import isfinite
 from math import log
 
 from sympy import Complement
-from sympy import FiniteSet
 from sympy import Intersection
 from sympy import Interval
 from sympy import Range
@@ -34,7 +33,6 @@ from .sym_util import NominalSet
 from .sym_util import NominalValue
 from .sym_util import are_disjoint
 from .sym_util import are_identical
-from .sym_util import get_intersection
 from .sym_util import get_union
 from .sym_util import powerset
 from .sym_util import sympify_number
@@ -42,10 +40,6 @@ from .sym_util import sympify_number
 from .transforms import EventAnd
 from .transforms import EventBasic
 from .transforms import EventCompound
-from .transforms import EventFiniteNominal
-from .transforms import EventFiniteReal
-from .transforms import EventInterval
-from .transforms import EventOr
 from .transforms import Identity
 
 inf = float('inf')

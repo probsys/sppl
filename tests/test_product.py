@@ -8,14 +8,14 @@ import pytest
 import numpy
 import sympy
 
-from spn.spn import ProductSPN
-from spn.spn import SumSPN
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
 from spn.math_util import logsumexp
 from spn.numerical import Gamma
 from spn.numerical import Norm
+from spn.spn import ProductSPN
+from spn.spn import SumSPN
 from spn.transforms import ExpNat as Exp
 from spn.transforms import Identity
 from spn.transforms import LogNat as Log

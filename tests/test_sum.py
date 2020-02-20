@@ -9,19 +9,19 @@ import pytest
 import numpy
 import sympy
 
+from spn.math_util import allclose
+from spn.math_util import isinf_neg
+from spn.math_util import logdiffexp
+from spn.math_util import logsumexp
+from spn.numerical import Gamma
+from spn.numerical import Norm
 from spn.spn import ExposedSumSPN
 from spn.spn import NominalDistribution
 from spn.spn import NumericalDistribution
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
-from spn.math_util import allclose
-from spn.math_util import isinf_neg
-from spn.math_util import logsumexp
-from spn.math_util import logdiffexp
-from spn.numerical import Gamma
-from spn.numerical import Norm
-from spn.transforms import Identity
 from spn.sym_util import NominalSet
+from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 
