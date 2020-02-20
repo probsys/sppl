@@ -1,6 +1,8 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from functools import reduce
+from itertools import chain
 from itertools import combinations
 
 from sympy import Intersection
@@ -122,3 +124,29 @@ def find_dnf_non_disjoint_clauses(event, indexes=None):
             non_disjoint.append((i, j))
 
     return non_disjoint
+
+def event_to_disjoint_union(event):
+    event_dnf = event.to_dnf()
+    # Base case.
+    if isinstance(event_dnf, (EventBasic, EventAnd)):
+        return event_dnf
+    # Find indexes of pairs of clauses that overlap.
+    overlap = find_dnf_non_disjoint_clauses(event_dnf)
+    if not overlap:
+        return event_dnf
+    # Create the cascading negated clauses.
+    n_clauses = len(event_dnf.subexprs)
+    overlap_dict = {i : [prev for (prev, j) in overlap if (j == i)]
+        for i in range(n_clauses)
+    }
+    clauses_disjoint = [
+        reduce(
+            lambda state, event: state & ~event,
+            (event_dnf.subexprs[j] for j in overlap_dict[i]),
+            event_dnf.subexprs[i])
+        for i in range(n_clauses)
+    ]
+    # Recursively find the solutions for each clause.
+    solutions = [event_to_disjoint_union(clause) for clause in clauses_disjoint]
+    # Return the merged solution.
+    return reduce(lambda a, b: a|b, solutions)

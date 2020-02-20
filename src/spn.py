@@ -16,6 +16,7 @@ from sympy import Interval
 from sympy import Range
 from sympy import Union
 
+from .dnf import event_to_disjoint_union
 from .dnf import factor_dnf_symbols
 from .dnf import find_dnf_non_disjoint_clauses
 
@@ -313,25 +314,16 @@ class ProductSPN(SPN):
         return logdiffexp(logp_pos, logp_neg)
 
     def condition(self, event):
-        event_dnf = event.to_dnf()
-
         # Discard all probability zero clauses or fail if all are.
-        dnf_factor = factor_dnf_symbols(event_dnf, self.lookup)
+        clauses = event_to_disjoint_union(event)
+        dnf_factor = factor_dnf_symbols(clauses, self.lookup)
         logps = [self.get_clause_weight(clause) for clause in dnf_factor]
+        assert allclose(logsumexp(logps), self.logprob(event))
         indexes = [i for (i, lp) in enumerate(logps) if not isinf_neg(lp)]
         if not indexes:
             raise ValueError('Conditioning event "%s" has probability zero'
                 % (str(event),))
-
-        # Fail if remaining clauses are not pairwise disjoint (Github #12).
-        non_disjoint_clauses = find_dnf_non_disjoint_clauses(event, indexes)
-        if non_disjoint_clauses:
-            raise ValueError('Cannot condition Product on a disjunction'
-                'with non-disjoint clauses: %s, %s'
-                % (str(event), str(non_disjoint_clauses)))
-
         # Return a sum of products.
-        assert allclose(logsumexp(logps), self.logprob(event))
         weights = lognorm([logps[i] for i in indexes])
         childrens = [self.get_clause_children(dnf_factor[i]) for i in indexes]
         products = [ProductSPN(children) for children in childrens]
