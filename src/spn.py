@@ -477,9 +477,9 @@ class RealDistribution(LeafSPN):
         assert False, 'Unknown set type: %s' % (values,)
 
 # ==============================================================================
-# Numerical distribution.
+# Continuous RealDistribution.
 
-class NumericalDistribution(RealDistribution):
+class ContinuousReal(RealDistribution):
     """Non-atomic distribution with a cumulative distribution function."""
     def __init__(self, symbol, dist, support, conditioned=None):
         super().__init__(symbol, dist, support, conditioned)
@@ -517,9 +517,9 @@ class NumericalDistribution(RealDistribution):
         return logdiffexp(logFu, logFl)
 
 # ==============================================================================
-# Ordinal distribution.
+# Discrete RealDistribution.
 
-class OrdinalDistribution(RealDistribution):
+class DiscreteReal(RealDistribution):
     """Atomic distribution with a cumulative distribution function."""
 
     def __init__(self, symbol, dist, support, conditioned=None):

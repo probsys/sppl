@@ -5,13 +5,13 @@ from math import log
 
 import pytest
 
-from spn.spn import NumericalDistribution
+from spn.spn import ContinuousReal
 from spn.spn import PartialSumSPN
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 
-from spn.numerical import Gamma
-from spn.numerical import Norm
+from spn.distributions import Gamma
+from spn.distributions import Norm
 from spn.transforms import Identity
 
 from spn.math_util import allclose
@@ -115,7 +115,7 @@ def test_sum_of_sums():
     assert isinstance(a, SumSPN)
     assert isinstance(a.children[0], SumSPN)
     assert isinstance(a.children[1], SumSPN)
-    assert isinstance(a.children[2], NumericalDistribution)
+    assert isinstance(a.children[2], ContinuousReal)
 
     # Wrong symbol.
     with pytest.raises(ValueError):
@@ -127,4 +127,4 @@ def test_or_and():
     a = (0.3*Norm(X) | 0.7*Gamma(X, a=1)) & Norm(Z)
     assert isinstance(a, ProductSPN)
     assert isinstance(a.children[0], SumSPN)
-    assert isinstance(a.children[1], NumericalDistribution)
+    assert isinstance(a.children[1], ContinuousReal)

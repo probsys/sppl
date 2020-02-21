@@ -6,18 +6,18 @@ import pytest
 import numpy
 import sympy
 
-from spn.spn import OrdinalDistribution
-from spn.spn import SumSPN
+from spn.distributions import Poisson
+from spn.distributions import Randint
 from spn.math_util import allclose
 from spn.math_util import logdiffexp
 from spn.math_util import logsumexp
-from spn.ordinal import Poisson
-from spn.ordinal import Randint
+from spn.spn import DiscreteReal
+from spn.spn import SumSPN
 from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)
 
-def test_ordinal_distribution_poisson():
+def test_poisson():
     X = Identity('X')
     spn = Poisson(X, mu=5)
 
@@ -46,7 +46,7 @@ def test_ordinal_distribution_poisson():
     # Unify X = 5 with left interval to make one distribution.
     event = ((1 <= X) < 5) | ((3*X + 1) << {16})
     spn_condition = spn.condition(event)
-    assert isinstance(spn_condition, OrdinalDistribution)
+    assert isinstance(spn_condition, DiscreteReal)
     assert spn_condition.conditioned
     assert spn_condition.xl == 1
     assert spn_condition.xu == 5
@@ -56,7 +56,7 @@ def test_ordinal_distribution_poisson():
 
     # Ignore X = 14/3 as a probability zero condition.
     spn_condition = spn.condition(((1 <= X) < 5) | (3*X + 1) << {15})
-    assert isinstance(spn_condition, OrdinalDistribution)
+    assert isinstance(spn_condition, DiscreteReal)
     assert spn_condition.conditioned
     assert spn_condition.xl == 1
     assert spn_condition.xu == 4
@@ -78,7 +78,7 @@ def test_ordinal_distribution_poisson():
     with pytest.raises(ValueError):
         spn.condition(((-3 <= X) < 0) | (3*X + 1) << {20})
 
-def test_ordinal_randint():
+def test_randint():
     X = Identity('X')
     spn = Randint(X, low=0, high=5)
     assert spn.logprob(X < 5) == spn.logprob(X <= 4) == 0

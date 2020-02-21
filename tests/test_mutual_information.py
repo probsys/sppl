@@ -6,7 +6,7 @@ from math import log
 import numpy
 
 from spn.math_util import allclose
-from spn.numerical import Norm
+from spn.distributions import Norm
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 from spn.transforms import Identity

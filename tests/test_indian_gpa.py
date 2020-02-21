@@ -2,8 +2,8 @@
 # See LICENSE.txt
 
 from spn.math_util import allclose
-from spn.numerical import Uniform
-from spn.ordinal import Atomic
+from spn.distributions import Uniform
+from spn.distributions import Atomic
 from spn.transforms import Identity
 
 X = Identity('X')

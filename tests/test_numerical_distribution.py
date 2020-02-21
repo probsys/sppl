@@ -11,9 +11,9 @@ import numpy
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
-from spn.numerical import Gamma
-from spn.numerical import Norm
-from spn.spn import NumericalDistribution
+from spn.distributions import Gamma
+from spn.distributions import Norm
+from spn.spn import ContinuousReal
 from spn.spn import SumSPN
 from spn.sym_util import Reals
 from spn.transforms import Identity
@@ -53,7 +53,7 @@ def test_numeric_distribution_normal():
 
     for event in [(X<-10), (X>3)]:
         spn_condition_c = spn.condition(event)
-        assert isinstance(spn_condition_c, NumericalDistribution)
+        assert isinstance(spn_condition_c, ContinuousReal)
         assert isinf_neg(spn_condition_c.logprob((-1 < X) < 1))
         samples = spn_condition_c.sample(100, rng)
         assert all(s[X] in event.values for s in samples)
@@ -79,13 +79,13 @@ def test_numeric_distribution_gamma():
 
     # Intentionally set Reals as the domain to exercise an important
     # code path in dist.condition (Union case with zero weights).
-    spn = NumericalDistribution(X, scipy.stats.gamma(a=1, scale=1), Reals)
+    spn = ContinuousReal(X, scipy.stats.gamma(a=1, scale=1), Reals)
     assert isinf_neg(spn.logprob((X << {1, 2}) | (X < 0)))
     with pytest.raises(ValueError):
         spn.condition((X << {1, 2}) | (X < 0))
 
     spn_condition = spn.condition((X << {1,2} | (X <= 3)))
-    assert isinstance(spn_condition, NumericalDistribution)
+    assert isinstance(spn_condition, ContinuousReal)
     assert spn_condition.conditioned
     assert spn_condition.support == sympy.Interval(-sympy.oo, 3)
     assert allclose(
