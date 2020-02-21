@@ -5,6 +5,7 @@ import pytest
 import sympy
 
 from sympy import Interval
+from sympy import FiniteSet
 from sympy import Rational as Rat
 from sympy import oo
 
@@ -69,7 +70,7 @@ def test_parse_2_closed():
 def test_parse_4():
     # (x >= 0) & (x <= 0)
     expr = (X >= 0) | (X <= 0)
-    event = EventInterval(X, sympy.Interval(-oo, oo))
+    event = EventInterval(X, Interval(-oo, oo))
     assert expr == event
 
 def test_parse_5_open():
@@ -261,35 +262,35 @@ def test_parse_24_negative_power():
 def test_parse_26_piecewise_one_expr_basic_event():
     assert (Y**2)*(0 <= Y) == Piecewise(
         [Poly(Y, [0, 0, 1])],
-        [EventInterval(Y, sympy.Interval(0, sympy.oo))])
+        [EventInterval(Y, Interval(0, oo))])
     assert (0 <= Y)*(Y**2) == Piecewise(
         [Poly(Y, [0, 0, 1])],
-        [EventInterval(Y, sympy.Interval(0, sympy.oo))])
+        [EventInterval(Y, Interval(0, oo))])
     assert ((0 <= Y) < 5)*(Y < 1) == Piecewise(
-        [EventInterval(Y, sympy.Interval.Ropen(-sympy.oo, 1))],
-        [EventInterval(Y, sympy.Interval.Ropen(0, 5))],
+        [EventInterval(Y, Interval.Ropen(-oo, 1))],
+        [EventInterval(Y, Interval.Ropen(0, 5))],
     )
     assert ((0 <= Y) < 5)*(~(Y < 1)) == Piecewise(
-        [EventInterval(Y, sympy.Interval(1, sympy.oo))],
-        [EventInterval(Y, sympy.Interval.Ropen(0, 5))],
+        [EventInterval(Y, Interval(1, oo))],
+        [EventInterval(Y, Interval.Ropen(0, 5))],
     )
     assert 10*(0 <= Y) == Poly(
-        EventInterval(Y, sympy.Interval(0, sympy.oo)),
+        EventInterval(Y, Interval(0, oo)),
         [0, 10])
 
 def test_parse_26_piecewise_one_expr_compound_event():
     assert (Y**2)*((Y < 0) | (0 < Y)) == Piecewise(
         [Poly(Y, [0, 0, 1])],
         [EventOr([
-            EventInterval(Y, sympy.Interval.open(-sympy.oo, 0)),
-            EventInterval(Y, sympy.Interval.open(0, sympy.oo)),
+            EventInterval(Y, Interval.open(-oo, 0)),
+            EventInterval(Y, Interval.open(0, oo)),
             ])])
 
     assert (Y**2)*(~((3 < Y) <= 4)) == Piecewise(
         [Poly(Y, [0, 0, 1])],
         [EventOr([
-            EventInterval(Y, sympy.Interval(-sympy.oo, 3)),
-            EventInterval(Y, sympy.Interval.open(4, sympy.oo)),
+            EventInterval(Y, Interval(-oo, 3)),
+            EventInterval(Y, Interval.open(4, oo)),
             ])])
 
 def test_parse_27_piecewise_many():
@@ -298,8 +299,8 @@ def test_parse_27_piecewise_many():
             Poly(Y, [0, 0, 1]),
             Radical(Y, 2)],
         [
-            EventInterval(Y, sympy.Interval.open(-sympy.oo, 0)),
-            EventInterval(Y, sympy.Interval(0, sympy.oo))
+            EventInterval(Y, Interval.open(-oo, 0)),
+            EventInterval(Y, Interval(0, oo))
         ])
 
 def test_errors():
@@ -422,7 +423,7 @@ def test_event_inequality_parse():
     assert ((5 < X) < 5) == EventFiniteReal(X, EmptySet)
     assert ((5 < X) <= 5) == EventFiniteReal(X, EmptySet)
     assert ((5 <= X) < 5) == EventFiniteReal(X, EmptySet)
-    assert ((5 <= X) <= 5) == EventFiniteReal(X, sympy.FiniteSet(5))
+    assert ((5 <= X) <= 5) == EventFiniteReal(X, FiniteSet(5))
 
     # Negated single interval.
     assert ~(5 < X) == (X <= 5)
@@ -445,12 +446,12 @@ def test_event_inequality_parse():
         == (X < 5) | (10 < X)
     assert ~((10 < X) < 5) \
         == ~(10 < (X < 5)) \
-        == EventInterval(X, sympy.Interval(-oo, oo))
+        == EventInterval(X, Interval(-oo, oo))
 
     # A complicated negated union.
     assert ((~(X < 5)) < 10) \
         == ((5 <= X) < 10) \
-        == EventInterval(X, sympy.Interval.Ropen(5, 10))
+        == EventInterval(X, Interval.Ropen(5, 10))
 
 def test_event_inequality_parse_errors():
     # EventInterval.
@@ -495,19 +496,19 @@ def test_event_inequality_string():
 def test_event_containment_string():
     assert str(X << [10, 1]) == 'X << {1, 10}'
     assert str(X << {1, 2}) == 'X << {1, 2}'
-    assert str(X << sympy.FiniteSet(1, 11)) == 'X << {1, 11}'
+    assert str(X << FiniteSet(1, 11)) == 'X << {1, 11}'
 
 def test_event_containment_real():
     assert (X << Interval(0, 10)) == EventInterval(X, Interval(0, 10))
-    for values in [sympy.FiniteSet(0, 10), [0, 10], {0, 10}]:
-        assert (X << values) == EventFiniteReal(X, sympy.FiniteSet(0, 10))
+    for values in [FiniteSet(0, 10), [0, 10], {0, 10}]:
+        assert (X << values) == EventFiniteReal(X, FiniteSet(0, 10))
     with pytest.raises(ValueError):
         X << {1, None}
     assert X << {1, 2} == EventFiniteReal(X, {1, 2})
     assert ~(X << {1, 2}) == EventOr([
-        EventInterval(X, sympy.Interval.Ropen(-oo, 1)),
-        EventInterval(X, sympy.Interval.open(1, 2)),
-        EventInterval(X, sympy.Interval.Lopen(2, oo)),
+        EventInterval(X, Interval.Ropen(-oo, 1)),
+        EventInterval(X, Interval.open(1, 2)),
+        EventInterval(X, Interval.Lopen(2, oo)),
     ])
     # https://github.com/probcomp/sum-product-dsl/issues/22
     # and of EventBasic does not yet perform simplifications.

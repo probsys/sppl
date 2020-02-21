@@ -5,6 +5,9 @@ import pytest
 import sympy
 
 from sympy import Interval
+from sympy import FiniteSet
+from sympy import Union
+from sympy import Complement
 from sympy import Rational as Rat
 from sympy import oo
 
@@ -20,8 +23,8 @@ from spn.transforms import Log
 from spn.transforms import LogNat
 from spn.transforms import Sqrt
 
-X = sympy.symbols("X")
-Y = Identity("Y")
+X = sympy.symbols('X')
+Y = Identity('Y')
 
 def test_solver_1_open():
     # log(x) > 2
@@ -61,7 +64,7 @@ def test_solver_2_open():
 
 def test_solver_2_closed():
     # (log(x) <= 2) & (x >= exp(2))
-    solution = sympy.FiniteSet(sympy.exp(2))
+    solution = FiniteSet(sympy.exp(2))
 
     expr = (sympy.log(X) >= 2) & (X <= sympy.exp(2))
     answer = sympy_solver(expr)
@@ -121,7 +124,7 @@ def test_solver_5_lopen():
 
 def test_solver_6():
     # (x**2 - 2*x) > 10
-    solution =  sympy.Union(
+    solution =  Union(
         Interval.open(-oo, 1 - sympy.sqrt(11)),
         Interval.open(1 + sympy.sqrt(11), oo))
 
@@ -217,7 +220,7 @@ def test_solver_11_closed():
 
 def test_solver_12():
     # 2*sqrt(|x|) - 3 > 10
-    solution = sympy.Union(
+    solution = Union(
         Interval.open(-oo, -Rat(169, 4)),
         Interval.open(Rat(169, 4), oo))
 
@@ -231,7 +234,7 @@ def test_solver_12():
 
 def test_solver_13():
     # 2*sqrt(|x|**2) - 3 > 10
-    solution = sympy.Union(
+    solution = Union(
         Interval.open(-oo, -Rat(13, 2)),
         Interval.open(Rat(13, 2), oo))
 
@@ -245,7 +248,7 @@ def test_solver_13():
 
 def test_solver_14():
     # x**2 > 10
-    solution = sympy.Union(
+    solution = Union(
         Interval.open(-oo, -sympy.sqrt(10)),
         Interval.open(sympy.sqrt(10), oo))
 
@@ -312,7 +315,7 @@ def test_solver_18():
 def test_solver_19():
     # 3*(x**(1/7))**4 - 3*(x**(1/7))**2 <= 9
     #   or || 3*(x**(1/7))**4 - 3*(x**(1/7))**2 > 11
-    solution = sympy.Union(
+    solution = Union(
         Interval(0, (Rat(1, 2) + sympy.sqrt(13)/2)**(Rat(7, 2))),
         Interval.open((Rat(1,2) + sympy.sqrt(141)/6)**(7/2), oo))
 
@@ -329,7 +332,7 @@ def test_solver_19():
 
 def test_solver_20():
     # log(x**2 - 3) < 5
-    solution = sympy.Union(
+    solution = Union(
         Interval.open(-sympy.sqrt(3 + sympy.exp(5)), -sympy.sqrt(3)),
         Interval.open(sympy.sqrt(3), sympy.sqrt(3 + sympy.exp(5))))
 
@@ -345,7 +348,7 @@ def test_solver_21__ci_():
     # 1 <= log(x**3 - 3*x + 3) < 5
     # Can only be solved by numerical approximation of roots.
     # https://www.wolframalpha.com/input/?i=1+%3C%3D+log%28x**3+-+3x+%2B+3%29+%3C+5
-    solution = sympy.Union(
+    solution = Union(
         Interval(
             -1.777221448430427630375448631016427343692,
             0.09418455242255462832154474245589911789464),
@@ -361,7 +364,7 @@ def test_solver_21__ci_():
     expr = LogNat(Y**3 - 3*Y + 3)
     event = ((1 <= expr) & (expr < 5))
     answer = event.solve()
-    assert isinstance(answer, sympy.Union)
+    assert isinstance(answer, Union)
     # Check first interval.
     assert not answer.args[0].left_open
     assert not answer.args[0].right_open
@@ -463,7 +466,7 @@ def test_solver_23_reciprocal_range():
     event = ((-3 < 1/(2*(abs(Y)**2)-1)) <= -1)
     assert event.solve() == solution
 
-    solution = sympy.Union(
+    solution = Union(
         Interval.open(-1 / sympy.sqrt(3), 0),
         Interval.open(0, 1 / sympy.sqrt(3)))
     event = ((-3 < 1/(2*(abs(Y)**2)-1)) < -1)
@@ -472,12 +475,12 @@ def test_solver_23_reciprocal_range():
 def test_solver_24_negative_power_integer():
     # Case 1.
     event = Y**(-3) < 6
-    assert event.solve() == sympy.Union(
+    assert event.solve() == Union(
         Interval.open(-oo, 0),
         Interval.open(6**Rat(-1, 3), oo))
     # Case 2.
     event = (-1 < Y**(-3)) < 6
-    assert event.solve() == sympy.Union(
+    assert event.solve() == Union(
         Interval.open(-oo, -1),
         Interval.open(6**Rat(-1, 3), oo))
     # Case 3.
@@ -517,32 +520,32 @@ def test_solver_25_constant():
 
 def test_solver_26_piecewise_one_expr_basic_event():
     event = (Y**2)*(0 <= Y) < 2
-    assert event.solve() == sympy.Interval.Ropen(0, sympy.sqrt(2))
+    assert event.solve() == Interval.Ropen(0, sympy.sqrt(2))
     event = (0 <= Y)*(Y**2) < 2
-    assert event.solve() == sympy.Interval.Ropen(0, sympy.sqrt(2))
+    assert event.solve() == Interval.Ropen(0, sympy.sqrt(2))
     event = ((0 <= Y) < 5)*(Y < 1) << {1}
-    assert event.solve() == sympy.Interval.Ropen(0, 1)
+    assert event.solve() == Interval.Ropen(0, 1)
     event = ((0 <= Y) < 5)*(~(Y < 1)) << {1}
-    assert event.solve() == sympy.Interval.Ropen(1, 5)
+    assert event.solve() == Interval.Ropen(1, 5)
     event = 10*(0 <= Y) << {10}
-    assert event.solve() == sympy.Interval(0, sympy.oo)
+    assert event.solve() == Interval(0, oo)
     event = 10*(0 <= Y) << {0}
-    assert event.solve() == sympy.Interval.Ropen(-sympy.oo, 0)
+    assert event.solve() == Interval.Ropen(-oo, 0)
 
 def test_solver_26_piecewise_one_expr_compound_event():
     event = (Y**2)*((Y < 0) | (0 < Y)) < 2
-    assert event.solve() == sympy.Union(
-        sympy.Interval.open(-sympy.sqrt(2), 0),
-        sympy.Interval.open(0, sympy.sqrt(2)))
+    assert event.solve() == Union(
+        Interval.open(-sympy.sqrt(2), 0),
+        Interval.open(0, sympy.sqrt(2)))
 
 def test_solver_27_piecewise_many():
     expr = (Y < 0)*(Y**2) + (0 <= Y)*Y**(Rat(1, 2))
     event = expr << {3}
     assert sorted(event.solve()) == [-sympy.sqrt(3), 9]
     event = 0 < expr
-    assert event.solve() == sympy.Union(
-        sympy.Interval.open(-oo, 0),
-        sympy.Interval.open(0, oo))
+    assert event.solve() == Union(
+        Interval.open(-oo, 0),
+        Interval.open(0, oo))
 
     # TODO: Consider banning the restriction of a function
     # to a segment outside of its domain.
@@ -599,10 +602,10 @@ def test_solver_finite_non_injective():
     event = (abs(Y))**3 << {1, 27}
     assert event.solve() == solution
     # Abs Not.
-    solution = sympy.Union(
-        sympy.Interval.open(-oo, -1),
-        sympy.Interval.open(-1, 1),
-        sympy.Interval.open(1, oo))
+    solution = Union(
+        Interval.open(-oo, -1),
+        Interval.open(-1, 1),
+        Interval.open(1, oo))
     event = ~(abs(Y) << {1})
     assert event.solve() == solution
     # Abs in EmptySet.
@@ -610,11 +613,11 @@ def test_solver_finite_non_injective():
     event = (abs(Y))**3 << set([])
     assert event.solve() == solution
     # Abs Not in EmptySet (yields all reals).
-    solution = sympy.Interval(-sympy.oo, sympy.oo)
+    solution = Interval(-oo, oo)
     event = ~(((abs(Y))**3) << set([]))
     assert event.solve() == solution
     # Log in Reals (yields positive reals).
-    solution = sympy.Interval.open(0, sympy.oo)
+    solution = Interval.open(0, oo)
     event = ~((LogNat(Y))**3 << set([]))
     assert event.solve() == solution
 
@@ -624,7 +627,7 @@ def test_solver_finite_symbolic():
     assert event.solve() == NominalSet('a', 'b')
     # Complement the Identity.
     event = ~(Y << {'a', 'b'})
-    assert event.solve() == sympy.Complement(
+    assert event.solve() == Complement(
         UniversalSet, NominalSet('a', 'b'))
     # Transform can never be symbolic.
     event = Y**2 << {'a', 'b'}
@@ -634,8 +637,8 @@ def test_solver_finite_symbolic():
     assert event.solve() == UniversalSet
     # Solve Identity mixed.
     event = Y << {9, 'a', '7'}
-    assert event.solve() == sympy.Union(
-        sympy.FiniteSet(9),
+    assert event.solve() == Union(
+        FiniteSet(9),
         NominalSet('a', '7'))
     # Solve Transform mixed.
     event = Y**2 << {9, 'a', 'b'}
@@ -654,22 +657,22 @@ def test_solver_finite_symbolic():
     assert event.solve() == NominalSet('a', 'b')
     # Solve a disjunction with complement.
     event = (Y << {'a', 'b'}) | ~(Y << {'c'})
-    assert event.solve() == sympy.Complement(UniversalSet, NominalSet('c'))
+    assert event.solve() == Complement(UniversalSet, NominalSet('c'))
     # Union of interval and symbolic.
     event = (Y**2 <= 9) | (Y << {'a'})
-    assert event.solve() == sympy.Union(
-        sympy.Interval(-3, 3),
+    assert event.solve() == Union(
+        Interval(-3, 3),
         NominalSet('a'))
     # Union of interval and not symbolic.
     event = (Y**2 <= 9) | ~(Y << {'a'})
-    assert event.solve() == sympy.Union(
-        sympy.Interval(-3, 3),
-        sympy.Complement(UniversalSet, NominalSet('a')))
+    assert event.solve() == Union(
+        Interval(-3, 3),
+        Complement(UniversalSet, NominalSet('a')))
     # Intersection of interval and symbolic.
     event = (Y**2 <= 9) & (Y << {'a'})
     assert event.solve() is EmptySet
     # Intersection of interval and not symbolic.
     event = (Y**2 <= 9) & ~(Y << {'a'})
-    assert event.solve() == sympy.Complement(
-        sympy.Interval(-3, 3),
+    assert event.solve() == Complement(
+        Interval(-3, 3),
         NominalSet('a'))

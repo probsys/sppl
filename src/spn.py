@@ -406,7 +406,7 @@ class RealDistribution(LeafSPN):
 
     def logprob(self, event):
         interval = event.solve()
-        values = Intersection(self.support, interval)
+        values = get_intersection_safe(self.support, interval)
         return self.logprob_values(values)
 
     def logcdf(self, x):
@@ -434,9 +434,6 @@ class RealDistribution(LeafSPN):
         if isinstance(values, Union):
             logps = [self.logprob_values(v) for v in values.args]
             return logsumexp(logps)
-        if isinstance(values, Complement):
-            (A, B) = values.args
-            return self.logprob_values(A - Intersection(A, B))
         assert False, 'Unknown set type: %s' % (values,)
 
     def logprob_finite(self, values):
@@ -448,12 +445,15 @@ class RealDistribution(LeafSPN):
 
     def condition(self, event):
         interval = event.solve()
-        values = Intersection(self.support, interval)
+        values = get_intersection_safe(self.support, interval)
         weight = self.logprob_values(values)
 
         if isinf_neg(weight):
             raise ValueError('Conditioning event "%s" has probability zero'
                 % (str(event)))
+
+        if values == self.support:
+            return self
 
         if isinstance(values, (ContainersFinite, Range, Interval)):
             return (type(self))(self.symbol, self.dist, values, True)
@@ -588,18 +588,18 @@ class NominalDistribution(LeafSPN):
     def logprob(self, event):
         # TODO: Consider using 1 - Pr[Event] for negation to avoid
         # iterating over domain.
-        # if is_event_transformed(event):
-        #     raise ValueError('Nominal variable cannot be transformed: %s'
-        #         % (str(event),))
+        if is_event_transformed(event):
+            raise ValueError('Cannot apply transform to Nominal variable: %s'
+                % (str(event),))
         solution = event.solve()
         values = Intersection(self.support, solution)
         p_event = sum(self.dist[x] for x in values)
         return log(p_event) if p_event != 0 else -inf
 
     def condition(self, event):
-        # if is_event_transformed(event):
-        #     raise ValueError('Nominal variable cannot be transformed: %s'
-        #         % (str(event),))
+        if is_event_transformed(event):
+            raise ValueError('Cannot apply transform to Nominal variable: %s'
+                % (str(event),))
         solution = event.solve()
         values = Intersection(self.support, solution)
         p_event = sum([self.dist[x] for x in values])
@@ -621,6 +621,17 @@ class NominalDistribution(LeafSPN):
 
 # ==============================================================================
 # Utilities.
+
+def get_intersection_safe(a, b):
+    assert not isinstance(a, Union)
+    if isinstance(b, Union):
+        intersections = [get_intersection_safe(a, x) for x in b.args]
+        return Union(*intersections)
+    intersection = Intersection(a, b)
+    if isinstance(intersection, Complement):
+        (A, B) = intersection.args
+        return A - Intersection(A, B)
+    return intersection
 
 def is_event_transformed(event):
     if isinstance(event, EventBasic):
