@@ -588,18 +588,18 @@ class NominalDistribution(LeafSPN):
     def logprob(self, event):
         # TODO: Consider using 1 - Pr[Event] for negation to avoid
         # iterating over domain.
-        # if is_event_transformed(event):
-        #     raise ValueError('Nominal variable cannot be transformed: %s'
-        #         % (str(event),))
+        if is_event_transformed(event):
+            raise ValueError('Cannot apply transform to Nominal variable: %s'
+                % (str(event),))
         solution = event.solve()
         values = Intersection(self.support, solution)
         p_event = sum(self.dist[x] for x in values)
         return log(p_event) if p_event != 0 else -inf
 
     def condition(self, event):
-        # if is_event_transformed(event):
-        #     raise ValueError('Nominal variable cannot be transformed: %s'
-        #         % (str(event),))
+        if is_event_transformed(event):
+            raise ValueError('Cannot apply transform to Nominal variable: %s'
+                % (str(event),))
         solution = event.solve()
         values = Intersection(self.support, solution)
         p_event = sum([self.dist[x] for x in values])

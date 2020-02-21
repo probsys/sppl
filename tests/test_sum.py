@@ -125,25 +125,29 @@ def test_sum_numerical_nominal():
     assert isinf_neg(spn.logprob(X << {'a'}))
     assert allclose(spn.logprob(~(X << {'a'})), 0)
 
-    assert allclose(
-        spn.logprob(X**2 < 9),
-        log(Fraction(4, 7)) + spn.children[0].logprob(X**2 < 9)
-    )
+    with pytest.raises(ValueError):
+        assert allclose(
+            spn.logprob(X**2 < 9),
+            log(Fraction(4, 7)) + spn.children[0].logprob(X**2 < 9)
+        )
 
-    spn_condition = spn.condition(X**2 < 9)
-    assert isinstance(spn_condition, NumericalDistribution)
-    assert spn_condition.support == sympy.Interval.open(-3, 3)
+    with pytest.raises(ValueError):
+        spn_condition = spn.condition(X**2 < 9)
+        assert isinstance(spn_condition, NumericalDistribution)
+        assert spn_condition.support == sympy.Interval.open(-3, 3)
 
-    spn_condition = spn.condition((X**2 < 9) | X << {'low'})
-    assert isinstance(spn_condition, SumSPN)
-    assert spn_condition.children[0].support == sympy.Interval.open(-3, 3)
-    assert spn_condition.children[1].support == NominalSet('low', 'high')
-    assert isinf_neg(spn_condition.children[1].logprob(X << {'high'}))
+    with pytest.raises(ValueError):
+        spn_condition = spn.condition((X**2 < 9) | X << {'low'})
+        assert isinstance(spn_condition, SumSPN)
+        assert spn_condition.children[0].support == sympy.Interval.open(-3, 3)
+        assert spn_condition.children[1].support == NominalSet('low', 'high')
+        assert isinf_neg(spn_condition.children[1].logprob(X << {'high'}))
 
-    spn_condition = spn.condition((X**2 < 9) | ~(X << {'1'}))
-    assert spn_condition.children == spn_condition.children
+    with pytest.raises(ValueError):
+        spn_condition = spn.condition((X**2 < 9) | ~(X << {'1'}))
+        assert spn_condition.children == spn_condition.children
 
-    # TODO: Condition on a non-disjoint union.
-    # Solving this event yields Reals, eliminating the Nominal branch.
+    # FIXME: Solving this event yields Reals, eliminating the Nominal
+    # branch, even though ~(X << {1}) is satisfied by that branch.
     with pytest.raises(AssertionError):
-        assert spn.condition((X**2 < 9) | ~(X << {1})) == spn
+        assert spn.condition((X < 9) | ~(X << {1})) == spn

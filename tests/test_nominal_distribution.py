@@ -60,9 +60,8 @@ def test_nominal_distribution():
     assert allclose(spn_condition.logprob(X << {'b'}), -log(2))
     assert spn_condition.logprob(X << {'c'}) == -float('inf')
 
-    # Numeric transforms of nominal variable have probability zero.
-    # We can consider disallowing numeric transforms.
-    spn_condition.logprob(X**2 << {1})
+    with pytest.raises(ValueError):
+        spn_condition.logprob(X**2 << {1})
 
     with pytest.raises(ValueError):
         spn.condition(X << {'python'})
