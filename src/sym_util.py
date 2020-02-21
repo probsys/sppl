@@ -69,6 +69,13 @@ def sympify_number(x):
     except (sympy.SympifyError, AttributeError, TypeError):
         raise TypeError(msg)
 
+def sympify_nominal(x):
+    if isinstance(x, NominalValue):
+        return x
+    if isinstance(x, str):
+        return NominalValue(x)
+    raise TypeError('Expected a nominal term, not %s' % (x,))
+
 def sym_log(x):
     assert 0 <= x
     if x == 0:
@@ -85,6 +92,9 @@ def is_number(x):
         return True
     except TypeError:
         return False
+
+def is_nominal(x):
+    return isinstance(x, (str, NominalValue))
 
 def complement_nominal_set(values):
     if values is UniversalSet:
@@ -147,7 +157,7 @@ class NominalValue(Atom):
         return sympy.false
 
 def NominalSet(*values):
-    return sympy.FiniteSet(*[NominalValue(v) for v in values])
+    return sympy.FiniteSet(*[sympify_nominal(v) for v in values])
 
 def is_nominal_set(x):
     if not isinstance(x, sympy.FiniteSet):

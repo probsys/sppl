@@ -26,12 +26,14 @@ from .sym_util import ExtRealsPos
 from .sym_util import Reals
 from .sym_util import UniversalSet
 
-from .sym_util import NominalSet
 from .sym_util import ContainersFinite
+from .sym_util import NominalSet
 from .sym_util import complement_nominal_set
-from .sym_util import is_number
+from .sym_util import is_nominal
 from .sym_util import is_nominal_set
+from .sym_util import is_number
 from .sym_util import is_numeric_set
+from .sym_util import sympify_nominal
 from .sym_util import sympify_number
 
 # ==============================================================================
@@ -291,7 +293,7 @@ class Transform(object):
         if isinstance(x, ContainersFinite):
             values = list(x)
             values_num = sympy.FiniteSet(*[v for v in values if is_number(v)])
-            values_str = NominalSet(*[v for v in values if isinstance(v, str)])
+            values_str = NominalSet(*[sympify_nominal(v) for v in values if is_nominal(v)])
             if len(values_num) + len(values_str) != len(values):
                 raise ValueError('Only numeric or symbolic values, not %s'
                     % (str(x,)))

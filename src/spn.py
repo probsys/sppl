@@ -182,7 +182,7 @@ class ExposedSumSPN(SumSPN):
         # SPN.
         assert isinstance(spn_dist, NominalDistribution)
         weights = [
-            spn_dist.logprob(spn_dist.symbol << {str(n)})
+            spn_dist.logprob(spn_dist.symbol << {n})
             for n in spn_dist.support
         ]
         children = [
