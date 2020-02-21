@@ -174,15 +174,24 @@ class SumSPN(SPN):
             else children[0]
 
 class ExposedSumSPN(SumSPN):
-    def __init__(self, spns, weights, symbol):
+    def __init__(self, spns, spn_dist):
         """Weighted mixture of SPNs with exposed internal choice."""
-        K = len(spns)
-        nominals = [NominalDistribution(symbol, {str(i): 1}) for i in range(K)]
-        spns_exposed = [
-            ProductSPN([nominal, spn])
-            for nominal, spn in zip(nominals, spns)
+        # TODO: Consider allowing a general SPN with a single Nominal
+        # output variable.  Implementing this capability will require the
+        # methods to check the type (nominal/real) and support of a general
+        # SPN.
+        assert isinstance(spn_dist, NominalDistribution)
+        weights = [
+            spn_dist.logprob(spn_dist.symbol << {str(n)})
+            for n in spn_dist.support
         ]
-        super().__init__(spns_exposed, weights)
+        children = [
+            ProductSPN([
+                NominalDistribution(spn_dist.symbol, {str(n): 1}),
+                spns[n]
+            ]) for n in spn_dist.support
+        ]
+        super().__init__(children, weights)
 
 class PartialSumSPN(SPN):
     """Weighted mixture of SPNs that do not yet sum to unity."""

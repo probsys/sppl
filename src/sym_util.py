@@ -126,6 +126,9 @@ def sympy_solver(expr):
     return result
 
 class NominalValue(Atom):
+    # Prevent sympy from converting a FinteSet of strings into
+    # a FiniteSet of symbols, which corrupts set operations
+    # combining symbolic and numeric values.
     def __eq__(self, x):
         if isinstance(x, NominalValue):
             return x.args == self.args
