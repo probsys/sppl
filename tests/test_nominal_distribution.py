@@ -8,6 +8,7 @@ import pytest
 import numpy
 
 from spn.math_util import allclose
+from spn.math_util import isinf_neg
 from spn.spn import NominalDistribution
 from spn.sym_util import NominalSet
 from spn.transforms import Identity
@@ -60,8 +61,7 @@ def test_nominal_distribution():
     assert allclose(spn_condition.logprob(X << {'b'}), -log(2))
     assert spn_condition.logprob(X << {'c'}) == -float('inf')
 
-    with pytest.raises(ValueError):
-        spn_condition.logprob(X**2 << {1})
+    assert isinf_neg(spn_condition.logprob(X**2 << {1}))
 
     with pytest.raises(ValueError):
         spn.condition(X << {'python'})
