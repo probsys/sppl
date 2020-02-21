@@ -16,9 +16,9 @@ from sympy import Interval
 from sympy import Range
 from sympy import Union
 
-from .dnf import event_to_disjoint_union
-from .dnf import factor_dnf_symbols
-from .dnf import normalize_event
+from .dnf import dnf_factor
+from .dnf import dnf_to_disjoint_union
+from .dnf import dnf_normalize
 
 from .math_util import allclose
 from .math_util import flip
@@ -157,7 +157,7 @@ class SumSPN(SPN):
         return list(chain.from_iterable(samples))
 
     def logprob(self, event):
-        event_dnf = normalize_event(event)
+        event_dnf = dnf_normalize(event)
         logps = [spn.logprob(event_dnf) for spn in self.children]
         return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
 
@@ -291,23 +291,23 @@ class ProductSPN(SPN):
         return logsumexp(logps)
 
     def logprob(self, event):
-        event_dnf = normalize_event(event)
+        event_dnf = dnf_normalize(event)
         return self.logprob_inclusion_exclusion(event_dnf)
 
     def logprob_inclusion_exclusion(self, event):
         # Adopting Inclusion--Exclusion principle for DNF event:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
-        dnf_factor = factor_dnf_symbols(event, self.lookup)
-        indexes = range(len(dnf_factor))
+        event_factor = dnf_factor(event, self.lookup)
+        indexes = range(len(event_factor))
         subsets = powerset(indexes, start=1)
         # Compute probabilities of all the conjunctions.
         (logps_pos, logps_neg) = ([], [])
         for J in subsets:
             # Find indexes of children that are involved in clauses J.
-            keys = set(chain.from_iterable(dnf_factor[j].keys() for j in J))
+            keys = set(chain.from_iterable(event_factor[j].keys() for j in J))
             # Factorize events across the product.
             logprobs = [
-                self.get_clause_weight_subset(dnf_factor, J, key)
+                self.get_clause_weight_subset(event_factor, J, key)
                 for key in keys
             ]
             logprob = sum(logprobs)
@@ -325,9 +325,9 @@ class ProductSPN(SPN):
 
     def condition(self, event):
         # Discard all probability zero clauses or fail if all are.
-        clauses = event_to_disjoint_union(event)
-        dnf_factor = factor_dnf_symbols(clauses, self.lookup)
-        logps = [self.get_clause_weight(clause) for clause in dnf_factor]
+        event_disjiont = dnf_to_disjoint_union(event)
+        event_factor = dnf_factor(event_disjiont, self.lookup)
+        logps = [self.get_clause_weight(clause) for clause in event_factor]
         assert allclose(logsumexp(logps), self.logprob(event))
         indexes = [i for (i, lp) in enumerate(logps) if not isinf_neg(lp)]
         if not indexes:
@@ -335,7 +335,7 @@ class ProductSPN(SPN):
                 % (str(event),))
         # Return a sum of products.
         weights = lognorm([logps[i] for i in indexes])
-        childrens = [self.get_clause_children(dnf_factor[i]) for i in indexes]
+        childrens = [self.get_clause_children(event_factor[i]) for i in indexes]
         products = [ProductSPN(children) for children in childrens]
         return SumSPN(products, weights) if len(products) > 1 else products[0]
 
@@ -353,9 +353,9 @@ class ProductSPN(SPN):
             for k, spn in enumerate(self.children)
         ])
 
-    def get_clause_weight_subset(self, dnf_factor, J, key):
+    def get_clause_weight_subset(self, event_factor, J, key):
         # Return probability of conjunction of |J| clauses, for given key.
-        events = [dnf_factor[j][key] for j in J if key in dnf_factor[j]]
+        events = [event_factor[j][key] for j in J if key in event_factor[j]]
         if not events:
             return -inf
         # Compute probability of events.

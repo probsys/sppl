@@ -8,7 +8,7 @@ import pytest
 import numpy
 import sympy
 
-from spn.dnf import event_to_disjoint_union
+from spn.dnf import dnf_to_disjoint_union
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
@@ -257,7 +257,7 @@ def test_product_disjoint_union_numerical():
         ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3)) | (Z < 0),
         ((X > 0) & (Y < 1)) | ((X < 1) & (Y < 3)) | (Z < 0) | ~(X <<{1, 3}),
     ]:
-        clauses = event_to_disjoint_union(event)
+        clauses = dnf_to_disjoint_union(event)
         logps = [spn.logprob(s) for s in clauses.subexprs]
         assert allclose(logsumexp(logps), spn.logprob(event))
 
