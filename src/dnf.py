@@ -70,7 +70,7 @@ def factor_dnf_symbols(event, lookup):
 
     assert False, 'Invalid DNF event: %s' % (event,)
 
-def solve_dnf_symbolwise(dnf_factor, indexes=None):
+def solve_dnf_symbolwise(dnf_factor):
     # Given a factored event (in DNF) where distinct symbols have
     # distinct keys, returns a list R of dictionaries where
     # R[i][s] is the solution of the events in the i-th DNF clause with
@@ -91,23 +91,19 @@ def solve_dnf_symbolwise(dnf_factor, indexes=None):
     # ]
     solutions = [None]*len(dnf_factor)
     for i, event_mapping in enumerate(dnf_factor):
-        if indexes is not None and i not in indexes:
-            continue
         solutions[i] = {}
         for symbol, ev in event_mapping.items():
             solutions[i][symbol] = ev.solve()
     return solutions
 
-def find_dnf_non_disjoint_clauses(event, indexes=None):
-    # Given an event in DNF, returns list of pairs of clauses
-    # whose solutions have a non-empty intersections.
-    # The "indexes" parameter is used to specify the clauses to consider
-    # (all are considered by default).
+def find_dnf_non_disjoint_clauses(event):
+    # Given an event in DNF, returns a dictionary R
+    # such that R[j] = [i | i < j and event[i] intersects event[j]]
     dnf_factor = factor_dnf(event)
-    solutions = solve_dnf_symbolwise(dnf_factor, indexes)
-    non_disjoint = []
+    solutions = solve_dnf_symbolwise(dnf_factor)
 
-    clauses = range(len(dnf_factor)) if indexes is None else indexes
+    clauses = range(len(dnf_factor))
+    overlap_dict = {}
     for i, j in combinations(clauses, 2):
         # Intersections of events in i with those in j.
         intersections_symbols_i = {
@@ -123,9 +119,11 @@ def find_dnf_non_disjoint_clauses(event, indexes=None):
         # Clauses are non disjoint if all symbols intersect.
         intersections = {**intersections_symbols_i, **intersections_symbols_j}
         if all(s is not EmptySet for s in intersections.values()):
-            non_disjoint.append((i, j))
+            if j not in overlap_dict:
+                overlap_dict[j] = []
+            overlap_dict[j].append(i)
 
-    return non_disjoint
+    return overlap_dict
 
 def event_to_disjoint_union(event):
     event_dnf = event.to_dnf()
@@ -133,18 +131,15 @@ def event_to_disjoint_union(event):
     if isinstance(event_dnf, (EventBasic, EventAnd)):
         return event_dnf
     # Find indexes of pairs of clauses that overlap.
-    overlap = find_dnf_non_disjoint_clauses(event_dnf)
-    if not overlap:
+    overlap_dict = find_dnf_non_disjoint_clauses(event_dnf)
+    if not overlap_dict:
         return event_dnf
     # Create the cascading negated clauses.
     n_clauses = len(event_dnf.subexprs)
-    overlap_dict = {i : [prev for (prev, j) in overlap if (j == i)]
-        for i in range(n_clauses)
-    }
     clauses_disjoint = [
         reduce(
             lambda state, event: state & ~event,
-            (event_dnf.subexprs[j] for j in overlap_dict[i]),
+            (event_dnf.subexprs[j] for j in overlap_dict.get(i, [])),
             event_dnf.subexprs[i])
         for i in range(n_clauses)
     ]

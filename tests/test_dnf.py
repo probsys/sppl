@@ -202,36 +202,27 @@ def test_find_dnf_non_disjoint_clauses():
 
     event = (X > 0) | (Y < 0)
     overlaps = find_dnf_non_disjoint_clauses(event)
-    assert overlaps == [(0, 1)]
-
-    overlaps = find_dnf_non_disjoint_clauses(event, indexes=[1])
-    assert overlaps == []
-
-    overlaps = find_dnf_non_disjoint_clauses(event, indexes=[2])
-    assert overlaps == []
+    assert overlaps == {1: [0]}
 
     event = (X > 0) | ((X < 0) & (Y < 0))
     overlaps = find_dnf_non_disjoint_clauses(event)
-    assert overlaps == []
+    assert not overlaps
 
     event = ((X > 0) & (Z < 0)) | ((X < 0) & (Y < 0)) | ((X > 1))
     overlaps = find_dnf_non_disjoint_clauses(event)
-    assert overlaps == [(0, 2)]
-
-    overlaps = find_dnf_non_disjoint_clauses(event, indexes=[1, 2])
-    assert overlaps == []
+    assert overlaps == {2: [0]}
 
     event = ((X > 0) & (Z < 0)) | ((X < 0) & (Y < 0)) | ((X > 1) & (Z > 1))
     overlaps = find_dnf_non_disjoint_clauses(event)
-    assert overlaps == []
+    assert not overlaps
 
     event = ((X**2 < 9)) | (1 < X)
     overlaps = find_dnf_non_disjoint_clauses(event)
-    assert overlaps == [(0, 1)]
+    assert overlaps == {1: [0]}
 
     event = ((X**2 < 9) & (0 < X < 1)) | (1 < X)
     overlaps = find_dnf_non_disjoint_clauses(event)
-    assert overlaps == []
+    assert not overlaps
 
 def test_event_to_disjiont_union_numerical():
     X = Identity('X')
