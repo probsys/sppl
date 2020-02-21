@@ -292,19 +292,19 @@ class Transform(object):
     def __lshift__(self, x):
         if isinstance(x, ContainersFinite):
             values = list(x)
-            values_num = sympy.FiniteSet(*[v for v in values if is_number(v)])
-            values_str = NominalSet(*[sympify_nominal(v) for v in values if is_nominal(v)])
+            values_num = [v for v in values if is_number(v)]
+            values_str = [sympify_nominal(v) for v in values if is_nominal(v)]
             if len(values_num) + len(values_str) != len(values):
                 raise ValueError('Only numeric or symbolic values, not %s'
                     % (str(x,)))
             if values_num and values_str:
-                event_num = EventFiniteReal(self, values_num)
-                event_str = EventFiniteNominal(self, values_str)
+                event_num = EventFiniteReal(self, sympy.FiniteSet(*values_num))
+                event_str = EventFiniteNominal(self, NominalSet(*values_str))
                 return EventOr([event_num, event_str])
             if values_num:
-                return EventFiniteReal(self, values_num)
+                return EventFiniteReal(self, sympy.FiniteSet(*values_num))
             if values_str:
-                return EventFiniteNominal(self, values_str)
+                return EventFiniteNominal(self, NominalSet(*values_str))
             assert len(values) == 0
             return EventFiniteReal(self, values)
 
