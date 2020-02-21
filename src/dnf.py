@@ -105,23 +105,22 @@ def find_dnf_non_disjoint_clauses(event):
     clauses = range(len(dnf_factor))
     overlap_dict = {}
     for i, j in combinations(clauses, 2):
-        # Intersections of events in i with those in j.
-        intersections_symbols_i = {
+        # Exit if any symbol in i does not intersect a symbol in j.
+        intersections = {
             symbol: Intersection(solutions[i][symbol], solutions[j][symbol])
                 if (symbol in solutions[j]) else solutions[i][symbol]
             for symbol in solutions[i]
         }
-        # Intersections of events only in j.
-        intersections_symbols_j = {
-            symbol: solutions[j][symbol]
-            for symbol in solutions[j] if symbol not in solutions[i]
-        }
-        # Clauses are non disjoint if all symbols intersect.
-        intersections = {**intersections_symbols_i, **intersections_symbols_j}
-        if all(s is not EmptySet for s in intersections.values()):
-            if j not in overlap_dict:
-                overlap_dict[j] = []
-            overlap_dict[j].append(i)
+        if any(x is EmptySet for x in intersections.values()):
+            continue
+        # Exit if any symbol in j is EmptySet.
+        if any(solutions[j] is EmptySet
+                for symbol in solutions[j] if symbol not in solutions[i]):
+            continue
+        # All symbols intersect, so clauses overlap.
+        if j not in overlap_dict:
+            overlap_dict[j] = []
+        overlap_dict[j].append(i)
 
     return overlap_dict
 
