@@ -18,7 +18,7 @@ from sympy import Union
 
 from .dnf import event_to_disjoint_union
 from .dnf import factor_dnf_symbols
-from .dnf import find_dnf_non_disjoint_clauses
+from .dnf import normalize_event
 
 from .math_util import allclose
 from .math_util import flip
@@ -157,7 +157,8 @@ class SumSPN(SPN):
         return list(chain.from_iterable(samples))
 
     def logprob(self, event):
-        logps = [spn.logprob(event) for spn in self.children]
+        event_dnf = normalize_event(event)
+        logps = [spn.logprob(event_dnf) for spn in self.children]
         return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
 
     def logpdf(self, x):
@@ -290,13 +291,13 @@ class ProductSPN(SPN):
         return logsumexp(logps)
 
     def logprob(self, event):
-        return self.logprob_inclusion_exclusion(event)
+        event_dnf = normalize_event(event)
+        return self.logprob_inclusion_exclusion(event_dnf)
 
     def logprob_inclusion_exclusion(self, event):
-        # Adopting Inclusion--Exclusion principle:
+        # Adopting Inclusion--Exclusion principle for DNF event:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
-        expr_dnf = event.to_dnf()
-        dnf_factor = factor_dnf_symbols(expr_dnf, self.lookup)
+        dnf_factor = factor_dnf_symbols(event, self.lookup)
         indexes = range(len(dnf_factor))
         subsets = powerset(indexes, start=1)
         # Compute probabilities of all the conjunctions.

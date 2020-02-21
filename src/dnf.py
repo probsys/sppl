@@ -2,7 +2,6 @@
 # See LICENSE.txt
 
 from functools import reduce
-from itertools import chain
 from itertools import combinations
 
 from sympy import Intersection
@@ -70,37 +69,27 @@ def factor_dnf_symbols(event, lookup):
 
     assert False, 'Invalid DNF event: %s' % (event,)
 
-def solve_dnf_symbolwise(dnf_factor):
-    # Given a factored event (in DNF) where distinct symbols have
-    # distinct keys, returns a list R of dictionaries where
-    # R[i][s] is the solution of the events in the i-th DNF clause with
-    # symbol s.
-    #
-    # For example, if e is any predicate
-    # event = (e(X0) & e(X1) & ~e(X2)) | (~e(X1) & e(X2) & e(X3) & ~e(X3)))
-    # The output is
-    # R = [
-    #   { // First clause
-    #       X0: solve(e(X0)),
-    #       X1: solve(e(X1)),
-    #       X2: solve(e(X2))},
-    #   { // Second clause
-    #       X0: solve(~e(X1)),
-    #       X2: solve(e(X2)),
-    #       X3: solve(e(X3) & ~e(X3))},
-    # ]
-    solutions = [None]*len(dnf_factor)
-    for i, event_mapping in enumerate(dnf_factor):
-        solutions[i] = {}
-        for symbol, ev in event_mapping.items():
-            solutions[i][symbol] = ev.solve()
-    return solutions
+def normalize_event(event):
+    # Given an arbitrary event, rewrite in terms of only Identity by
+    # solving the subexpressions and return the resulting DNF formula.
+    expr_dnf = event.to_dnf()
+    dnf_factor = factor_dnf(expr_dnf)
+    conjunctions = [
+        reduce(lambda x, e: x & e,
+            [(symbol << ev.solve()) for symbol, ev in clause.items()])
+        for clause in dnf_factor
+    ]
+    disjunctions = reduce(lambda x, e: x|e, conjunctions)
+    return disjunctions.to_dnf()
 
 def find_dnf_non_disjoint_clauses(event):
     # Given an event in DNF, returns a dictionary R
     # such that R[j] = [i | i < j and event[i] intersects event[j]]
     dnf_factor = factor_dnf(event)
-    solutions = solve_dnf_symbolwise(dnf_factor)
+    solutions = [
+        {symbol: ev.solve() for symbol, ev in clause.items()}
+        for clause in dnf_factor
+    ]
 
     clauses = range(len(dnf_factor))
     overlap_dict = {}
