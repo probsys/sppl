@@ -307,9 +307,18 @@ class Transform(object):
                 return EventFiniteNominal(self, NominalSet(*values_str))
             assert len(values) == 0
             return EventFiniteReal(self, values)
-
         if isinstance(x, sympy.Interval):
             return EventInterval(self, x)
+        if isinstance(x, sympy.Complement):
+            assert is_nominal_set(x.args[1])
+            if x.args[0] is UniversalSet:
+                return ~(self << x.args[1])
+            if not is_nominal_set(x.args[0]):
+                return self << x.args[0]
+            assert False, 'Impossible Complement: %s' % (x,)
+        if isinstance(x, sympy.Union):
+            events = [self << y for y in x.args]
+            return reduce(lambda state, event: state | event, events)
         return NotImplemented
 
 # ==============================================================================
