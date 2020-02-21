@@ -233,7 +233,7 @@ def test_find_dnf_non_disjoint_clauses():
     overlaps = find_dnf_non_disjoint_clauses(event)
     assert overlaps == []
 
-def test_event_to_disjiont_union():
+def test_event_to_disjiont_union_numerical():
     X = Identity('X')
     Y = Identity('Y')
     Z = Identity('Z')
