@@ -70,13 +70,19 @@ def dnf_factor(event, lookup=None):
 
 def dnf_normalize(event):
     # Given an arbitrary event, rewrite in terms of only Identity by
-    # solving the subexpressions and return the resulting DNF formula.
+    # solving the subexpressions and return the resulting DNF formula,
+    # or None if all solutions evaluate to EmptySet.
     event_dnf = event.to_dnf()
     event_factor = dnf_factor(event_dnf)
-    conjunctions = [
-        reduce(lambda x, e: x & e,
-            [(symbol << ev.solve()) for symbol, ev in clause.items()])
+    solutions = list(filter(lambda x: all(y[1] is not EmptySet for y in x), [
+        [(symbol, ev.solve()) for symbol, ev in clause.items()]
         for clause in event_factor
+    ]))
+    if not solutions:
+        return None
+    conjunctions = [
+        reduce(lambda x, e: x & e, [(symbol << S) for symbol, S in clause])
+        for clause in solutions
     ]
     disjunctions = reduce(lambda x, e: x|e, conjunctions)
     return disjunctions.to_dnf()

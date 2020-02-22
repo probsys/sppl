@@ -158,6 +158,8 @@ class SumSPN(SPN):
 
     def logprob(self, event):
         event_dnf = dnf_normalize(event)
+        if event_dnf is None:
+            return -inf
         logps = [spn.logprob(event_dnf) for spn in self.children]
         return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
 
@@ -292,6 +294,8 @@ class ProductSPN(SPN):
 
     def logprob(self, event):
         event_dnf = dnf_normalize(event)
+        if event_dnf is None:
+            return -inf
         return self.logprob_inclusion_exclusion(event_dnf)
 
     def logprob_inclusion_exclusion(self, event):
