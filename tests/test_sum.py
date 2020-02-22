@@ -9,15 +9,15 @@ import pytest
 import numpy
 import sympy
 
+from spn.distributions import Gamma
+from spn.distributions import Norm
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
 from spn.math_util import logsumexp
-from spn.distributions import Gamma
-from spn.distributions import Norm
+from spn.spn import ContinuousReal
 from spn.spn import ExposedSumSPN
 from spn.spn import NominalDistribution
-from spn.spn import ContinuousReal
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 from spn.sym_util import NominalSet

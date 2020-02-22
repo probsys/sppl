@@ -4,8 +4,8 @@
 from fractions import Fraction
 from math import log
 
-import pytest
 import numpy
+import pytest
 
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
