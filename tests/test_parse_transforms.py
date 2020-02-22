@@ -537,6 +537,16 @@ def test_event_containment_mixed():
         X << {'a'}
     ])
 
+def test_event_containment_union():
+    assert (X << sympy.Union(sympy.Interval(0, 1), sympy.Interval(2, 3))) \
+        == (((0 <= X) <= 1) | ((2 <= X) <= 3))
+    assert (X << sympy.Union(sympy.FiniteSet(0, 1), sympy.Interval(2, 3))) \
+        == ((X << {0, 1}) | ((2 <= X) <= 3))
+    assert (X << sympy.Complement(UniversalSet, NominalSet('a'))) \
+        == EventFiniteNominal(X, sympy.Complement(UniversalSet, NominalSet('a')))
+    assert (X << sympy.Complement(sympy.Interval(0, 1), NominalSet('a')))\
+        == ((0 <= X) <= 1)
+
 def test_event_basic_simplifications():
     assert (1 < X) & (3 < X) == (3 < X)
     assert (1 < X) & (X < 5) == ((1 < X) < 5)

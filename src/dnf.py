@@ -2,7 +2,6 @@
 # See LICENSE.txt
 
 from functools import reduce
-from itertools import chain
 from itertools import combinations
 
 from sympy import Intersection
@@ -13,11 +12,7 @@ from .transforms import EventAnd
 from .transforms import EventBasic
 from .transforms import EventOr
 
-def factor_dnf(event):
-    lookup = {s:s for s in event.symbols()}
-    return factor_dnf_symbols(event, lookup)
-
-def factor_dnf_symbols(event, lookup):
+def dnf_factor(event, lookup=None):
     # Given an event (in DNF) and a dictionary lookup mapping symbols
     # to integers, this function returns a list R of dictionaries
     # R[i][j] is a conjunction events in the i-th DNF clause whose symbols
@@ -36,6 +31,9 @@ def factor_dnf_symbols(event, lookup):
     #       1: ~e(X1) & e(X3)},
     #       2: e(X4)},
     # ]
+    if lookup is None:
+        lookup = {s:s for s in event.symbols()}
+
     if isinstance(event, EventBasic):
         # Literal.
         symbols = event.symbols()
@@ -46,7 +44,7 @@ def factor_dnf_symbols(event, lookup):
     if isinstance(event, EventAnd):
         # Conjunction.
         assert all(isinstance(e, EventBasic) for e in event.subexprs)
-        mappings = [factor_dnf_symbols(e, lookup) for e in event.subexprs]
+        mappings = [dnf_factor(e, lookup) for e in event.subexprs]
         events = {}
         for mapping in mappings:
             assert len(mapping) == 1
@@ -60,7 +58,7 @@ def factor_dnf_symbols(event, lookup):
     if isinstance(event, EventOr):
         # Disjunction.
         assert all(isinstance(e, (EventAnd, EventBasic)) for e in event.subexprs)
-        mappings = [factor_dnf_symbols(e, lookup) for e in event.subexprs]
+        mappings = [dnf_factor(e, lookup) for e in event.subexprs]
         events = [None] * len(mappings)
         for i, mapping in enumerate(mappings):
             events[i] = {}
@@ -70,85 +68,72 @@ def factor_dnf_symbols(event, lookup):
 
     assert False, 'Invalid DNF event: %s' % (event,)
 
-def solve_dnf_symbolwise(dnf_factor, indexes=None):
-    # Given a factored event (in DNF) where distinct symbols have
-    # distinct keys, returns a list R of dictionaries where
-    # R[i][s] is the solution of the events in the i-th DNF clause with
-    # symbol s.
-    #
-    # For example, if e is any predicate
-    # event = (e(X0) & e(X1) & ~e(X2)) | (~e(X1) & e(X2) & e(X3) & ~e(X3)))
-    # The output is
-    # R = [
-    #   { // First clause
-    #       X0: solve(e(X0)),
-    #       X1: solve(e(X1)),
-    #       X2: solve(e(X2))},
-    #   { // Second clause
-    #       X0: solve(~e(X1)),
-    #       X2: solve(e(X2)),
-    #       X3: solve(e(X3) & ~e(X3))},
-    # ]
-    solutions = [None]*len(dnf_factor)
-    for i, event_mapping in enumerate(dnf_factor):
-        if indexes is not None and i not in indexes:
-            continue
-        solutions[i] = {}
-        for symbol, ev in event_mapping.items():
-            solutions[i][symbol] = ev.solve()
-    return solutions
+def dnf_normalize(event):
+    # Given an arbitrary event, rewrite in terms of only Identity by
+    # solving the subexpressions and return the resulting DNF formula.
+    event_dnf = event.to_dnf()
+    event_factor = dnf_factor(event_dnf)
+    conjunctions = [
+        reduce(lambda x, e: x & e,
+            [(symbol << ev.solve()) for symbol, ev in clause.items()])
+        for clause in event_factor
+    ]
+    disjunctions = reduce(lambda x, e: x|e, conjunctions)
+    return disjunctions.to_dnf()
 
-def find_dnf_non_disjoint_clauses(event, indexes=None):
-    # Given an event in DNF, returns list of pairs of clauses
-    # whose solutions have a non-empty intersections.
-    # The "indexes" parameter is used to specify the clauses to consider
-    # (all are considered by default).
-    dnf_factor = factor_dnf(event)
-    solutions = solve_dnf_symbolwise(dnf_factor, indexes)
-    non_disjoint = []
+def dnf_non_disjoint_clauses(event):
+    # Given an event in DNF, returns a dictionary R
+    # such that R[j] = [i | i < j and event[i] intersects event[j]]
+    event_factor = dnf_factor(event)
+    solutions = [
+        {symbol: ev.solve() for symbol, ev in clause.items()}
+        for clause in event_factor
+    ]
 
-    clauses = range(len(dnf_factor)) if indexes is None else indexes
-    for i, j in combinations(clauses, 2):
-        # Intersections of events in i with those in j.
-        intersections_symbols_i = {
+    n_clauses = len(event_factor)
+    overlap_dict = {}
+    for i, j in combinations(range(n_clauses), 2):
+        # Exit if any symbol in i does not intersect a symbol in j.
+        intersections = {
             symbol: Intersection(solutions[i][symbol], solutions[j][symbol])
                 if (symbol in solutions[j]) else solutions[i][symbol]
             for symbol in solutions[i]
         }
-        # Intersections of events only in j.
-        intersections_symbols_j = {
-            symbol: solutions[j][symbol]
-            for symbol in solutions[j] if symbol not in solutions[i]
-        }
-        # Clauses are non disjoint if all symbols intersect.
-        intersections = {**intersections_symbols_i, **intersections_symbols_j}
-        if all(s is not EmptySet for s in intersections.values()):
-            non_disjoint.append((i, j))
+        if any(x is EmptySet for x in intersections.values()):
+            continue
+        # Exit if any symbol in j is EmptySet.
+        if any(solutions[j] is EmptySet
+                for symbol in solutions[j] if symbol not in solutions[i]):
+            continue
+        # All symbols intersect, so clauses overlap.
+        if j not in overlap_dict:
+            overlap_dict[j] = []
+        overlap_dict[j].append(i)
 
-    return non_disjoint
+    return overlap_dict
 
-def event_to_disjoint_union(event):
+def dnf_to_disjoint_union(event):
+    # Given an arbitrary event, returns an event in DNF where all the
+    # clauses are disjoint from one another, by recursively solving the
+    # identity E = (A or B or C) = (A) or (B and ~A) or (C and ~A and ~B).
     event_dnf = event.to_dnf()
     # Base case.
     if isinstance(event_dnf, (EventBasic, EventAnd)):
         return event_dnf
     # Find indexes of pairs of clauses that overlap.
-    overlap = find_dnf_non_disjoint_clauses(event_dnf)
-    if not overlap:
+    overlap_dict = dnf_non_disjoint_clauses(event_dnf)
+    if not overlap_dict:
         return event_dnf
     # Create the cascading negated clauses.
     n_clauses = len(event_dnf.subexprs)
-    overlap_dict = {i : [prev for (prev, j) in overlap if (j == i)]
-        for i in range(n_clauses)
-    }
     clauses_disjoint = [
         reduce(
             lambda state, event: state & ~event,
-            (event_dnf.subexprs[j] for j in overlap_dict[i]),
+            (event_dnf.subexprs[j] for j in overlap_dict.get(i, [])),
             event_dnf.subexprs[i])
         for i in range(n_clauses)
     ]
     # Recursively find the solutions for each clause.
-    solutions = [event_to_disjoint_union(clause) for clause in clauses_disjoint]
+    solutions = [dnf_to_disjoint_union(clause) for clause in clauses_disjoint]
     # Return the merged solution.
     return reduce(lambda a, b: a|b, solutions)

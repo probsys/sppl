@@ -26,12 +26,14 @@ from .sym_util import ExtRealsPos
 from .sym_util import Reals
 from .sym_util import UniversalSet
 
-from .sym_util import NominalSet
 from .sym_util import ContainersFinite
+from .sym_util import NominalSet
 from .sym_util import complement_nominal_set
-from .sym_util import is_number
+from .sym_util import is_nominal
 from .sym_util import is_nominal_set
+from .sym_util import is_number
 from .sym_util import is_numeric_set
+from .sym_util import sympify_nominal
 from .sym_util import sympify_number
 
 # ==============================================================================
@@ -290,24 +292,33 @@ class Transform(object):
     def __lshift__(self, x):
         if isinstance(x, ContainersFinite):
             values = list(x)
-            values_num = sympy.FiniteSet(*[v for v in values if is_number(v)])
-            values_str = NominalSet(*[v for v in values if isinstance(v, str)])
+            values_num = [v for v in values if is_number(v)]
+            values_str = [sympify_nominal(v) for v in values if is_nominal(v)]
             if len(values_num) + len(values_str) != len(values):
                 raise ValueError('Only numeric or symbolic values, not %s'
                     % (str(x,)))
             if values_num and values_str:
-                event_num = EventFiniteReal(self, values_num)
-                event_str = EventFiniteNominal(self, values_str)
+                event_num = EventFiniteReal(self, sympy.FiniteSet(*values_num))
+                event_str = EventFiniteNominal(self, NominalSet(*values_str))
                 return EventOr([event_num, event_str])
             if values_num:
-                return EventFiniteReal(self, values_num)
+                return EventFiniteReal(self, sympy.FiniteSet(*values_num))
             if values_str:
-                return EventFiniteNominal(self, values_str)
+                return EventFiniteNominal(self, NominalSet(*values_str))
             assert len(values) == 0
             return EventFiniteReal(self, values)
-
         if isinstance(x, sympy.Interval):
             return EventInterval(self, x)
+        if isinstance(x, sympy.Complement):
+            assert is_nominal_set(x.args[1])
+            if x.args[0] is UniversalSet:
+                return ~(self << x.args[1])
+            if not is_nominal_set(x.args[0]):
+                return self << x.args[0]
+            assert False, 'Impossible Complement: %s' % (x,)
+        if isinstance(x, sympy.Union):
+            events = [self << y for y in x.args]
+            return reduce(lambda state, event: state | event, events)
         return NotImplemented
 
 # ==============================================================================
