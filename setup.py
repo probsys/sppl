@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
@@ -36,7 +35,6 @@ def get_version():
         with open('VERSION', 'r') as f:
             version = f.read().strip()
             return version, version
-
 
     # git describe a commit using the most recent tag reachable from it.
     # Release tags start with v* (XXX what about other tags starting with v?)
