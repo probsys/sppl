@@ -842,6 +842,9 @@ class EventBasic(Event):
         return isinstance(event, type(self)) \
             and (self.values == event.values) \
             and (self.subexpr == event.subexpr)
+    def __hash__(self):
+        x = (self.__class__, self.subexpr)
+        return hash(x)
 
 class EventInterval(EventBasic):
     def __init__(self, subexpr, values):
