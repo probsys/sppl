@@ -1,0 +1,71 @@
+Probabilistic Programming with Sum-Product Networks
+===================================================
+
+1. Installation
+
+Please install Python 3 dependencies in requirements.txt.
+
+2. Tests
+
+Run the following command in the shell:
+
+    $ ./check.sh
+
+3. Specification
+
+Primitive Domain Variables
+
+  n ∈ Naturals
+  r ∈ Reals
+  p ∈ [0, 1]
+  s ∈ Strings
+  x ∈ Vars
+
+Query Language
+
+  t ∈ Transforms :=
+    id(x)                       [Identity]      // One-to-One
+    | 1/t                       [Reciprocal]    // One-to-One
+    | ⁿ√t                       [Radical]       // One-to-One
+    | rᵗ                        [Exp]           // One-to-One
+    | logᵣ(t)                   [Log]           // One-to-One
+    | abs(t)                    [Abs]           // Many-to-One
+    | r₀ + r₁t + … + rₘtᵐ       [Poly]          // Many-to-One
+    | ϕ₁t₁ + ϕ₂t₂ + ... + ϕₙtₙ  [Piecewise]     // Many-to-One
+    | ϕ                         [Predicate]     // Many-to-One
+
+  invert :: Transform -> ℙ(Reals) -> ℙ(Reals)
+
+  v ∈ Outcomes :=
+    (a, b)              [RealInterval]
+    | {r₁, …, rₘ}       [RealFinite]
+    | {s₁, …, sₘ}       [NominalFinite]
+
+  ϕ ∈ Event :=
+    | t << v            [Containment]
+    | ϕ₁ ∩ ϕ₂           [Conjunction]
+    | ϕ₁ ∪ ϕ₂           [Disjunction]
+    | ~ϕ                [Negation]
+
+  solve :: ϕ -> ℙ(Reals)
+
+  Remark: An Event ϕ is a Boolean-valued Transform t, thus
+    [solve ϕ] := [invert ϕ {1}].
+
+Modeling Language
+
+  θ ∈ CDF
+  d ∈ Dist :=
+    {sᵢ:pᵢ ∣ i=1, …, m}         [Nominal]
+    | Continuous Θ              [RealContinuous]
+    | Discrete Θ                [RealDiscrete]
+
+  s ∈ SPN :=
+    | x ~ l                       [Leaf]
+    | s₁ ⊗ s₂                     [Product]
+    | s₁ ⊕ₚ s₂                    [Sum]
+    | if [s₀ ϕ] then s₁ else s₂   [IfElse]
+
+  logprob             :: SPN -> ϕ -> Reals
+  condition           :: SPN -> ϕ -> SPN
+  mutual-information  :: SPN -> ϕ₁ -> ϕ₂ -> Reals
