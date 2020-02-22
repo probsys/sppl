@@ -1,4 +1,4 @@
-## Probabilistic Programming with Sum--Product Networks
+## Probabilistic Programming with Sum-Product Networks
 
 ### Installation
 

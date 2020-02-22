@@ -116,7 +116,7 @@ class local_sdist(sdist):
 setup(
     name='spn',
     version=PKG_VERSION,
-    description='A Query Language for Conditional Simulation',
+    description='Probabilistic Programming with Sum-Product Networks',
     url='https://github.com/probcomp/sum-product-dsl',
     license='Apache-2.0',
     maintainer='Feras A. Saad',
@@ -125,7 +125,7 @@ setup(
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.5',
     ],
     packages=[
         'spn',
