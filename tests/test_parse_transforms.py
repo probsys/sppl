@@ -565,12 +565,25 @@ def test_event_basic_simplifications():
     assert (X << {'2'}) & (~(X << {'a'})) == (X << {'2'})
     assert (X << {1}) & (~(X << {'a'})) == (X << {1})
 
+    # GOTCHA: ~(X << {2}) is a union of reals which do not
+    # intersect the nominals.
+    # assert ~(X << {2}) & (X << {'a'}) == X << {'a'}
+    assert (X < 1) & (X << {'a'}) == EventFiniteReal(X, EmptySet)
+
+    # Complement case in Event.__and__
+    assert ((0 <= X) < 1) & (~(X << {'a'})) == ((0 <= X) < 1)
+
     assert (X << {2}) & (X << {'a'}) == X << EmptySet
     assert (X << {'a'}) & (X << {1}) == X << EmptySet
     assert (X << EmptySet) & (X << EmptySet) == X << EmptySet
     assert (X << EmptySet) & (~(X << EmptySet)) == X << EmptySet
+    assert (X << {'a'}) & ~(X << {'b'}) == (X << {'a'})
 
-    # TODO: Consider adding case for Complement in
-    # EventBasic.__or__
-    with pytest.raises(AssertionError):
-        assert (X << {1}) | (~(X << {'a'})) == ~(X << {'a'})
+    # Complement case in Event.__or__.
+    assert (X << {1}) | (~(X << {'a'})) == ~(X << {'a'})
+    assert (X << {'a'}) | ~(X << {'b'}) == ~(X << {'b'})
+
+def test_event_complex_simplification():
+    # De Morgan's case in EventFinteNominal.__or__.
+    assert ~(X << {'a'}) | ~(X << {'b'}) == EventFiniteNominal(X, UniversalSet)
+    assert ~(X << {'a'}) | ~(X << {'a', 'b'}) == ~(X << {'a'})
