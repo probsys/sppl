@@ -269,16 +269,17 @@ def test_product_disjoint_union_nominal():
     perfect = NominalDistribution(P, {'Imperfect': 0.99, 'Perfect': 0.01})
     student = nationality & perfect
 
-    branch_1 = (N << {'India'}) & (P << {'Imperfect'})
-    branch_2 = (N << {'India'}) & (P << {'Perfect'})
-    branch_3 = (N << {'USA'}) & (P << {'Imperfect'})
-    branch_4 = (N << {'USA'}) & (P << {'Perfect'})
+    condition_1 = (N << {'India'}) & (P << {'Imperfect'})
+    condition_2 = (N << {'India'}) & (P << {'Perfect'})
+    condition_3 = (N << {'USA'}) & (P << {'Imperfect'})
+    condition_4 = (N << {'USA'}) & (P << {'Perfect'})
 
-    assert allclose(
-        student.prob(branch_1), 0.5*0.99)
-    assert allclose(
-        student.prob(branch_2 & ~branch_1), 0.5*0.01)
-    assert allclose(
-        student.prob(branch_3 & ~branch_2 & ~branch_1), 0.5*0.99)
-    assert allclose(
-        student.prob(branch_4 & ~branch_3 & ~branch_2 & ~branch_1), 0.5*0.01)
+    event_1 = condition_1
+    event_2 = condition_2 & ~condition_1
+    event_3 = condition_3 & ~condition_2 & ~condition_1
+    event_4 = condition_4 & ~condition_3 & ~condition_2 & ~condition_1
+
+    assert allclose(student.prob(event_1), 0.5*0.99)
+    assert allclose(student.prob(event_2), 0.5*0.01)
+    assert allclose(student.prob(event_3), 0.5*0.99)
+    assert allclose(student.prob(event_4), 0.5*0.01)
