@@ -13,13 +13,26 @@ Run the following command in the shell:
 
 3. Specification
 
-Primitive Domain Variables
+Domain Variables
 
   n ∈ Naturals
   r ∈ Reals
-  p ∈ [0, 1]
+  w ∈ [0,1]
   s ∈ Strings
   x ∈ Vars
+
+SPN Language
+
+  θ ∈ CDF
+  d ∈ Dist :=
+    Nominal {sᵢ:pᵢ ∣ i=1, …, m} [Nominal]
+    | Continuous Θ              [RealContinuous]
+    | Discrete Θ                [RealDiscrete]
+
+  s ∈ SPN :=
+    (ℓ x d)                     [Leaf]
+    | (⊗ s₁ … sₘ)               [Product]
+    | (⊕ (w₁ s₁) … (wₙ sₘ))     [Sum]
 
 Query Language
 
@@ -32,9 +45,6 @@ Query Language
     | abs(t)                    [Abs]           // Many-to-One
     | r₀ + r₁t + … + rₘtᵐ       [Poly]          // Many-to-One
     | ϕ₁t₁ + ϕ₂t₂ + ... + ϕₙtₙ  [Piecewise]     // Many-to-One
-    | ϕ                         [Predicate]     // Many-to-One
-
-  invert :: Transform -> ℙ(Reals) -> ℙ(Reals)
 
   v ∈ Outcomes :=
     (a, b)              [RealInterval]
@@ -42,30 +52,54 @@ Query Language
     | {s₁, …, sₘ}       [NominalFinite]
 
   ϕ ∈ Event :=
-    | t << v            [Containment]
-    | ϕ₁ ∩ ϕ₂           [Conjunction]
-    | ϕ₁ ∪ ϕ₂           [Disjunction]
+    | t in v            [Containment]
+    | ϕ₁ and ϕ₂         [Conjunction]
+    | ϕ₁ or ϕ₂          [Disjunction]
     | ~ϕ                [Negation]
-
-  solve :: ϕ -> ℙ(Reals)
 
   Remark: An Event ϕ is a Boolean-valued Transform t, thus
     [solve ϕ] := [invert ϕ {1}].
 
-Modeling Language
-
-  θ ∈ CDF
-  d ∈ Dist :=
-    {sᵢ:pᵢ ∣ i=1, …, m}         [Nominal]
-    | Continuous Θ              [RealContinuous]
-    | Discrete Θ                [RealDiscrete]
-
-  s ∈ SPN :=
-    | x ~ l                       [Leaf]
-    | s₁ ⊗ s₂                     [Product]
-    | s₁ ⊕ₚ s₂                    [Sum]
-    | if [s₀ ϕ] then s₁ else s₂   [IfElse]
-
+  invert              :: Transform -> ℙ(Reals) -> ℙ(Reals)
+  solve               :: Event -> ℙ(Reals)
   logprob             :: SPN -> ϕ -> Reals
   condition           :: SPN -> ϕ -> SPN
   mutual-information  :: SPN -> ϕ₁ -> ϕ₂ -> Reals
+
+Modeling Language
+
+  c ∈ Command :=
+    | x ~ d
+    | x ← t
+    | if ϕ then c₁ else c₂
+    | c₁ ; c₂
+
+Small Step Semantics
+
+  The semantics of a program is a sum-product network.
+  More specifically, the program state is a pair (s, σ) where
+    σ ∈ Vars → Transforms
+    s ∈ SPN
+
+    For any predicate ϕ ∈ Event and environment σ, define
+    ϕ[σ] = case ϕ of
+      t in v    | var(t) ∈ σ -> [σ[var(t)]] in v
+                | otherwise -> ϕ
+      ϕ₁ and ϕ₂ -> (ϕ₁[σ] and ϕ₂[σ])
+      ϕ₁ or ϕ₂ -> (ϕ₁[σ] or ϕ₂[σ])
+      ~ϕ -> ~ϕ[σ]
+
+[Sample]  ----------------------------------
+          ⟨(s, σ), x ~ d⟩ → (⊗ s (ℓ x d), σ)
+
+[Assign]  -----------------------------
+          ⟨(s, σ), x ← t⟩ → (s, [x\t]σ)
+
+          ⟨(s|ϕ[σ], σ), c₁⟩ → (s₁, σ₁) ⟨(s|~ϕ[σ], σ), c₂⟩ → (s₂, σ₂)
+[IfElse]  -----------------------------------------------------------
+          ⟨(s, σ), if ϕ then c₁ else c₂⟩ → ⊕ (𝐏[s, ϕ[σ]] (s₁, σ₁))
+                                             (1-𝐏[s, ϕ[σ]] (s₂, σ₂))
+
+             ⟨(s, σ), c₁ → (s₁, σ₁)  ⟨(s₁, σ₁), c₂ → (s₂, σ₂)
+[Sequence]   ------------------------------------------------
+                      ⟨(s, σ), c₁;c₂⟩ → (s₂, σ₂)
