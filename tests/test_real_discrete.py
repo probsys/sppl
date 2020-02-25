@@ -19,7 +19,7 @@ rng = numpy.random.RandomState(1)
 
 def test_poisson():
     X = Identity('X')
-    spn = Poisson(X, mu=5)
+    spn = X >> Poisson(mu=5)
 
     a = spn.logprob((1 <= X) <= 7)
     b = spn.logprob(X << {1,2,3,4,5,6,7})
@@ -80,7 +80,7 @@ def test_poisson():
 
 def test_randint():
     X = Identity('X')
-    spn = Randint(X, low=0, high=5)
+    spn = X >> Randint(low=0, high=5)
     assert spn.logprob(X < 5) == spn.logprob(X <= 4) == 0
     # i.e., X is not in [0, 3]
     spn_condition = spn.condition(~((X+1) << {1, 4}))

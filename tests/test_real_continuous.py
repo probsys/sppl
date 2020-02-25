@@ -22,7 +22,7 @@ rng = numpy.random.RandomState(1)
 
 def test_numeric_distribution_normal():
     X = Identity('X')
-    spn = Norm(X, loc=0, scale=1)
+    spn = (X >> Norm(loc=0, scale=1))
 
     assert allclose(spn.logprob(X > 0), -log(2))
     assert allclose(spn.logprob(abs(X) < 2), log(spn.dist.cdf(2) - spn.dist.cdf(-2)))
@@ -73,7 +73,7 @@ def test_numeric_distribution_normal():
 def test_numeric_distribution_gamma():
     X = Identity('X')
 
-    spn = Gamma(X, a=1, scale=1)
+    spn = (X >> Gamma(a=1, scale=1))
     with pytest.raises(ValueError):
         spn.condition((X << {1, 2}) | (X < 0))
 

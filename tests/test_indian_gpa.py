@@ -5,12 +5,12 @@ import pytest
 
 from spn.distributions import Atomic
 from spn.distributions import Uniform
+from spn.distributions import NominalDist
 from spn.math_util import allclose
 from spn.transforms import Identity
 
 from spn.combinators import IfElse
 from spn.spn import ExposedSumSPN
-from spn.spn import NominalDistribution
 
 N = Identity('N')
 P = Identity('P')
@@ -18,14 +18,14 @@ GPA = Identity('GPA')
 
 model_no_latents = \
         0.5 * ( # American student
-            0.99 * Uniform(GPA, loc=0, scale=4) | \
-            0.01 * Atomic(GPA, loc=4)) | \
+            0.99 * (GPA >> Uniform(loc=0, scale=4)) | \
+            0.01 * (GPA >> Atomic(loc=4))) | \
         0.5 * ( # Indian student
-            0.99 * Uniform(GPA, loc=0, scale=10) | \
-            0.01 * Atomic(GPA, loc=10))
+            0.99 * (GPA >> Uniform(loc=0, scale=10)) | \
+            0.01 * (GPA >> Atomic(loc=10)))
 
-nationality = NominalDistribution(N, {'India': 0.5, 'USA': 0.5})
-perfect = NominalDistribution(P, {'Imperfect': 0.99, 'Perfect': 0.01})
+nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
+perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
 model_exposed = ExposedSumSPN(
     spn_dist=nationality,
     spns={
@@ -33,42 +33,42 @@ model_exposed = ExposedSumSPN(
         'USA': ExposedSumSPN(
             spn_dist=perfect,
             spns={
-                'Imperfect'   : Uniform(GPA, loc=0, scale=4),
-                'Perfect'     : Atomic(GPA, loc=4),
+                'Imperfect'   : GPA >> Uniform(loc=0, scale=4),
+                'Perfect'     : GPA >> Atomic(loc=4),
             }),
         # Indian student.
         'India': ExposedSumSPN(
             spn_dist=perfect,
             spns={
-                'Perfect'     : Atomic(GPA, loc=10),
-                'Imperfect'   : Uniform(GPA, loc=0, scale=10),
+                'Perfect'     : GPA >> Atomic(loc=10),
+                'Imperfect'   : GPA >> Uniform(loc=0, scale=10),
             })},
     )
 
 model_ifelse_exhuastive = IfElse(nationality & perfect,
     [(N << {'India'}) & (P << {'Imperfect'}),
-        Uniform(GPA, loc=0, scale=10)
+        GPA >> Uniform(loc=0, scale=10)
     ],
     [(N << {'India'}) & (P << {'Perfect'}),
-        Atomic(GPA, loc=10)
+        GPA >> Atomic(loc=10)
     ],
     [(N << {'USA'}) & (P << {'Imperfect'}),
-        Uniform(GPA, loc=0, scale=4)
+        GPA >> Uniform(loc=0, scale=4)
     ],
     [(N << {'USA'}) & (P << {'Perfect'}),
-        Atomic(GPA, loc=4)
+        GPA >> Atomic(loc=4)
     ])
 
 model_ifelse_nested = IfElse(nationality,
     [(N << {'India'}),
         IfElse(perfect,
-            [(P << {'Imperfect'}), Uniform(GPA, loc=0, scale=10)],
-            [True, Atomic(GPA, loc=10)])
+            [(P << {'Imperfect'}), GPA >> Uniform(loc=0, scale=10)],
+            [True, GPA >> Atomic(loc=10)])
     ],
     [True,
         IfElse(perfect,
-            [(P << {'Imperfect'}), Uniform(GPA, loc=0, scale=4)],
-            [True, Atomic(GPA, loc=4)])
+            [(P << {'Imperfect'}), GPA >> Uniform(loc=0, scale=4)],
+            [True, GPA >> Atomic(loc=4)])
     ])
 
 # Known issue #1
@@ -82,16 +82,16 @@ model_ifelse_nested = IfElse(nationality,
 # the finite support of the nominal variate.
 model_ifelse_non_exhuastive = IfElse(nationality & perfect,
     [(N << {'India'}) & (P << {'Imperfect'}),
-        Uniform(GPA, loc=0, scale=10)
+        GPA >> Uniform(loc=0, scale=10)
     ],
     [(N << {'India'}) & (P << {'Perfect'}),
-        Atomic(GPA, loc=10)
+        GPA >> Atomic(loc=10)
     ],
     [(N << {'USA'}) & (P << {'Imperfect'}),
-        Uniform(GPA, loc=0, scale=4)
+        GPA >> Uniform(loc=0, scale=4)
     ],
     [True,
-        Atomic(GPA, loc=4)
+        GPA >> Atomic(loc=4)
     ])
 
 # Known issue #2
@@ -107,13 +107,13 @@ model_ifelse_non_exhuastive = IfElse(nationality & perfect,
 # model_ifelse_nested_repeat = IfElse(nationality & perfect,
 #     [(N << {'India'}),
 #         IfElse(nationality & perfect,
-#             [(P << {'Imperfect'}), Uniform(GPA, loc=0, scale=10)],
-#             [True, Atomic(GPA, loc=10)])
+#             [(P << {'Imperfect'}), GPA >> Uniform(loc=0, scale=10)],
+#             [True, GPA >> Atomic(loc=10)])
 #     ],
 #     [True,
 #         IfElse(nationality & perfect,
-#             [(P << {'Imperfect'}), Uniform(GPA, loc=0, scale=4)],
-#             [True, Atomic(GPA, loc=4)])
+#             [(P << {'Imperfect'}), GPA >> Uniform(loc=0, scale=4)],
+#             [True, GPA >> Atomic(loc=4)])
 #     ])
 
 @pytest.mark.parametrize('model', [model_no_latents,

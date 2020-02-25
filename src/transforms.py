@@ -1,6 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from collections import Callable
 from functools import reduce
 from itertools import chain
 from itertools import product
@@ -371,6 +372,10 @@ class Identity(Injective):
     def __hash__(self):
         x = (self.__class__, self.token)
         return hash(x)
+    def __rshift__(self, f):
+        if isinstance(f, Callable):
+            return f(self)
+        return NotImplemented
 
 class Radical(Injective):
     def __init__(self, subexpr, degree):

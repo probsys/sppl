@@ -10,6 +10,7 @@ import numpy
 import sympy
 
 from spn.distributions import Gamma
+from spn.distributions import NominalDist
 from spn.distributions import Norm
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
@@ -32,7 +33,7 @@ def test_sum_normal_gamma():
         log(Fraction(1, 3))
     ]
     spn = SumSPN(
-        [Norm(X, loc=0, scale=1), Gamma(X, loc=0, a=1),], weights)
+        [X >> Norm(loc=0, scale=1), X >> Gamma(loc=0, a=1),], weights)
 
     assert spn.logprob(X > 0) == logsumexp([
         spn.weights[0] + spn.children[0].logprob(X > 0),
@@ -60,13 +61,13 @@ def test_sum_normal_gamma():
 def test_sum_normal_gamma_exposed():
     X = Identity('X')
     W = Identity('W')
-    weights = NominalDistribution(W, {
+    weights = (W >> NominalDist({
         '0': Fraction(2,3),
         '1': Fraction(1,3),
-    })
+    }))
     children = {
-        '0': Norm(X, loc=0, scale=1),
-        '1': Gamma(X, loc=0, a=1)
+        '0': X >> Norm(loc=0, scale=1),
+        '1': X >> Gamma(loc=0, a=1),
     }
     spn = ExposedSumSPN(children, weights)
 
@@ -103,8 +104,8 @@ def test_sum_normal_gamma_exposed():
 def test_sum_normal_nominal():
     X = Identity('X')
     children = [
-        Norm(X, loc=0, scale=1),
-        NominalDistribution(X, {'low': Fraction(3, 10), 'high': Fraction(7, 10)}),
+        X >> Norm(loc=0, scale=1),
+        X >> NominalDist({'low': Fraction(3, 10), 'high': Fraction(7, 10)}),
     ]
     weights = [log(Fraction(4,7)), log(Fraction(3, 7))]
 
