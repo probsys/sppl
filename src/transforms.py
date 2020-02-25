@@ -759,6 +759,12 @@ class Event(Transform):
         raise NotImplementedError()
         # Naive implementation (no simplification):
         # return EventOr([self, event])
+    def __invert__(self):
+        raise NotImplementedError()
+    def __xor__(self, event):
+        if isinstance(event, Event):
+            return (self & ~event) | (~self & event)
+        return NotImplemented
 
 class EventBasic(Event):
     values = None
@@ -801,6 +807,13 @@ class EventBasic(Event):
                         return EventFiniteReal(self.subexpr, intersection)
                 if isinstance(intersection, sympy.Interval):
                     return EventInterval(self.subexpr, intersection)
+                if isinstance(intersection, sympy.Complement):
+                    assert is_nominal_set(intersection.args[1])
+                    if intersection.args[0] is UniversalSet:
+                        return EventFiniteNominal(self.subexpr, intersection)
+                    if isinstance(intersection.args[0], sympy.Interval):
+                        return EventInterval(self.subexpr, intersection.args[0])
+                    assert False, 'Unknown intersection: %s' % (intersection,)
         # Linearize but do not simplify.
         if isinstance(event, EventAnd):
             events = (self,) + event.subexprs
@@ -822,6 +835,8 @@ class EventBasic(Event):
                         return EventFiniteReal(self.subexpr, union)
                 if isinstance(union, sympy.Interval):
                     return EventInterval(self.subexpr, union)
+                if isinstance(union, sympy.Complement):
+                    return EventFiniteNominal(self.subexpr, union)
         # Linearize but do not simplify.
         if isinstance(event, EventOr):
             events = (self,) + event.subexprs
@@ -833,6 +848,9 @@ class EventBasic(Event):
         return isinstance(event, type(self)) \
             and (self.values == event.values) \
             and (self.subexpr == event.subexpr)
+    def __hash__(self):
+        x = (self.__class__, self.subexpr)
+        return hash(x)
 
 class EventInterval(EventBasic):
     def __init__(self, subexpr, values):
@@ -981,6 +999,22 @@ class EventFiniteNominal(EventBasic):
         if ys == sympy.FiniteSet(1, 2):
             return UniversalSet
 
+    def __or__(self, event):
+        # De Morgan's laws for Events of the form
+        # ~(X << A) | ~(X << B) = ~( (X << A) & (X << B) )
+        if isinstance(event, EventFiniteNominal):
+            if event.subexpr == self.subexpr:
+                union = sympy.Union(self.values, event.values)
+                if isinstance(union, sympy.Union):
+                    assert union.args[0].args[0] is UniversalSet
+                    assert union.args[1].args[0] is UniversalSet
+                    assert isinstance(self.values, sympy.Complement)
+                    assert isinstance(event.values, sympy.Complement)
+                    A = complement_nominal_set(self.values)
+                    B = complement_nominal_set(event.values)
+                    intersection = sympy.Intersection(A, B)
+                    return ~EventFiniteNominal(self.subexpr, intersection)
+        return super().__or__(event)
     def __repr__(self):
         return 'EventFiniteNominal(%s, %s)' \
             % (repr(self.subexpr), repr(self.values))

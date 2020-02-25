@@ -97,6 +97,8 @@ def is_nominal(x):
     return isinstance(x, (str, NominalValue))
 
 def complement_nominal_set(values):
+    if values is EmptySet:
+        return UniversalSet
     if values is UniversalSet:
         return EmptySet
     if isinstance(values, sympy.FiniteSet):

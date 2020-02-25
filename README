@@ -1,0 +1,151 @@
+Probabilistic Programming with Sum-Product Networks
+===================================================
+
+1. Installation
+
+Please install Python 3 dependencies in requirements.txt.
+
+2. Tests
+
+Run the following command in the shell:
+
+    $ ./check.sh
+
+3. Specification
+
+Domain Variables
+
+  n ∈ Naturals
+  r ∈ Reals
+  w ∈ [0,1]
+  s ∈ Strings
+  x ∈ Vars
+
+Transform Data Type (Semantic Domain)
+
+  i ∈ InfiniteSet
+    = Interval(r₁, r₂)
+    | Interval.open(r₁, r₂)
+    | Interval.Lopen(r₁, r₂)
+    | Interval.Ropen(r₁, r₂)
+
+  f ∈ FiniteSet
+    = EmptySet
+    | FiniteSetReal(r₁, …, rₘ)
+    | FiniteSetNominal(s₁, …, sₘ)
+
+  v ∈ Sets := i | f | Union([v₁, …, vₘ]) | Complement f
+
+  g ∈ Transform
+    = Identity(x)                           // One-to-One
+    | Reciprocal(g)                         // One-to-One
+    | Radical(g, n)                         // One-to-One
+    | Exponent(g, r)                        // One-to-One
+    | Logarithm(g, r)                       // One-to-One
+    | Abs(g)                                // Many-to-One
+    | Polynomial(g, [r₀, …, rₘ])            // Many-to-One
+    | Piecewise([g₁, …, gₘ], [e₁, …, eₘ])   // Many-to-One
+
+  e ∈ Event <: Transforms                   // Many-to-One
+    = EventInterval(t, i)
+    | EventFinteReal(t, [r₁, …, rₘ])
+    | EventFiniteNominal(t, [s₁, …, sₘ])
+    | EventOr([e₁, …, eₘ])
+    | EventAnd([e₁, …, eₘ])
+
+  invert              :: Transform -> Sets -> Sets
+  solve               :: Event -> Sets
+
+SPN Type (Semantic Domain)
+
+  θ ∈ CDF
+  d ∈ Distribution
+    = Nominal {sᵢ:pᵢ ∣ i=1, …, m}
+    | RealContinuous Θ
+    | RealDiscrete θ
+
+  s ∈ SPN
+    = (ℓ x d)                   [Leaf]
+    | (⊗ s₁ … sₘ)               [Product]
+    | (⊕ (w₁ s₁) … (wₙ sₘ))     [Sum]
+
+  The denotation of an SPN is a probability measure,
+    𝐏⟦.⟧ : SPN -> (e -> [0,1])
+
+  Operations on SPN:
+  condition           :: SPN -> e -> SPN
+  mutual-information  :: SPN -> e₁ -> e₂ -> Reals
+
+Modeling Language (Syntactic Domain)
+
+  t ∈ Transformations
+    = x                         [Identity]
+    | 1/t                       [Reciprocal]
+    | ⁿ√t                       [Radical]
+    | rᵗ                        [Exp]
+    | logᵣ(t)                   [Log]
+    | abs(t)                    [Abs]
+    | r₀ + r₁t + … + rₘtᵐ       [Polynomial]
+    | ϕ₁t₁ + ϕ₂t₂ + ... + ϕₙtₙ  [Piecewise]
+
+  f ∈ FiniteOutcomes :=
+    | {r₁, …, rₘ}               [RealFinite]
+    | {s₁, …, sₘ}               [NominalFinite]
+
+  ϕ ∈ Predicate :=
+    | t < r                 [LessThan]
+    | t <= r                [LessThanEquals]
+    | r < t                 [GreaterThan]
+    | r <= t                [GreatherThanEquals]
+    | t << f                [Containment]
+    | ϕ₁ & ϕ₂               [Conjunctio]
+    | ϕ₁ /| ϕ₂              [Disjunction]
+    | ϕ₁ ^ ϕ₂               [XOR]
+    | ~ϕ                    [Negation]
+
+  d ∈ Dist
+    = Nominal {sᵢ:pᵢ ∣ i=1, …, m}   [NominalDist]
+    | Normal μ ν | …                [ContinuousDist]
+    | Poisson λ | …                 [DiscreteDist]
+    | w₁*d₁ + w₂d₂                    [MixtureDist]
+
+  c ∈ Program
+    = x ~ d                     [Sample]
+    | x ← t                     [Assign]
+    | if ϕ then c₁ else c₂      [If-Else]
+    | c₁ ; c₂                   [Sequence]
+
+Small Step Semantics
+
+  The semantics of a program c ∈ Program is a
+  sum-product network s ∈ SPN.
+
+  We will describe the mapping from the syntactic domain
+  to the semantic domain using SOS.
+
+  More specifically, the program state is a pair (s, σ) where
+    σ ∈ Vars → Transforms
+    s ∈ SPN
+
+  For any predicate ϕ ∈ Predicate and environment σ, define
+    ϕ[σ] = case ϕ of
+      t in v    | var(t) ∈ σ -> [σ[var(t)]] in v
+                | otherwise -> ϕ
+      ϕ₁ and ϕ₂ -> (ϕ₁[σ] and ϕ₂[σ])
+      ϕ₁ or ϕ₂ -> (ϕ₁[σ] or ϕ₂[σ])
+      ~ϕ -> ~ϕ[σ]
+
+[Sample]  ----------------------------------
+          ⟨(s, σ), x ~ d⟩ → (⊗ s (ℓ x d), σ)
+
+[Assign]  -----------------------------
+          ⟨(s, σ), x ← t⟩ → (s, [x\t]σ)
+
+          ⟨(s|ϕ[σ], σ), c₁⟩ → (s₁, σ₁) ⟨(s|~ϕ[σ], σ), c₂⟩ → (s₂, σ₂)
+[IfElse]  -----------------------------------------------------------
+          ⟨(s, σ), if ϕ then c₁ else c₂⟩ → ⊕ (𝐏⟦s⟧(ϕ[σ])] (s₁, σ₁))
+                                             (1-𝐏⟦s⟧(~ϕ[σ])) (s₂, σ₂))
+
+             ⟨(s, σ), c₁ → (s₁, σ₁)  ⟨(s₁, σ₁), c₂ → (s₂, σ₂)
+[Sequence]   ------------------------------------------------
+                      ⟨(s, σ), c₁;c₂⟩ → (s₂, σ₂)
