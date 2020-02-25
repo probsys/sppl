@@ -587,3 +587,11 @@ def test_event_complex_simplification():
     # De Morgan's case in EventFinteNominal.__or__.
     assert ~(X << {'a'}) | ~(X << {'b'}) == EventFiniteNominal(X, UniversalSet)
     assert ~(X << {'a'}) | ~(X << {'a', 'b'}) == ~(X << {'a'})
+
+def test_xor():
+    A = X << {'a'}
+    B = ~(X << {'b'})
+    assert (A ^ B) \
+        == ((A & ~B) | (~A & B)) \
+        == EventFiniteNominal(X,
+            sympy.Complement(UniversalSet, NominalSet('a', 'b')))

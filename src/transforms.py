@@ -759,6 +759,12 @@ class Event(Transform):
         raise NotImplementedError()
         # Naive implementation (no simplification):
         # return EventOr([self, event])
+    def __invert__(self):
+        raise NotImplementedError()
+    def __xor__(self, event):
+        if isinstance(event, Event):
+            return (self & ~event) | (~self & event)
+        return NotImplemented
 
 class EventBasic(Event):
     values = None
