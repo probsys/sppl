@@ -8,16 +8,16 @@ import pytest
 import numpy
 import sympy
 
+from spn.distributions import Gamma
+from spn.distributions import NominalDist
+from spn.distributions import Norm
 from spn.dnf import dnf_to_disjoint_union
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
 from spn.math_util import logsumexp
-from spn.distributions import Gamma
-from spn.distributions import Norm
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
-from spn.spn import NominalDistribution
 from spn.transforms import ExpNat as Exp
 from spn.transforms import Identity
 from spn.transforms import LogNat as Log
@@ -31,11 +31,11 @@ def test_product_distribution_normal_gamma_basic():
     X4 = Identity('X4')
     children = [
         ProductSPN([
-            Norm(X1, loc=0, scale=1),
-            Norm(X4, loc=10, scale=1),
+            X1 >> Norm(loc=0, scale=1),
+            X4 >> Norm(loc=10, scale=1),
         ]),
-        Gamma(X2, loc=0, a=1),
-        Norm(X3, loc=2, scale=3)
+        X2 >> Gamma(loc=0, a=1),
+        X3 >> Norm(loc=2, scale=3)
     ]
     spn = ProductSPN(children)
     assert spn.children == (
@@ -69,7 +69,7 @@ def test_product_distribution_normal_gamma_basic():
 def test_product_inclusion_exclusion_basic():
     X = Identity('X')
     Y = Identity('Y')
-    spn = ProductSPN([Norm(X, loc=0, scale=1), Gamma(Y, a=1)])
+    spn = ProductSPN([X >> Norm(loc=0, scale=1), Y >> Gamma(a=1)])
 
     a = spn.logprob(X > 0.1)
     b = spn.logprob(Y < 0.5)
@@ -112,7 +112,7 @@ def test_product_inclusion_exclusion_basic():
 def test_product_condition_basic():
     X = Identity('X')
     Y = Identity('Y')
-    spn = ProductSPN([Norm(X, loc=0, scale=1), Gamma(Y, a=1)])
+    spn = ProductSPN([X >> Norm(loc=0, scale=1), Y >> Gamma(a=1)])
 
     # Condition on (X > 0) and ((X > 0) | (Y < 0))
     # where the second clause reduces to first as Y < 0
@@ -198,7 +198,7 @@ def test_product_condition_basic():
 def test_product_condition_or_probabilithy_zero():
     X = Identity('X')
     Y = Identity('Y')
-    spn = ProductSPN([Norm(X, loc=0, scale=1), Gamma(Y, a=1)])
+    spn = ProductSPN([X >> Norm(loc=0, scale=1), Y >> Gamma(a=1)])
 
     # Condition on event which has probability zero.
     event = (X > 2) & (X < 2)
@@ -245,9 +245,9 @@ def test_product_disjoint_union_numerical():
     Y = Identity('Y')
     Z = Identity('Z')
     spn = ProductSPN([
-        Norm(X, loc=0, scale=1),
-        Norm(Y, loc=0, scale=2),
-        Norm(Z, loc=0, scale=2),
+        X >> Norm(loc=0, scale=1),
+        Y >> Norm(loc=0, scale=2),
+        Z >> Norm(loc=0, scale=2),
     ])
 
     for event in [
@@ -265,8 +265,8 @@ def test_product_disjoint_union_nominal():
     N = Identity('N')
     P = Identity('P')
 
-    nationality = NominalDistribution(N, {'India': 0.5, 'USA': 0.5})
-    perfect = NominalDistribution(P, {'Imperfect': 0.99, 'Perfect': 0.01})
+    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
+    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
     student = nationality & perfect
 
     condition_1 = (N << {'India'}) & (P << {'Imperfect'})
