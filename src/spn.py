@@ -122,13 +122,13 @@ class SPN(object):
 class SumSPN(SPN):
     """Weighted mixture of SPNs."""
 
-    def __init__(self, spns, weights):
-        self.children = tuple(spns)
+    def __init__(self, children, weights):
+        self.children = tuple(children)
         self.weights = tuple(weights)
         self.indexes = tuple(range(len(self.weights)))
         assert allclose(float(logsumexp(weights)),  0)
 
-        symbols = [spn.get_symbols() for spn in spns]
+        symbols = [spn.get_symbols() for spn in children]
         if not are_identical(symbols):
             raise ValueError('Mixture must have identical symbols.')
         self.symbols = self.children[0].get_symbols()
@@ -177,34 +177,34 @@ class SumSPN(SPN):
             else children[0]
 
 class ExposedSumSPN(SumSPN):
-    def __init__(self, spns, spn_dist):
+    def __init__(self, children, spn_weights):
         """Weighted mixture of SPNs with exposed internal choice."""
         # TODO: Consider allowing a general SPN with a single Nominal
         # output variable.  Implementing this capability will require the
         # methods to check the type (nominal/real) and support of a general
         # SPN.
-        assert isinstance(spn_dist, NominalDistribution)
+        assert isinstance(spn_weights, NominalDistribution)
         weights = [
-            spn_dist.logprob(spn_dist.symbol << {n})
-            for n in spn_dist.support
+            spn_weights.logprob(spn_weights.symbol << {n})
+            for n in spn_weights.support
         ]
         children = [
             ProductSPN([
-                NominalDistribution(spn_dist.symbol, {str(n): 1}),
-                spns[n]
-            ]) for n in spn_dist.support
+                NominalDistribution(spn_weights.symbol, {str(n): 1}),
+                children[n]
+            ]) for n in spn_weights.support
         ]
         super().__init__(children, weights)
 
 class PartialSumSPN(SPN):
     """Weighted mixture of SPNs that do not yet sum to unity."""
-    def __init__(self, spns, weights):
-        self.children = spns
+    def __init__(self, children, weights):
+        self.children = children
         self.weights = weights
         self.indexes = list(range(len(self.weights)))
         assert sum(weights) <  1
 
-        symbols = [spn.get_symbols() for spn in spns]
+        symbols = [spn.get_symbols() for spn in children]
         if not are_identical(symbols):
             raise ValueError('Mixture must have identical symbols.')
         self.symbols = self.children[0].get_symbols()
@@ -246,10 +246,10 @@ class PartialSumSPN(SPN):
 class ProductSPN(SPN):
     """List of independent SPNs."""
 
-    def __init__(self, spns):
+    def __init__(self, children):
         self.children = tuple(chain.from_iterable([
             (spn.children if isinstance(spn, type(self)) else [spn])
-            for spn in spns
+            for spn in children
         ]))
         symbols = [spn.get_symbols() for spn in self.children]
         if not are_disjoint(symbols):

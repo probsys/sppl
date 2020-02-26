@@ -27,19 +27,19 @@ model_no_latents = \
 nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
 perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
 model_exposed = ExposedSumSPN(
-    spn_dist=nationality,
-    spns={
+    spn_weights=nationality,
+    children={
         # American student.
         'USA': ExposedSumSPN(
-            spn_dist=perfect,
-            spns={
+            spn_weights=perfect,
+            children={
                 'Imperfect'   : GPA >> Uniform(loc=0, scale=4),
                 'Perfect'     : GPA >> Atomic(loc=4),
             }),
         # Indian student.
         'India': ExposedSumSPN(
-            spn_dist=perfect,
-            spns={
+            spn_weights=perfect,
+            children={
                 'Perfect'     : GPA >> Atomic(loc=10),
                 'Imperfect'   : GPA >> Uniform(loc=0, scale=10),
             })},
