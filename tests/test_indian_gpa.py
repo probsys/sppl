@@ -16,6 +16,7 @@ from spn.distributions import Atomic
 from spn.distributions import NominalDist
 from spn.distributions import Uniform
 from spn.interpret import Cond
+from spn.interpret import Start
 from spn.interpret import Variable
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
@@ -121,7 +122,7 @@ def model_interpreter():
     GPA         = Variable('GPA')
 
     # Write the generative model in embedded Python.
-    return None \
+    return Start \
         & Nationality   >> NominalDist({'Indian': 0.5, 'USA': 0.5}) \
         & Cond (
             Nationality << {'Indian'},

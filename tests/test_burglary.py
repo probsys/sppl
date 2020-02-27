@@ -8,26 +8,17 @@ Artificial Intelligence: A Modern Approach (3rd Edition).
 Russel and Norvig, Fig 14.2 pp 512.
 '''
 
-import pytest
-
-from spn.combinators import IfElse
 from spn.distributions import Bernoulli
-from spn.distributions import NominalDist
-from spn.distributions import Uniform
 from spn.interpret import Cond
+from spn.interpret import Otherwise
+from spn.interpret import Start
 from spn.interpret import Variable
-from spn.math_util import allclose
-from spn.spn import ExposedSumSPN
-from spn.transforms import Identity
 
 Burglary = Variable('B')
 Earthquake = Variable('E')
 Alarm = Variable('A')
 JohnCalls = Variable('JC')
 MaryCalls = Variable('MC')
-
-Start = None
-Otherwise = True
 
 model = (Start
     & Burglary >> Bernoulli(p=0.001)

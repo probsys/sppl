@@ -12,6 +12,9 @@ from .spn import SumSPN
 
 from .transforms import Identity
 
+Start = None
+Otherwise = True
+
 class Variable(Identity):
     def __rshift__(self, f):
         if isinstance(f, Callable):
@@ -34,7 +37,7 @@ class Command():
             return Sequence(self, x)
         return NotImplemented
     def __rand__(self, x):
-        if x is None:
+        if x is Start:
             return self.interpret(x)
         if isinstance(x, SPN):
             return self.interpret(x)
