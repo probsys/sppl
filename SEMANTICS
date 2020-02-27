@@ -1,18 +1,6 @@
 Probabilistic Programming with Sum-Product Networks
 ===================================================
 
-1. Installation
-
-Please install Python 3 dependencies in requirements.txt.
-
-2. Tests
-
-Run the following command in the shell:
-
-    $ ./check.sh
-
-3. Specification
-
 Domain Variables
 
   n ∈ Naturals
