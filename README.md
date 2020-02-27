@@ -11,7 +11,9 @@ Run the following command in the shell:
 
     $ ./check.sh
 
-## Example
+## Examples
+
+1. Burglary Network
 
 ```python
 from spn.distributions import Bernoulli
@@ -63,4 +65,35 @@ print(model_condition.prob(Burglary << {1}))
 event_a = (JohnCalls << {1}) | (MaryCalls << {1})
 event_b = (Burglary << {1}) & (Earthquake << {0})
 print(model.mutual_information(event_a, event_b))
+```
+
+2. Indian GPA
+
+```python
+from spn.distributions import Atomic
+from spn.distributions import Uniform
+from spn.interpret import Cond
+from spn.interpret import Start
+from spn.interpret import Variable
+
+# Declare variables in the model.
+Nationality = Variable('Nationality')
+Perfect     = Variable('Perfect')
+GPA         = Variable('GPA')
+
+model = (Start
+        & Nationality   >> NominalDist({'Indian': 0.5, 'USA': 0.5}) \
+        & Cond (
+            Nationality << {'Indian'},
+                Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
+                & Cond(
+                    Perfect << {'True'},    GPA >> Atomic(loc=10),
+                    Perfect << {'False'},   GPA >> Uniform(scale=10),
+                ),
+            Nationality << {'USA'},
+                Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
+                & Cond (
+                    Perfect << {'True'},    GPA >> Atomic(loc=4),
+                    Perfect << {'False'},   GPA >> Uniform(scale=4),
+                )))
 ```
