@@ -3,20 +3,19 @@
 
 import pytest
 
+from spn.combinators import IfElse
 from spn.distributions import Atomic
-from spn.distributions import Uniform
 from spn.distributions import NominalDist
+from spn.distributions import Uniform
+from spn.interpret import Cond
+from spn.interpret import Variable
 from spn.math_util import allclose
+from spn.spn import ExposedSumSPN
 from spn.transforms import Identity
 
-from spn.combinators import IfElse
-from spn.spn import ExposedSumSPN
-
-N = Identity('N')
-P = Identity('P')
-GPA = Identity('GPA')
-
-model_no_latents = \
+def model_no_latents():
+    GPA = Identity('GPA')
+    return \
         0.5 * ( # American student
             0.99 * (GPA >> Uniform(loc=0, scale=4)) | \
             0.01 * (GPA >> Atomic(loc=4))) | \
@@ -24,28 +23,38 @@ model_no_latents = \
             0.99 * (GPA >> Uniform(loc=0, scale=10)) | \
             0.01 * (GPA >> Atomic(loc=10)))
 
-nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
-perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
-model_exposed = ExposedSumSPN(
-    spn_weights=nationality,
-    children={
-        # American student.
-        'USA': ExposedSumSPN(
-            spn_weights=perfect,
-            children={
-                'Imperfect'   : GPA >> Uniform(loc=0, scale=4),
-                'Perfect'     : GPA >> Atomic(loc=4),
-            }),
-        # Indian student.
-        'India': ExposedSumSPN(
-            spn_weights=perfect,
-            children={
-                'Perfect'     : GPA >> Atomic(loc=10),
-                'Imperfect'   : GPA >> Uniform(loc=0, scale=10),
-            })},
-    )
+def model_exposed():
+    N = Identity('N')
+    P = Identity('P')
+    GPA = Identity('GPA')
+    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
+    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
+    return ExposedSumSPN(
+        spn_weights=nationality,
+        children={
+            # American student.
+            'USA': ExposedSumSPN(
+                spn_weights=perfect,
+                children={
+                    'Imperfect'   : GPA >> Uniform(loc=0, scale=4),
+                    'Perfect'     : GPA >> Atomic(loc=4),
+                }),
+            # Indian student.
+            'India': ExposedSumSPN(
+                spn_weights=perfect,
+                children={
+                    'Perfect'     : GPA >> Atomic(loc=10),
+                    'Imperfect'   : GPA >> Uniform(loc=0, scale=10),
+                })},
+        )
 
-model_ifelse_exhuastive = IfElse(nationality & perfect,
+def model_ifelse_exhuastive():
+    N = Identity('N')
+    P = Identity('P')
+    GPA = Identity('GPA')
+    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
+    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
+    return IfElse(nationality & perfect,
     [(N << {'India'}) & (P << {'Imperfect'}),
         GPA >> Uniform(loc=0, scale=10)
     ],
@@ -59,7 +68,13 @@ model_ifelse_exhuastive = IfElse(nationality & perfect,
         GPA >> Atomic(loc=4)
     ])
 
-model_ifelse_nested = IfElse(nationality,
+def model_ifelse_nested():
+    N = Identity('N')
+    P = Identity('P')
+    GPA = Identity('GPA')
+    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
+    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
+    return IfElse(nationality,
     [(N << {'India'}),
         IfElse(perfect,
             [(P << {'Imperfect'}), GPA >> Uniform(loc=0, scale=10)],
@@ -71,56 +86,59 @@ model_ifelse_nested = IfElse(nationality,
             [True, GPA >> Atomic(loc=4)])
     ])
 
-# Known issue #1
-# The non-exhaustive model, that uses True for the final statement,
-# is slow, because the compiled event is very complicated.
-# This may be due to the fact that we do not know how to simplify
-# complements of Nominal variables well, in absence of the explicit
-# universe over which the variables take their values.  One solution
-# is to store the possible nominal values in a global environment
-# when compiling the program, and allow EventFiniteSet to take in
-# the finite support of the nominal variate.
-model_ifelse_non_exhuastive = IfElse(nationality & perfect,
-    [(N << {'India'}) & (P << {'Imperfect'}),
-        GPA >> Uniform(loc=0, scale=10)
-    ],
-    [(N << {'India'}) & (P << {'Perfect'}),
-        GPA >> Atomic(loc=10)
-    ],
-    [(N << {'USA'}) & (P << {'Imperfect'}),
-        GPA >> Uniform(loc=0, scale=4)
-    ],
-    [True,
-        GPA >> Atomic(loc=4)
-    ])
+def model_ifelse_non_exhuastive():
+    N = Identity('N')
+    P = Identity('P')
+    GPA = Identity('GPA')
+    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
+    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
+    return IfElse(nationality & perfect,
+        [(N << {'India'}) & (P << {'Imperfect'}),
+            GPA >> Uniform(loc=0, scale=10)
+        ],
+        [(N << {'India'}) & (P << {'Perfect'}),
+            GPA >> Atomic(loc=10)
+        ],
+        [(N << {'USA'}) & (P << {'Imperfect'}),
+            GPA >> Uniform(loc=0, scale=4)
+        ],
+        [True, # Can be slow; complementing Nominals over unknown support.
+            GPA >> Atomic(loc=4)
+        ])
 
-# Known issue #2
-# The nested model with repeated variables raises an error,
-# because IfElse takes the product of the current SPN with the
-# child branch.  Instead we need to implement the IfElse combinators
-# as specified in the SOS semantics from README, which finds the child
-# SPN recursively from the sub-branch by applying the sequence rule
-# to the root SPN with the branch SPNs.  This implementation will need
-# an interpreter of the syntax and may not be possible to implement
-# as vanilla Python.
-#
-# model_ifelse_nested_repeat = IfElse(nationality & perfect,
-#     [(N << {'India'}),
-#         IfElse(nationality & perfect,
-#             [(P << {'Imperfect'}), GPA >> Uniform(loc=0, scale=10)],
-#             [True, GPA >> Atomic(loc=10)])
-#     ],
-#     [True,
-#         IfElse(nationality & perfect,
-#             [(P << {'Imperfect'}), GPA >> Uniform(loc=0, scale=4)],
-#             [True, GPA >> Atomic(loc=4)])
-#     ])
+def model_interpreter():
+    # Declare variables in the model.
+    Nationality = Variable('Nationality')
+    Perfect     = Variable('Perfect')
+    GPA         = Variable('GPA')
 
-@pytest.mark.parametrize('model', [model_no_latents,
+    # Write the generative model in embedded Python.
+    return None \
+        & Nationality   >> NominalDist({'Indian': 0.5, 'USA': 0.5}) \
+        & Cond (
+            Nationality << {'Indian'},
+                Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
+                & Cond(
+                    Perfect << {'True'},    GPA >> Atomic(loc=10),
+                    Perfect << {'False'},   GPA >> Uniform(scale=10),
+                ),
+            Nationality << {'USA'},
+                Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
+                & Cond (
+                    Perfect << {'True'},    GPA >> Atomic(loc=4),
+                    Perfect << {'False'},   GPA >> Uniform(scale=4),
+                ))
+
+@pytest.mark.parametrize('get_model', [
+    model_no_latents,
     model_exposed,
     model_ifelse_exhuastive,
-    model_ifelse_nested])
-def test_prior(model):
+    model_ifelse_nested,
+    model_interpreter,
+])
+def test_prior(get_model):
+    model = get_model()
+    GPA = Identity('GPA')
     assert allclose(model.prob(GPA << {10}), 0.5*0.01)
     assert allclose(model.prob(GPA << {4}), 0.5*0.01)
     assert allclose(model.prob(GPA << {5}), 0)
@@ -145,12 +163,14 @@ def test_prior(model):
     assert allclose(model.prob(((2 <= GPA) < 4) & (7 < GPA)), 0)
 
 def test_condition():
-    model_condition = model_no_latents.condition(GPA << {4} | GPA << {10})
+    model = model_no_latents()
+    GPA = Identity('GPA')
+    model_condition = model.condition(GPA << {4} | GPA << {10})
     assert len(model_condition.children) == 2
     assert model_condition.children[0].support == {4}
     assert model_condition.children[1].support == {10}
 
-    model_condition = model_no_latents.condition((0 < GPA < 4))
+    model_condition = model.condition((0 < GPA < 4))
     assert len(model_condition.children) == 2
     assert model_condition.children[0].support \
         == model_condition.children[1].support
