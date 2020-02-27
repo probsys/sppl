@@ -38,6 +38,7 @@ from .sym_util import get_union
 from .sym_util import powerset
 from .sym_util import sympify_number
 
+from .transforms import EventOr
 from .transforms import EventAnd
 from .transforms import EventBasic
 from .transforms import EventCompound
@@ -296,6 +297,15 @@ class ProductSPN(SPN):
         event_dnf = dnf_normalize(event)
         if event_dnf is None:
             return -inf
+        # Remove conjunctions with probability zero (linear time).
+        # TODO: Reduce code duplication and unnecessary recomputation.
+        if isinstance(event_dnf, EventOr):
+            conjunctions = event_dnf.subexprs
+            logps = [self.logprob_inclusion_exclusion(c) for c in conjunctions]
+            indexes = [i for i, lp in enumerate(logps) if not isinf_neg(lp)]
+            if not indexes:
+                return -inf
+            event_dnf = EventOr([conjunctions[i] for i in indexes])
         return self.logprob_inclusion_exclusion(event_dnf)
 
     def logprob_inclusion_exclusion(self, event):

@@ -58,4 +58,9 @@ print(model.prob(event))
 event = (JohnCalls << {1}) & (MaryCalls << {1})
 model_condition = model.condition(event)
 print(model_condition.prob(Burglary << {1}))
+
+# Ask a mutual information query.
+event_a = (JohnCalls << {1}) | (MaryCalls << {1})
+event_b = (Burglary << {1}) & (Earthquake << {0})
+print(model.mutual_information(event_a, event_b))
 ```

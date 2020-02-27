@@ -54,3 +54,8 @@ def test_conditional_probability():
     model_condition = model.condition(event)
     x = model_condition.prob(Burglary << {1})
     assert str(x)[:5] == '0.284'
+
+def test_mutual_information():
+    event_a = (JohnCalls << {1}) | (MaryCalls << {1})
+    event_b = (Burglary << {1}) & (Earthquake << {0})
+    print(model.mutual_information(event_a, event_b))
