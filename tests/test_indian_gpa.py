@@ -1,6 +1,14 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+'''
+Indian GPA example from:
+
+Discrete-Continuous Mixtures in Probabilistic Programming: Generalized
+Semantics and Inference Algorithms, Wu et. al., ICML 2018.
+https://arxiv.org/pdf/1806.02027.pdf
+'''
+
 import pytest
 
 from spn.combinators import IfElse
