@@ -1,6 +1,14 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+'''
+Indian GPA example from:
+
+Discrete-Continuous Mixtures in Probabilistic Programming: Generalized
+Semantics and Inference Algorithms, Wu et. al., ICML 2018.
+https://arxiv.org/pdf/1806.02027.pdf
+'''
+
 import pytest
 
 from spn.combinators import IfElse
@@ -8,6 +16,7 @@ from spn.distributions import Atomic
 from spn.distributions import NominalDist
 from spn.distributions import Uniform
 from spn.interpret import Cond
+from spn.interpret import Start
 from spn.interpret import Variable
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
@@ -113,7 +122,7 @@ def model_interpreter():
     GPA         = Variable('GPA')
 
     # Write the generative model in embedded Python.
-    return None \
+    return Start \
         & Nationality   >> NominalDist({'Indian': 0.5, 'USA': 0.5}) \
         & Cond (
             Nationality << {'Indian'},
