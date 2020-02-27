@@ -73,6 +73,7 @@ print(model.mutual_information(event_a, event_b))
 from spn.distributions import Atomic
 from spn.distributions import Uniform
 from spn.interpret import Cond
+from spn.interpret import Otherwise
 from spn.interpret import Start
 from spn.interpret import Variable
 
@@ -82,18 +83,16 @@ Perfect     = Variable('Perfect')
 GPA         = Variable('GPA')
 
 model = (Start
-        & Nationality   >> NominalDist({'Indian': 0.5, 'USA': 0.5}) \
+        & Nationality   >> NominalDist({'Indian': 0.5, 'USA': 0.5})
         & Cond (
-            Nationality << {'Indian'},
-                Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
-                & Cond(
+            (Nationality << {'Indian'}),
+                Perfect >> NominalDist({'True': 0.01, 'False': 0.99})
+                & Cond (
                     Perfect << {'True'},    GPA >> Atomic(loc=10),
-                    Perfect << {'False'},   GPA >> Uniform(scale=10),
-                ),
-            Nationality << {'USA'},
-                Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
+                    Otherwise,              GPA >> Uniform(scale=10)),
+            Otherwise,
+                Perfect >> NominalDist({'True': 0.01, 'False': 0.99})
                 & Cond (
                     Perfect << {'True'},    GPA >> Atomic(loc=4),
-                    Perfect << {'False'},   GPA >> Uniform(scale=4),
-                )))
+                    Otherwise,              GPA >> Uniform(scale=4))))
 ```

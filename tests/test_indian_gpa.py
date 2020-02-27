@@ -127,7 +127,7 @@ def model_interpreter():
         & Cond (
             Nationality << {'Indian'},
                 Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
-                & Cond(
+                & Cond (
                     Perfect << {'True'},    GPA >> Atomic(loc=10),
                     Perfect << {'False'},   GPA >> Uniform(scale=10),
                 ),
