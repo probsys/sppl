@@ -86,7 +86,7 @@ Modeling Language (Syntactic Domain)
     | r < t                 [GreaterThan]
     | r <= t                [GreatherThanEquals]
     | t << f                [Containment]
-    | ϕ₁ & ϕ₂               [Conjunctio]
+    | ϕ₁ & ϕ₂               [Conjunction]
     | ϕ₁ /| ϕ₂              [Disjunction]
     | ϕ₁ ^ ϕ₂               [XOR]
     | ~ϕ                    [Negation]
