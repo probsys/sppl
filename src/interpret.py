@@ -12,9 +12,6 @@ from .spn import SumSPN
 
 from .transforms import Identity
 
-Start = None
-Otherwise = True
-
 class Variable(Identity):
     def __rshift__(self, f):
         if isinstance(f, Callable):
@@ -82,8 +79,6 @@ class Skip(Command):
     def interpret(self, spn=None):
         return spn
 
-Cond = IfElse
-
 class Sequence(Command):
     def __init__(self, *commands):
         self.commands = commands
@@ -97,3 +92,7 @@ class Sequence(Command):
             commands = self.commands + (x,)
             return Sequence(*commands)
         return NotImplemented
+
+Start = None
+Otherwise = True
+Cond = IfElse
