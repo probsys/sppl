@@ -95,7 +95,7 @@ Modeling Language (Syntactic Domain)
     = Nominal {sᵢ:pᵢ ∣ i=1, …, m}   [NominalDist]
     | Normal μ ν | …                [ContinuousDist]
     | Poisson λ | …                 [DiscreteDist]
-    | w₁*d₁ + w₂d₂                    [MixtureDist]
+    | w₁*d₁ + w₂*d₂                 [MixtureDist]
 
   c ∈ Program
     = x ~ d                     [Sample]

@@ -57,7 +57,7 @@ event = ((JohnCalls << {1}) & (MaryCalls << {1}) & (Alarm << {1})
 print(model.prob(event))
 
 # Ask a conditional query.
-event = (JohnCalls << {1}) & (MaryCalls << {1})
+event = (JohnCalls << {1}) | (MaryCalls << {1})
 model_condition = model.condition(event)
 print(model_condition.prob(Burglary << {1}))
 
