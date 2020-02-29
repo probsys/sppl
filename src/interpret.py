@@ -40,6 +40,12 @@ class Command():
             return self.interpret(x)
         return NotImplemented
 
+class Skip(Command):
+    def __init__(self):
+        pass
+    def interpret(self, spn=None):
+        return spn
+
 class Sample(Command):
     def __init__(self, symbol, distribution):
         self.symbol = symbol
@@ -72,12 +78,6 @@ class IfElse(Command):
         ]
         # Return the overall sum.
         return SumSPN(children, weights)
-
-class Skip(Command):
-    def __init__(self):
-        pass
-    def interpret(self, spn=None):
-        return spn
 
 class Sequence(Command):
     def __init__(self, *commands):
