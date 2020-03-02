@@ -12,9 +12,6 @@ from .spn import SumSPN
 
 from .transforms import Identity
 
-Start = None
-Otherwise = True
-
 class Variable(Identity):
     def __rshift__(self, f):
         if isinstance(f, Callable):
@@ -25,6 +22,9 @@ class Variable(Identity):
         symbol = Identity(self.token)
         x = (symbol.__class__, self.token)
         return hash(x)
+
+def VariableArray(token, n):
+    return [Variable('%s[%d]' % (token, i,)) for i in range(n)]
 
 class Command():
     def interpret(self, spn):
@@ -42,6 +42,12 @@ class Command():
         if isinstance(x, SPN):
             return self.interpret(x)
         return NotImplemented
+
+class Skip(Command):
+    def __init__(self):
+        pass
+    def interpret(self, spn=None):
+        return spn
 
 class Sample(Command):
     def __init__(self, symbol, distribution):
@@ -76,13 +82,15 @@ class IfElse(Command):
         # Return the overall sum.
         return SumSPN(children, weights)
 
-class Skip(Command):
-    def __init__(self):
-        pass
+class Repeat(Command):
+    def __init__(self, n0, n1, f):
+        self.n0 = n0
+        self.n1 = n1
+        self.f = f
     def interpret(self, spn=None):
-        return spn
-
-Cond = IfElse
+        commands = [self.f(i) for i in range(self.n0, self.n1)]
+        sequence = Sequence(*commands)
+        return sequence.interpret(spn)
 
 class Sequence(Command):
     def __init__(self, *commands):
@@ -97,3 +105,7 @@ class Sequence(Command):
             commands = self.commands + (x,)
             return Sequence(*commands)
         return NotImplemented
+
+Start = None
+Otherwise = True
+Cond = IfElse
