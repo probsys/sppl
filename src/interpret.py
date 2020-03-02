@@ -23,6 +23,9 @@ class Variable(Identity):
         x = (symbol.__class__, self.token)
         return hash(x)
 
+def VariableArray(token, n):
+    return [Variable('%s[%d]' % (token, i,)) for i in range(n)]
+
 class Command():
     def interpret(self, spn):
         raise NotImplementedError()
@@ -78,6 +81,16 @@ class IfElse(Command):
         ]
         # Return the overall sum.
         return SumSPN(children, weights)
+
+class Repeat(Command):
+    def __init__(self, n0, n1, f):
+        self.n0 = n0
+        self.n1 = n1
+        self.f = f
+    def interpret(self, spn=None):
+        commands = [self.f(i) for i in range(self.n0, self.n1)]
+        sequence = Sequence(*commands)
+        return sequence.interpret(spn)
 
 class Sequence(Command):
     def __init__(self, *commands):
