@@ -63,8 +63,6 @@ class SPN(object):
     def prob(self, event):
         lp = self.logprob(event)
         return exp(lp)
-    def logpdf(self, x):
-        raise NotImplementedError()
     def condition(self, event):
         raise NotImplementedError()
     def mutual_information(self, A, B):
@@ -162,10 +160,6 @@ class SumSPN(SPN):
         if event_dnf is None:
             return -inf
         logps = [spn.logprob(event_dnf) for spn in self.children]
-        return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
-
-    def logpdf(self, x):
-        logps = [spn.logpdf(x) for spn in self.children]
         return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
 
     def condition(self, event):
@@ -287,12 +281,6 @@ class ProductSPN(SPN):
         samples = self.sample_subset(symbols, N, rng)
         return func_evaluate(self, func, samples)
 
-    def logpdf(self, x):
-        assert len(x) == len(self.children)
-        logps = [spn.logpdf(v) for (spn, v) in zip(self.children, x)
-            if x is not None]
-        return logsumexp(logps)
-
     def logprob(self, event):
         event_dnf = dnf_normalize(event)
         if event_dnf is None:
@@ -390,6 +378,8 @@ class LeafSPN(SPN):
     def sample_func(self, func, N, rng):
         samples = self.sample(N, rng)
         return func_evaluate(self, func, samples)
+    def logpdf(self, x):
+        raise NotImplementedError()
 
 # ==============================================================================
 # RealDistribution base class.
@@ -442,9 +432,6 @@ class RealDistribution(LeafSPN):
             return -inf
         p = logdiffexp(self.dist.logcdf(x), self.logFl)
         return p - self.logZ
-
-    def logpdf(self, x):
-        raise NotImplementedError()
 
     def logprob_values(self, values):
         if values is EmptySet:
