@@ -1,4 +1,7 @@
+graphviz
+networkx
 numpy
+pygraphviz
 pytest
 pytest-timeout
 scipy
