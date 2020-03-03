@@ -609,6 +609,8 @@ class NominalDistribution(LeafSPN):
         self.outcomes = list(self.dist)
         self.weights = [float(x) for x in self.dist.values()]
         assert allclose(float(sum(self.weights)),  1)
+        # Hint for solver.
+        self.symbol.support = self.support
 
     def logpdf(self, x):
         return log(self.dist[x]) if x in self.dist else -inf

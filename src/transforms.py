@@ -973,6 +973,11 @@ class EventFiniteNominal(EventBasic):
         self.values = values if special else values
         self.transformed = not isinstance(self.subexpr, Identity)
         self.complemented = isinstance(values, sympy.Complement)
+        self.universe \
+            = self.subexpr.support \
+                if isinstance(self.subexpr, Identity)\
+                and hasattr(self.subexpr, 'support') \
+            else UniversalSet
 
     def finv(self, y):
         if y not in self.range():
@@ -984,17 +989,17 @@ class EventFiniteNominal(EventBasic):
                 if not self.complemented:
                     return EmptySet
                 else:
-                    return UniversalSet
+                    return self.universe
             return self.values
         if y == 0:
             if self.values is EmptySet:
-                return UniversalSet
+                return self.universe
             if self.transformed:
                 if not self.complemented:
-                    return UniversalSet
+                    return self.universe
                 else:
                     return EmptySet
-            return complement_nominal_set(self.values)
+            return complement_nominal_set(self.values, self.universe)
 
     def invert_finite(self, ys):
         if ys == sympy.FiniteSet(0):

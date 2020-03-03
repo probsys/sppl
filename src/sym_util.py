@@ -96,13 +96,15 @@ def is_number(x):
 def is_nominal(x):
     return isinstance(x, (str, NominalValue))
 
-def complement_nominal_set(values):
+def complement_nominal_set(values, universe=None):
+    if universe is None:
+        universe = UniversalSet
     if values is EmptySet:
-        return UniversalSet
-    if values is UniversalSet:
+        return universe
+    if values is universe:
         return EmptySet
     if isinstance(values, sympy.FiniteSet):
-        return sympy.Complement(UniversalSet, values)
+        return sympy.Complement(universe, values)
     if isinstance(values, sympy.Complement):
         values_not = values.args[1]
         assert is_nominal_set(values_not)
