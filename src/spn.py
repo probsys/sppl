@@ -123,30 +123,31 @@ class BranchSPN(SPN):
         return self.symbols
     def logprob(self, event):
         event_dnf = dnf_normalize(event)
-        if event_dnf is None:
+        event_dnf_pruned = self.prune_events(event_dnf)
+        if event_dnf_pruned is None:
             return -inf
-        # Remove conjunctions with probability zero (linear time).
-        # TODO: Reduce code duplication and unnecessary recomputation.
-        if isinstance(event_dnf, EventOr):
-            conjunctions = [dnf_factor(e) for e in event_dnf.subexprs]
-            logps = [self.logprob_factored(c) for c in conjunctions]
-            indexes = [i for i, lp in enumerate(logps) if not isinf_neg(lp)]
-            if not indexes:
-                return -inf
-            event_dnf = EventOr([event_dnf.subexprs[i] for i in indexes])
-        event_factor = dnf_factor(event_dnf)
+        event_factor = dnf_factor(event_dnf_pruned)
         return self.logprob_factored(event_factor)
     def condition(self, event):
         event_dnf = dnf_normalize(event)
-        if event_dnf is None:
+        event_dnf_pruned = self.prune_events(event_dnf)
+        if event_dnf_pruned is None:
             raise ValueError('Zero probability event: %s' % (event,))
-        event_disjoint = dnf_to_disjoint_union(event_dnf)
+        event_disjoint = dnf_to_disjoint_union(event_dnf_pruned)
         event_factor = dnf_factor(event_disjoint)
         return self.condition_factored(event_factor)
     def logprob_factored(self, event_factor):
         raise NotImplementedError()
     def condition_factored(self, event_factor):
         raise NotImplementedError()
+    def prune_events(self, event_dnf):
+        if not isinstance(event_dnf, EventOr):
+            return event_dnf
+        conjunctions = [dnf_factor(e) for e in event_dnf.subexprs]
+        logps = [self.logprob_factored(c) for c in conjunctions]
+        indexes = [i for i, lp in enumerate(logps) if not isinf_neg(lp)]
+        return EventOr([event_dnf.subexprs[i] for i in indexes])\
+            if indexes else None
 
 # ==============================================================================
 # Sum SPN.

@@ -142,6 +142,7 @@ def model_interpreter():
     model_no_latents,
     model_exposed,
     model_ifelse_exhuastive,
+    model_ifelse_non_exhuastive,
     model_ifelse_nested,
     model_interpreter,
 ])
