@@ -80,10 +80,10 @@ def dnf_normalize(event):
     ]))
     if not solutions:
         return None
-    conjunctions = set([
+    conjunctions = [
         reduce(lambda x, e: x & e, [(symbol << S) for symbol, S in clause])
-        for clause in solutions
-    ])
+        for i, clause in enumerate(solutions) if clause not in solutions[:i]
+    ]
     disjunctions = reduce(lambda x, e: x|e, conjunctions)
     return disjunctions.to_dnf()
 

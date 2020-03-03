@@ -211,7 +211,6 @@ def test_product_condition_or_probabilithy_zero():
     with pytest.raises(ValueError):
         spn.condition(event)
     assert spn.logprob(event) == -float('inf')
-
     # Condition on an event where one clause has probability
     # zero, yielding a single product.
     spn_condition = spn.condition((Y < 0) | ((Log(X) >= 0) & (1 <= Y)))
@@ -228,17 +227,43 @@ def test_product_condition_or_probabilithy_zero():
     #   and X is partitioned into (-oo, 0) U (0, oo) with equal weight.
     event = (Exp(abs(3*X**2)) > 1) | ((Log(Y) < 0.5) & (X < 2))
     spn_condition = spn.condition(event)
-    assert isinstance(spn_condition, ProductSPN)
-    assert isinstance(spn_condition.children[0], SumSPN)
-    assert spn_condition.children[0].weights == (-log(2), -log(2))
+    #
+    # The most concise representation of spn_condition is:
+    #   (Product (Sum [.5 .5] X|X<0 X|X>0) Y)
+    # assert isinstance(spn_condition, ProductSPN)
+    # assert isinstance(spn_condition.children[0], SumSPN)
+    # assert spn_condition.children[0].weights == (-log(2), -log(2))
+    # assert spn_condition.children[0].children[0].conditioned
+    # assert spn_condition.children[0].children[1].conditioned
+    # assert spn_condition.children[0].children[0].support \
+    #     == sympy.Interval.Ropen(-sympy.oo, 0)
+    # assert spn_condition.children[0].children[1].support \
+    #     == sympy.Interval.Lopen(0, sympy.oo)
+    # assert spn_condition.children[1].symbol == Y
+    # assert not spn_condition.children[1].conditioned
+    #
+    # However, now we solve the constraint and factor the query into
+    # a disjoint union at the root of the SPN, not once per node, we
+    # no longer have guarantees of generating the smallest network.
+    # In this case, the answer is the more verbose:
+    #   (Sum [.5 .5] (Product X|X<0 Y) (Product X|X>0 Y)
+    assert isinstance(spn_condition, SumSPN)
+    assert spn_condition.weights == (-log(2), -log(2))
+    assert isinstance(spn_condition.children[0], ProductSPN)
+    assert X \
+        == spn_condition.children[0].children[0].symbol \
+        == spn_condition.children[1].children[0].symbol
     assert spn_condition.children[0].children[0].conditioned
-    assert spn_condition.children[0].children[1].conditioned
+    assert spn_condition.children[1].children[0].conditioned
     assert spn_condition.children[0].children[0].support \
         == sympy.Interval.Ropen(-sympy.oo, 0)
-    assert spn_condition.children[0].children[1].support \
+    assert spn_condition.children[1].children[0].support \
         == sympy.Interval.Lopen(0, sympy.oo)
-    assert spn_condition.children[1].symbol == Y
-    assert not spn_condition.children[1].conditioned
+    assert Y \
+        == spn_condition.children[0].children[1].symbol \
+        == spn_condition.children[1].children[1].symbol
+    assert not spn_condition.children[0].children[1].conditioned
+    assert not spn_condition.children[1].children[1].conditioned
 
 def test_product_disjoint_union_numerical():
     X = Identity('X')
