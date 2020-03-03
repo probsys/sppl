@@ -18,7 +18,7 @@ def IfElse(spn, *branches):
     events = [dnf_normalize(event) for event in events]
     # Obtain mixture probabilities.
     weights = [spn.logprob(event) for event in events]
-    # Obtain conditioned root SPN.S
+    # Obtain conditioned root SPNs.
     spns_conditioned = [spn.condition(event) for event in events]
     # Make the children
     children = [
