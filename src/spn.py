@@ -39,7 +39,6 @@ from .sym_util import powerset
 from .sym_util import sympify_number
 
 from .transforms import EventOr
-from .transforms import EventAnd
 from .transforms import EventBasic
 from .transforms import EventCompound
 from .transforms import Identity
@@ -118,7 +117,41 @@ class SPN(object):
 # ==============================================================================
 # Sum SPN.
 
-class SumSPN(SPN):
+class BranchSPN(SPN):
+    symbols = None
+    def get_symbols(self):
+        return self.symbols
+    def logprob(self, event):
+        event_dnf = dnf_normalize(event)
+        if event_dnf is None:
+            return -inf
+        # Remove conjunctions with probability zero (linear time).
+        # TODO: Reduce code duplication and unnecessary recomputation.
+        if isinstance(event_dnf, EventOr):
+            conjunctions = [dnf_factor(e) for e in event_dnf.subexprs]
+            logps = [self.logprob_factored(c) for c in conjunctions]
+            indexes = [i for i, lp in enumerate(logps) if not isinf_neg(lp)]
+            if not indexes:
+                return -inf
+            event_dnf = EventOr([event_dnf.subexprs[i] for i in indexes])
+        event_factor = dnf_factor(event_dnf)
+        return self.logprob_factored(event_factor)
+    def condition(self, event):
+        event_dnf = dnf_normalize(event)
+        if event_dnf is None:
+            raise ValueError('Zero probability event: %s' % (event,))
+        event_disjoint = dnf_to_disjoint_union(event_dnf)
+        event_factor = dnf_factor(event_disjoint)
+        return self.condition_factored(event_factor)
+    def logprob_factored(self, event_factor):
+        raise NotImplementedError()
+    def condition_factored(self, event_factor):
+        raise NotImplementedError()
+
+# ==============================================================================
+# Sum SPN.
+
+class SumSPN(BranchSPN):
     """Weighted mixture of SPNs."""
 
     def __init__(self, children, weights):
@@ -131,9 +164,6 @@ class SumSPN(SPN):
         if not are_identical(symbols):
             raise ValueError('Mixture must have identical symbols.')
         self.symbols = self.children[0].get_symbols()
-
-    def get_symbols(self):
-        return self.symbols
 
     def sample(self, N, rng):
         f_sample = lambda i, n: self.children[i].sample(n, rng)
@@ -155,18 +185,15 @@ class SumSPN(SPN):
         rng.shuffle(samples)
         return list(chain.from_iterable(samples))
 
-    def logprob(self, event):
-        event_dnf = dnf_normalize(event)
-        if event_dnf is None:
-            return -inf
-        logps = [spn.logprob(event_dnf) for spn in self.children]
+    def logprob_factored(self, event_factor):
+        logps = [spn.logprob_factored(event_factor) for spn in self.children]
         return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
 
-    def condition(self, event):
-        logps_condt = [spn.logprob(event) for spn in self.children]
+    def condition_factored(self, event_factor):
+        logps_condt = [spn.logprob_factored(event_factor) for spn in self.children]
         indexes = [i for i, lp in enumerate(logps_condt) if not isinf_neg(lp)]
         logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
-        children = [self.children[i].condition(event) for i in indexes]
+        children = [self.children[i].condition_factored(event_factor) for i in indexes]
         weights = lognorm(logps_joint)
         return SumSPN(children, weights) if len(children) > 1 \
             else children[0]
@@ -238,7 +265,7 @@ class PartialSumSPN(SPN):
 # ==============================================================================
 # Product base class.
 
-class ProductSPN(SPN):
+class ProductSPN(BranchSPN):
     """List of independent SPNs."""
 
     def __init__(self, children):
@@ -251,9 +278,6 @@ class ProductSPN(SPN):
             raise ValueError('Product must have disjoint symbols')
         self.lookup = {s:i for i, syms in enumerate(symbols) for s in syms}
         self.symbols = frozenset(get_union(symbols))
-
-    def get_symbols(self):
-        return self.symbols
 
     def sample(self, N, rng):
         samples = [spn.sample(N, rng) for spn in self.children]
@@ -281,38 +305,16 @@ class ProductSPN(SPN):
         samples = self.sample_subset(symbols, N, rng)
         return func_evaluate(self, func, samples)
 
-    def logprob(self, event):
-        event_dnf = dnf_normalize(event)
-        if event_dnf is None:
-            return -inf
-        # Remove conjunctions with probability zero (linear time).
-        # TODO: Reduce code duplication and unnecessary recomputation.
-        if isinstance(event_dnf, EventOr):
-            conjunctions = event_dnf.subexprs
-            logps = [self.logprob_inclusion_exclusion(c) for c in conjunctions]
-            indexes = [i for i, lp in enumerate(logps) if not isinf_neg(lp)]
-            if not indexes:
-                return -inf
-            event_dnf = EventOr([conjunctions[i] for i in indexes])
-        return self.logprob_inclusion_exclusion(event_dnf)
-
-    def logprob_inclusion_exclusion(self, event):
+    def logprob_factored(self, event_factor):
         # Adopting Inclusion--Exclusion principle for DNF event:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
-        event_factor = dnf_factor(event, self.lookup)
         indexes = range(len(event_factor))
-        subsets = powerset(indexes, start=1)
+        subsets = list(powerset(indexes, start=1))
         # Compute probabilities of all the conjunctions.
         (logps_pos, logps_neg) = ([], [])
         for J in subsets:
-            # Find indexes of children that are involved in clauses J.
-            keys = set(chain.from_iterable(event_factor[j].keys() for j in J))
-            # Factorize events across the product.
-            logprobs = [
-                self.get_clause_weight_subset(event_factor, J, key)
-                for key in keys
-            ]
-            logprob = sum(logprobs)
+            # Compute probability of this conjunction.
+            logprob = self.logprob_conjunction(event_factor, J)
             # Add probability to either positive or negative sums.
             prefactor = (-1)**(len(J) - 1)
             x = logps_pos if prefactor > 0 else logps_neg
@@ -325,44 +327,46 @@ class ProductSPN(SPN):
         logp_neg = logsumexp(logps_neg) if logps_neg else -inf
         return logdiffexp(logp_pos, logp_neg)
 
-    def condition(self, event):
-        # Discard all probability zero clauses or fail if all are.
-        event_disjiont = dnf_to_disjoint_union(event)
-        event_factor = dnf_factor(event_disjiont, self.lookup)
-        logps = [self.get_clause_weight(clause) for clause in event_factor]
-        assert allclose(logsumexp(logps), self.logprob(event))
+    def condition_factored(self, event_factor):
+        logps = [self.logprob_conjunction([c], [0]) for c in event_factor]
+        assert allclose(logsumexp(logps), self.logprob_factored(event_factor))
         indexes = [i for (i, lp) in enumerate(logps) if not isinf_neg(lp)]
         if not indexes:
             raise ValueError('Conditioning event "%s" has probability zero'
-                % (str(event),))
-        # Return a sum of products.
+                % (str(event_factor),))
         weights = lognorm([logps[i] for i in indexes])
-        childrens = [self.get_clause_children(event_factor[i]) for i in indexes]
-        products = [ProductSPN(children) for children in childrens]
-        return SumSPN(products, weights) if len(products) > 1 else products[0]
+        children = [self.condition_clause(event_factor[i]) for i in indexes]
+        return SumSPN(children, weights) if len(children) > 1 else children[0]
 
-    def get_clause_children(self, clause):
-        # Return children conditioned on a clause (one conjunction).
-        return [
-            spn.condition(clause[k]) if (k in clause) else spn
-            for k, spn in enumerate(self.children)
-        ]
-
-    def get_clause_weight(self, clause):
-        # Return probability of a clause (one conjunction).
+    def logprob_conjunction(self, event_factor, J):
+        # Return probability of conjunction of |J| conjunctions.
+        keys = set([self.lookup[s] for j in J for s in event_factor[j]])
         return sum([
-            spn.logprob(clause[k]) if (k in clause) else 0
-            for k, spn in enumerate(self.children)
+            self.logprob_conjunction_key(event_factor, J, key)
+            for key in keys
         ])
 
-    def get_clause_weight_subset(self, event_factor, J, key):
-        # Return probability of conjunction of |J| clauses, for given key.
-        events = [event_factor[j][key] for j in J if key in event_factor[j]]
-        if not events:
-            return -inf
-        # Compute probability of events.
-        event = events[0] if (len(events) == 1) else EventAnd(events)
-        return self.children[key].logprob(event)
+    def logprob_conjunction_key(self, event_factor, J, key):
+        # Return probability of conjunction of |J| conjunction, for given key.
+        clause = {}
+        for j in J:
+            for symbol, event in event_factor[j].items():
+                if self.lookup[symbol] == key:
+                    if symbol not in clause:
+                        clause[symbol] = event
+                    else:
+                        clause[symbol] &= event
+        return self.children[key].logprob_factored([clause]) if clause else -inf
+
+    def condition_clause(self, clause):
+        # Return children conditioned on a clause (one conjunction).
+        children = [
+            spn.condition_factored([
+                {s:e for s, e in clause.items() if s in spn.get_symbols()}
+            ]) if any(s in spn.get_symbols() for s in clause) else spn
+            for spn in self.children
+        ]
+        return ProductSPN(children)
 
 # ==============================================================================
 # Basic Distribution base class.
@@ -379,6 +383,16 @@ class LeafSPN(SPN):
         samples = self.sample(N, rng)
         return func_evaluate(self, func, samples)
     def logpdf(self, x):
+        raise NotImplementedError()
+    def logprob(self, event):
+        event_factor = [{self.symbol: event}]
+        return self.logprob_factored(event_factor)
+    def condition(self, event):
+        event_factor = [{self.symbol: event}]
+        return self.condition_factored(event_factor)
+    def logprob_factored(self, event_factor):
+        raise NotImplementedError()
+    def condition_factored(self, event_factor):
         raise NotImplementedError()
 
 # ==============================================================================
@@ -418,7 +432,8 @@ class RealDistribution(LeafSPN):
         # Wrap result in a dictionary.
         return [{self.symbol : x} for x in xs]
 
-    def logprob(self, event):
+    def logprob_factored(self, event_factor):
+        event = event_unfactor(self.symbol, event_factor)
         interval = event.solve()
         values = get_intersection_safe(self.support, interval)
         return self.logprob_values(values)
@@ -454,7 +469,8 @@ class RealDistribution(LeafSPN):
     def logprob_interval(self, values):
         raise NotImplementedError()
 
-    def condition(self, event):
+    def condition_factored(self, event_factor):
+        event = event_unfactor(self.symbol, event_factor)
         interval = event.solve()
         values = get_intersection_safe(self.support, interval)
         weight = self.logprob_values(values)
@@ -596,21 +612,23 @@ class NominalDistribution(LeafSPN):
     def logpdf(self, x):
         return log(self.dist[x]) if x in self.dist else -inf
 
-    def logprob(self, event):
+    def logprob_factored(self, event_factor):
         # TODO: Consider using 1 - Pr[Event] for negation to avoid
         # iterating over domain.
         # if is_event_transformed(event):
         #     raise ValueError('Cannot apply transform to Nominal variable: %s'
         #         % (str(event),))
+        event = event_unfactor(self.symbol, event_factor)
         solution = event.solve()
         values = Intersection(self.support, solution)
         p_event = sum(self.dist[x] for x in values)
         return log(p_event) if p_event != 0 else -inf
 
-    def condition(self, event):
+    def condition_factored(self, event_factor):
         # if is_event_transformed(event):
         #     raise ValueError('Cannot apply transform to Nominal variable: %s'
         #         % (str(event),))
+        event = event_unfactor(self.symbol, event_factor)
         solution = event.solve()
         values = Intersection(self.support, solution)
         p_event = sum([self.dist[x] for x in values])
@@ -632,6 +650,11 @@ class NominalDistribution(LeafSPN):
 
 # ==============================================================================
 # Utilities.
+
+def event_unfactor(symbol, dnf_factor):
+    if len(dnf_factor) == 1:
+        return dnf_factor[0][symbol]
+    return EventOr([conjunction[symbol] for conjunction in dnf_factor])
 
 def get_intersection_safe(a, b):
     assert not isinstance(a, Union)
