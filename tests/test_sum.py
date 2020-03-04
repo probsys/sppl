@@ -156,6 +156,10 @@ def test_sum_normal_nominal():
         spn_condition = spn.condition((X**2 < 9) | ~(X << {'1'}))
         assert spn_condition.children == spn_condition.children
 
+    # Probability works because inclusion-exclusion does not need
+    # the disjunction to be processed into disjoint events.
+    assert allclose(spn.logprob((X < sympy.oo) | ~(X << {'1'})), 0)
+
     # FIXME: Solving this event yields Reals, eliminating the Nominal
     # branch, even though ~(X << {1}) is satisfied by that branch.
     with pytest.raises(AssertionError):
