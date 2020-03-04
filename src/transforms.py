@@ -1011,14 +1011,14 @@ class EventFiniteNominal(EventBasic):
             if event.subexpr == self.subexpr:
                 union = sympy.Union(self.values, event.values)
                 if isinstance(union, sympy.Union):
-                    assert union.args[0].args[0] is UniversalSet
-                    assert union.args[1].args[0] is UniversalSet
-                    assert isinstance(self.values, sympy.Complement)
-                    assert isinstance(event.values, sympy.Complement)
-                    A = complement_nominal_set(self.values)
-                    B = complement_nominal_set(event.values)
-                    intersection = sympy.Intersection(A, B)
-                    return ~EventFiniteNominal(self.subexpr, intersection)
+                    if (union.args[0].args[0] is UniversalSet
+                            and union.args[1].args[0] is UniversalSet):
+                        assert isinstance(self.values, sympy.Complement)
+                        assert isinstance(event.values, sympy.Complement)
+                        A = complement_nominal_set(self.values)
+                        B = complement_nominal_set(event.values)
+                        intersection = sympy.Intersection(A, B)
+                        return ~EventFiniteNominal(self.subexpr, intersection)
         return super().__or__(event)
     def __repr__(self):
         return 'EventFiniteNominal(%s, %s)' \

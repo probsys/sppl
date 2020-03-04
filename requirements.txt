@@ -5,4 +5,4 @@ pygraphviz
 pytest
 pytest-timeout
 scipy
-sympy
+sympy==1.4

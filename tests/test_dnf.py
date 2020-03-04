@@ -7,6 +7,7 @@ from spn.dnf import dnf_factor
 from spn.dnf import dnf_non_disjoint_clauses
 from spn.dnf import dnf_to_disjoint_union
 
+from spn.transforms import EventOr
 from spn.transforms import ExpNat
 from spn.transforms import Identity
 from spn.transforms import LogNat
@@ -236,3 +237,14 @@ def test_event_to_disjiont_union_numerical():
     ]:
         event_dnf = dnf_to_disjoint_union(event)
         assert not dnf_non_disjoint_clauses(event_dnf)
+
+def test_event_to_disjoint_union_nominal():
+    X = Identity('X')
+    Y = Identity('Y')
+    event = (X << {'1'}) | (X << {'1', '2'})
+    assert dnf_to_disjoint_union(event) == X << {'1', '2'}
+
+    event = (X << {'1'}) | ~(Y << {'1'})
+    assert dnf_to_disjoint_union(event) == EventOr([
+        (X << {'1'}), ~(Y << {'1'}) & ~(X << {'1'})
+    ])

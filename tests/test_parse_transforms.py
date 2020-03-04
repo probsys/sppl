@@ -588,6 +588,11 @@ def test_event_complex_simplification():
     assert ~(X << {'a'}) | ~(X << {'b'}) == EventFiniteNominal(X, UniversalSet)
     assert ~(X << {'a'}) | ~(X << {'a', 'b'}) == ~(X << {'a'})
 
+    # Here we fail to simplify because sympy.Union({'a'}, U \ {'a', 'b'})
+    # does not correctly simplify to U \ {'b'}.
+    assert (X << {'1'}) | ~(X << {'1', '2'}) \
+        == EventOr([X << {'1'}, ~(X << {'1', '2'})])
+
 def test_xor():
     A = X << {'a'}
     B = ~(X << {'b'})
