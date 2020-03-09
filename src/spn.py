@@ -4,6 +4,7 @@
 from collections import ChainMap
 from collections import Counter
 from fractions import Fraction
+from functools import reduce
 from inspect import getfullargspec
 from itertools import chain
 from math import exp
@@ -346,8 +347,14 @@ class ProductSPN(BranchSPN):
             raise ValueError('Conditioning event "%s" has probability zero'
                 % (str(event_factor),))
         weights = lognorm([logps[i] for i in indexes])
-        children = [self.condition_clause(event_factor[i]) for i in indexes]
-        return SumSPN(children, weights) if len(children) > 1 else children[0]
+        childrens = [self.condition_clause(event_factor[i]) for i in indexes]
+        # return SumSPN(children, weights) if len(children) > 1 else children[0]
+        children_simplified = reduce(
+            lambda state, cw: factorize_spn_sum(state, cw[0], cw[1]),
+            zip(childrens[1:], weights[1:]),
+            childrens[0],
+        )
+        return make_product_from_list(children_simplified)
 
     def logprob_conjunction(self, event_factor, J):
         # Return probability of conjunction of |J| conjunctions.
@@ -371,13 +378,36 @@ class ProductSPN(BranchSPN):
 
     def condition_clause(self, clause):
         # Return children conditioned on a clause (one conjunction).
-        children = [
+        return [
             spn.condition_factored([
                 {s:e for s, e in clause.items() if s in spn.get_symbols()}
             ]) if any(s in spn.get_symbols() for s in clause) else spn
             for spn in self.children
         ]
-        return ProductSPN(children)
+
+def factorize_spn_sum(children_a, children_b, w_b):
+    w_a = logdiffexp(0, w_b)
+    overlap = [(i, j)
+        for j, cb in enumerate(children_b)
+        for i, ca in enumerate(children_a)
+        if ca == cb
+    ]
+    if not overlap:
+        product_a = make_product_from_list(children_a)
+        product_b = make_product_from_list(children_b)
+        return [SumSPN([product_a, product_b], [w_a, w_b])]
+    dup_a = [p[0] for p in overlap]
+    dup_b = [p[1] for p in overlap]
+    uniq_children_a = [c for i, c in enumerate(children_a) if i not in dup_a]
+    uniq_children_b = [c for j, c in enumerate(children_b) if j not in dup_b]
+    dup_children = [c for i, c in enumerate(children_a) if i in dup_a]
+    product_a = make_product_from_list(uniq_children_a)
+    product_b = make_product_from_list(uniq_children_b)
+    sum_a_b = SumSPN([product_a, product_b], [w_a, w_b])
+    return [sum_a_b] + dup_children
+
+def make_product_from_list(children):
+    return children[0] if len(children) == 1 else ProductSPN(children)
 
 # ==============================================================================
 # Basic Distribution base class.
