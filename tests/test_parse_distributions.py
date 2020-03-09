@@ -96,26 +96,31 @@ def test_product_leaf():
     assert y.get_symbols() == frozenset([X, Y, Z])
 
 def test_sum_of_sums():
-    w = 0.3*(0.4*(X >> Norm()) | 0.6*(X >> Norm())) | 0.7*(0.1*(X >> Norm()) | 0.9*(X >> Norm()))
+    w \
+        = 0.3*(0.4*(X >> Norm()) | 0.6*(X >> Norm())) \
+        | 0.7*(0.1*(X >> Norm()) | 0.9*(X >> Norm()))
     assert isinstance(w, SumSPN)
-    assert len(w.children) == 2
-    assert allclose(float(w.weights[0]), log(0.3))
-    assert allclose(float(w.weights[1]), log(0.7))
-    assert allclose(float(w.children[0].weights[0]), log(0.4))
-    assert allclose(float(w.children[0].weights[1]), log(0.6))
-    assert allclose(float(w.children[1].weights[0]), log(0.1))
-    assert allclose(float(w.children[1].weights[1]), log(0.9))
+    assert len(w.children) == 4
+    assert allclose(float(w.weights[0]), log(0.3) + log(0.4))
+    assert allclose(float(w.weights[1]), log(0.3) + log(0.6))
+    assert allclose(float(w.weights[2]), log(0.7) + log(0.1))
+    assert allclose(float(w.weights[3]), log(0.7) + log(0.9))
 
-    w = 0.3*(0.4*(X >> Norm()) | 0.6*(X >> Norm())) | 0.2*(0.1*(X >> Norm()) | 0.9*(X >> Norm()))
+    w \
+        = 0.3*(0.4*(X >> Norm()) | 0.6*(X >> Norm())) \
+        | 0.2*(0.1*(X >> Norm()) | 0.9*(X >> Norm()))
     assert isinstance(w, PartialSumSPN)
     assert allclose(float(w.weights[0]), 0.3)
     assert allclose(float(w.weights[1]), 0.2)
 
     a = w | 0.5*(X >> Gamma(a=1))
     assert isinstance(a, SumSPN)
-    assert isinstance(a.children[0], SumSPN)
-    assert isinstance(a.children[1], SumSPN)
-    assert isinstance(a.children[2], ContinuousReal)
+    assert len(a.children) == 5
+    assert allclose(float(a.weights[0]), log(0.3) + log(0.4))
+    assert allclose(float(a.weights[1]), log(0.3) + log(0.6))
+    assert allclose(float(a.weights[2]), log(0.2) + log(0.1))
+    assert allclose(float(a.weights[3]), log(0.2) + log(0.9))
+    assert allclose(float(a.weights[4]), log(0.5))
 
     # Wrong symbol.
     with pytest.raises(ValueError):

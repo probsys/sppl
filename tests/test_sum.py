@@ -58,6 +58,55 @@ def test_sum_normal_gamma():
         spn.weights[1] + spn.children[1].logprob(X < 0),
     ])
 
+def test_sum_simplify_1():
+    X = Identity('X')
+    children = [
+        SumSPN(
+            [X >> Norm(loc=0, scale=1), X >> Norm(loc=0, scale=2)],
+            [log(0.4), log(0.6)]),
+        X >> Gamma(loc=0, a=1),
+    ]
+    spn = SumSPN(children, [log(0.7), log(0.3)])
+    assert spn.children == (
+        children[0].children[0],
+        children[0].children[1],
+        children[1]
+    )
+    assert allclose(spn.weights[0], log(0.7) + log(0.4))
+    assert allclose(spn.weights[1], log(0.7) + log(0.6))
+    assert allclose(spn.weights[2], log(0.3))
+
+def test_sum_simplify_2():
+    X = Identity('X')
+    W = Identity('W')
+    children = [
+        SumSPN([
+            (X >> Norm(loc=0, scale=1)) & (W >> Norm(loc=0, scale=2)),
+            (X >> Norm(loc=0, scale=2)) & (W >> Norm(loc=0, scale=1))],
+            [log(0.9), log(0.1)]),
+        (X >> Norm(loc=0, scale=4)) & (W >> Norm(loc=0, scale=10)),
+        SumSPN([
+            (X >> Norm(loc=0, scale=1)) & (W >> Norm(loc=0, scale=2)),
+            (X >> Norm(loc=0, scale=2)) & (W >> Norm(loc=0, scale=1)),
+            (X >> Norm(loc=0, scale=8)) & (W >> Norm(loc=0, scale=3)),],
+            [log(0.4), log(0.3), log(0.3)]),
+    ]
+    spn = SumSPN(children, [log(0.4), log(0.4), log(0.2)])
+    assert spn.children == (
+        children[0].children[0],
+        children[0].children[1],
+        children[1],
+        children[2].children[0],
+        children[2].children[1],
+        children[2].children[2],
+    )
+    assert allclose(spn.weights[0], log(0.4) + log(0.9))
+    assert allclose(spn.weights[1], log(0.4) + log(0.1))
+    assert allclose(spn.weights[2], log(0.4))
+    assert allclose(spn.weights[3], log(0.2) + log(0.4))
+    assert allclose(spn.weights[4], log(0.2) + log(0.3))
+    assert allclose(spn.weights[5], log(0.2) + log(0.3))
+
 def test_sum_normal_gamma_exposed():
     X = Identity('X')
     W = Identity('W')

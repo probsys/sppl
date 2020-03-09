@@ -156,12 +156,22 @@ class SumSPN(BranchSPN):
     """Weighted mixture of SPNs."""
 
     def __init__(self, children, weights):
-        self.children = tuple(children)
-        self.weights = tuple(weights)
+        self.children = tuple(chain.from_iterable([
+            spn.children
+                if isinstance(spn, type(self)) else [spn]
+            for spn in children
+        ]))
+        self.weights = tuple(chain.from_iterable([
+            [weight + w for w in spn.weights]
+                if isinstance(spn, type(self)) else [weight]
+            for spn, weight in zip(children, weights)
+        ]))
+        # self.children = tuple(children)
+        # self.weights = tuple(weights)
         self.indexes = tuple(range(len(self.weights)))
         assert allclose(float(logsumexp(weights)),  0)
 
-        symbols = [spn.get_symbols() for spn in children]
+        symbols = [spn.get_symbols() for spn in self.children]
         if not are_identical(symbols):
             raise ValueError('Mixture must have identical symbols.')
         self.symbols = self.children[0].get_symbols()
