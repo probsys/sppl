@@ -59,6 +59,28 @@ def powerset(values, start=0):
     subsets = [combinations(s, k) for k in range(start, len(s) + 1)]
     return chain.from_iterable(subsets)
 
+def partition_list_assignments(values):
+    assignments = {}
+    counter = 0
+    for i, ci in enumerate(values):
+        try:
+            j = next(j for j, cj in enumerate(values[:i]) if ci==cj)
+            assignments[i] = assignments[j]
+        except StopIteration:
+            assignments[i] = counter
+            counter += 1
+    return assignments
+
+def partition_list_blocks(values):
+    assignments = partition_list_assignments(values)
+    n_blocks = max(assignments.values()) + 1
+    partition = [None] * n_blocks
+    for i, z in assignments.items():
+        if partition[z] is None:
+            partition[z] = []
+        partition[z].append(i)
+    return partition
+
 def sympify_number(x):
     msg = 'Expected a numeric term, not %s' % (x,)
     try:
