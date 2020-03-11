@@ -72,9 +72,12 @@ class IfElse(Command):
         events = [dnf_normalize(event) for event in events_unorm]
         # Obtain mixture probabilities.
         weights = [spn.logprob(event) for event in events]
+        # Filter the irrelevant ones.
+        indexes = [i for i, w in enumerate(weights) if not isinf_neg(w)]
+        assert indexes, 'All conditions probability zero.'
         # Obtain conditioned SPNs.
-        spns_conditioned = [spn.condition(event) for event in events]
-        # Make the children
+        spns_conditioned = [spn.condition(events[i]) for i in indexes]
+        # Make the children.
         children = [
             subcommand.interpret(S)
             for S, subcommand in zip(spns_conditioned, subcommands)
