@@ -95,11 +95,12 @@ class IfElse(Command):
                 else [spn] for spn in children
         ]
         # Simplify the children.
-        children_simplified = reduce(
+        children_simplified, weights_simplified = reduce(
             lambda state, cw: factorize_spn_sum(state, cw[0], cw[1]),
             zip(children_list[1:], weights_conditioned[1:]),
-            children_list[0],
+            (children_list[0], weights_conditioned[0]),
         )
+        assert allclose(logsumexp(weights_simplified), 0)
         return make_product_from_list(children_simplified)
 
 class Repeat(Command):

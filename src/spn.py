@@ -349,11 +349,12 @@ class ProductSPN(BranchSPN):
         weights = lognorm([logps[i] for i in indexes])
         childrens = [self.condition_clause(event_factor[i]) for i in indexes]
         # return SumSPN(children, weights) if len(children) > 1 else children[0]
-        children_simplified = reduce(
+        children_simplified, weight_simplified = reduce(
             lambda state, cw: factorize_spn_sum(state, cw[0], cw[1]),
             zip(childrens[1:], weights[1:]),
-            childrens[0],
+            (childrens[0], weights[0]),
         )
+        assert allclose(logsumexp(weight_simplified), 0)
         return make_product_from_list(children_simplified)
 
     def logprob_conjunction(self, event_factor, J):
@@ -385,8 +386,10 @@ class ProductSPN(BranchSPN):
             for spn in self.children
         ]
 
-def factorize_spn_sum(children_a, children_b, w_b):
-    w_a = logdiffexp(0, w_b)
+def factorize_spn_sum(state, children_b, w_b):
+    (children_a, w_a) = state
+    weights_sum = lognorm([w_a, w_b])
+    weight_overall = logsumexp([w_a, w_b])
     overlap = [(i, j)
         for j, cb in enumerate(children_b)
         for i, ca in enumerate(children_a)
@@ -395,7 +398,7 @@ def factorize_spn_sum(children_a, children_b, w_b):
     if not overlap:
         product_a = make_product_from_list(children_a)
         product_b = make_product_from_list(children_b)
-        return [SumSPN([product_a, product_b], [w_a, w_b])]
+        return ([SumSPN([product_a, product_b], weights_sum)], weight_overall)
     dup_a = [p[0] for p in overlap]
     dup_b = [p[1] for p in overlap]
     uniq_children_a = [c for i, c in enumerate(children_a) if i not in dup_a]
@@ -403,8 +406,8 @@ def factorize_spn_sum(children_a, children_b, w_b):
     dup_children = [c for i, c in enumerate(children_a) if i in dup_a]
     product_a = make_product_from_list(uniq_children_a)
     product_b = make_product_from_list(uniq_children_b)
-    sum_a_b = SumSPN([product_a, product_b], [w_a, w_b])
-    return [sum_a_b] + dup_children
+    sum_a_b = SumSPN([product_a, product_b], weights_sum)
+    return ([sum_a_b] + dup_children, weight_overall)
 
 def make_product_from_list(children):
     return children[0] if len(children) == 1 else ProductSPN(children)
