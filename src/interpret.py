@@ -7,8 +7,13 @@ from functools import reduce
 from .combinators import make_predicates_else
 from .combinators import make_predicates_noelse
 from .dnf import dnf_normalize
+from .math_util import allclose
+from .math_util import isinf_neg
+from .math_util import logsumexp
+from .spn import ProductSPN
 from .spn import SPN
-from .spn import SumSPN
+from .spn import factorize_spn_sum
+from .spn import make_product_from_list
 
 from .transforms import Identity
 
@@ -76,14 +81,26 @@ class IfElse(Command):
         indexes = [i for i, w in enumerate(weights) if not isinf_neg(w)]
         assert indexes, 'All conditions probability zero.'
         # Obtain conditioned SPNs.
+        weights_conditioned = [weights[i] for i in indexes]
         spns_conditioned = [spn.condition(events[i]) for i in indexes]
+        assert allclose(logsumexp(weights_conditioned), 0)
         # Make the children.
         children = [
             subcommand.interpret(S)
             for S, subcommand in zip(spns_conditioned, subcommands)
         ]
-        # Return the overall sum.
-        return SumSPN(children, weights)
+        # Obtain children as lists.
+        children_list = [
+            spn.children if isinstance(spn, ProductSPN)
+                else [spn] for spn in children
+        ]
+        # Simplify the children.
+        children_simplified = reduce(
+            lambda state, cw: factorize_spn_sum(state, cw[0], cw[1]),
+            zip(children_list[1:], weights_conditioned[1:]),
+            children_list[0],
+        )
+        return make_product_from_list(children_simplified)
 
 class Repeat(Command):
     def __init__(self, n0, n1, f):
