@@ -48,3 +48,19 @@ def test_complex_model():
             Y << {str(i)} | Z[i] << {0},  X[i] >> Bernoulli(p=1/(i+1)),
             Otherwise,                    X[i] >> Bernoulli(p=0.1))))
     assert allclose(model.prob(Y << {'0'}), 0.2)
+
+def test_complex_model_reorder():
+    model = (Start
+    & Y >> NominalDist({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+    & Repeat(0, 3, lambda i:
+        Z[i] >> Bernoulli(p=0.1))
+    & Repeat(0, 3, lambda i:
+        Cond (
+            Y << {str(i)},
+                X[i] >> Bernoulli(p=1/(i+1)),
+            Z[i] << {0},
+                X[i] >> Bernoulli(p=1/(i+1)),
+            Otherwise,
+                X[i] >> Bernoulli(p=0.1)
+    )))
+    assert(allclose(model.prob(Y << {'0'}), 0.2))
