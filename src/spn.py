@@ -320,21 +320,23 @@ def spn_simplify_sum_product_helper(state, children_b, w_b):
         for i, ca in enumerate(children_a)
         if ca == cb
     ]
-    if not overlap:
+    if len(overlap) == 0:
         product_a = spn_list_to_product(children_a)
         product_b = spn_list_to_product(children_b)
-        return ([SumSPN([product_a, product_b], weights_sum)], weight_overall)
-    if len(overlap) == len(children_a):
-        return (children_a, weight_overall)
-    dup_a = [p[0] for p in overlap]
-    dup_b = [p[1] for p in overlap]
-    uniq_children_a = [c for i, c in enumerate(children_a) if i not in dup_a]
-    uniq_children_b = [c for j, c in enumerate(children_b) if j not in dup_b]
-    dup_children = [c for i, c in enumerate(children_a) if i in dup_a]
-    product_a = spn_list_to_product(uniq_children_a)
-    product_b = spn_list_to_product(uniq_children_b)
-    sum_a_b = SumSPN([product_a, product_b], weights_sum)
-    return ([sum_a_b] + dup_children, weight_overall)
+        children_simplified = [SumSPN([product_a, product_b], weights_sum)]
+    elif len(overlap) == len(children_a):
+        children_simplified = children_a
+    else:
+        dup_b = [p[1] for p in overlap]
+        dup_a = [p[0] for p in overlap]
+        uniq_children_b = [c for j, c in enumerate(children_b) if j not in dup_b]
+        uniq_children_a = [c for i, c in enumerate(children_a) if i not in dup_a]
+        dup_children = [c for i, c in enumerate(children_a) if i in dup_a]
+        product_a = spn_list_to_product(uniq_children_a)
+        product_b = spn_list_to_product(uniq_children_b)
+        sum_a_b = SumSPN([product_a, product_b], weights_sum)
+        children_simplified = [sum_a_b] + dup_children
+    return (children_simplified, weight_overall)
 
 # ==============================================================================
 # Product base class.
