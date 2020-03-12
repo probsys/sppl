@@ -10,10 +10,9 @@ from .dnf import dnf_normalize
 from .math_util import allclose
 from .math_util import isinf_neg
 from .math_util import logsumexp
-from .spn import ProductSPN
 from .spn import SPN
-from .spn import factorize_spn_sum
-from .spn import make_product_from_list
+from .spn import SumSPN
+from .spn import spn_simplify_sum
 
 from .transforms import Identity
 
@@ -89,19 +88,11 @@ class IfElse(Command):
             subcommand.interpret(S)
             for S, subcommand in zip(spns_conditioned, subcommands)
         ]
-        # Obtain children as lists.
-        children_list = [
-            spn.children if isinstance(spn, ProductSPN)
-                else [spn] for spn in children
-        ]
-        # Simplify the children.
-        children_simplified, weights_simplified = reduce(
-            lambda state, cw: factorize_spn_sum(state, cw[0], cw[1]),
-            zip(children_list[1:], weights_conditioned[1:]),
-            (children_list[0], weights_conditioned[0]),
-        )
-        assert allclose(logsumexp(weights_simplified), 0)
-        return make_product_from_list(children_simplified)
+        # Return the simplified Sum.
+        if len(children) == 1:
+            return children[0]
+        spn = SumSPN(children, weights)
+        return spn_simplify_sum(spn)
 
 class Repeat(Command):
     def __init__(self, n0, n1, f):
