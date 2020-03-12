@@ -210,6 +210,14 @@ class SumSPN(BranchSPN):
         return SumSPN(children, weights) if len(children) > 1 \
             else children[0]
 
+    def __eq__(self, x):
+        return isinstance(x, type(self)) \
+            and self.children == x.children \
+            and self.weights == x.weights
+    def __hash__(self):
+        x = (self.__class__, self.children, self.weights)
+        return hash(x)
+
 class ExposedSumSPN(SumSPN):
     def __init__(self, children, spn_weights):
         """Weighted mixture of SPNs with exposed internal choice."""
@@ -286,6 +294,8 @@ def spn_simplify_sum_leaf(spn):
     partition = partition_list_blocks(spn.children)
     if len(partition) == len(spn.children):
         return spn
+    if len(partition) == 1:
+        return spn.children[0]
     children = [spn.children[block[0]] for block in partition]
     weights = [logsumexp([spn.weights[i] for i in block]) for block in partition]
     return SumSPN(children, weights)
@@ -314,6 +324,8 @@ def spn_simplify_sum_product_helper(state, children_b, w_b):
         product_a = spn_list_to_product(children_a)
         product_b = spn_list_to_product(children_b)
         return ([SumSPN([product_a, product_b], weights_sum)], weight_overall)
+    if len(overlap) == len(children_a):
+        return (children_a, weight_overall)
     dup_a = [p[0] for p in overlap]
     dup_b = [p[1] for p in overlap]
     uniq_children_a = [c for i, c in enumerate(children_a) if i not in dup_a]
@@ -433,6 +445,13 @@ class ProductSPN(BranchSPN):
             ]) if any(s in spn.get_symbols() for s in clause) else spn
             for spn in self.children
         ]
+
+    def __eq__(self, x):
+        return isinstance(x, type(self)) \
+            and self.children == x.children
+    def __hash__(self):
+        x = (self.__class__, self.children)
+        return hash(x)
 
 def spn_list_to_product(children):
     return children[0] if len(children) == 1 else ProductSPN(children)
@@ -571,6 +590,19 @@ class RealDistribution(LeafSPN):
                 if 1 < len(indexes) else children[0]
 
         assert False, 'Unknown set type: %s' % (values,)
+
+    def __hash__(self):
+        d = (self.dist.dist.name, self.dist.args, self.dist.kwds)
+        x = (self.__class__, self.symbol, d, self.support, self.conditioned)
+        return hash(x)
+    def __eq__(self, x):
+        return isinstance(x, type(self)) \
+            and self.symbol == x.symbol \
+            and self.dist.dist.name == x.dist.dist.name \
+            and self.dist.args == x.dist.args \
+            and self.dist.kwds == x.dist.kwds \
+            and self.support == x.support \
+            and self.conditioned == x.conditioned
 
 # ==============================================================================
 # Continuous RealDistribution.
@@ -716,6 +748,14 @@ class NominalDistribution(LeafSPN):
         # TODO: Replace with FLDR.
         xs = flip(self.weights, self.outcomes, N, rng)
         return [{self.symbol: x} for x in xs]
+
+    def __hash__(self):
+        x = (self.__class__, self.symbol, tuple(self.dist.items()))
+        return hash(x)
+    def __eq__(self, x):
+        return isinstance(x, type(self)) \
+            and self.symbol == x.symbol \
+            and self.dist == x.dist
 
 # ==============================================================================
 # Utilities.
