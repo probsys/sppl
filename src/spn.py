@@ -168,8 +168,7 @@ class SumSPN(BranchSPN):
                 if isinstance(spn, type(self)) else [weight]
             for spn, weight in zip(children, weights)
         ]))
-        # self.children = tuple(children)
-        # self.weights = tuple(weights)
+        # Derived attributes.
         self.indexes = tuple(range(len(self.weights)))
         assert allclose(float(logsumexp(weights)),  0)
 
@@ -336,6 +335,7 @@ class ProductSPN(BranchSPN):
             (spn.children if isinstance(spn, type(self)) else [spn])
             for spn in children
         ]))
+        # Derived attributes.
         symbols = [spn.get_symbols() for spn in self.children]
         if not are_disjoint(symbols):
             raise ValueError('Product must have disjoint symbols')
