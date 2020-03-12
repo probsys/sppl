@@ -7,8 +7,12 @@ from functools import reduce
 from .combinators import make_predicates_else
 from .combinators import make_predicates_noelse
 from .dnf import dnf_normalize
+from .math_util import allclose
+from .math_util import isinf_neg
+from .math_util import logsumexp
 from .spn import SPN
 from .spn import SumSPN
+from .spn import spn_simplify_sum
 
 from .transforms import Identity
 
@@ -72,15 +76,23 @@ class IfElse(Command):
         events = [dnf_normalize(event) for event in events_unorm]
         # Obtain mixture probabilities.
         weights = [spn.logprob(event) for event in events]
+        # Filter the irrelevant ones.
+        indexes = [i for i, w in enumerate(weights) if not isinf_neg(w)]
+        assert indexes, 'All conditions probability zero.'
         # Obtain conditioned SPNs.
-        spns_conditioned = [spn.condition(event) for event in events]
-        # Make the children
+        weights_conditioned = [weights[i] for i in indexes]
+        spns_conditioned = [spn.condition(events[i]) for i in indexes]
+        assert allclose(logsumexp(weights_conditioned), 0)
+        # Make the children.
         children = [
             subcommand.interpret(S)
             for S, subcommand in zip(spns_conditioned, subcommands)
         ]
-        # Return the overall sum.
-        return SumSPN(children, weights)
+        # Return the simplified Sum.
+        if len(children) == 1:
+            return children[0]
+        spn = SumSPN(children, weights)
+        return spn_simplify_sum(spn)
 
 class Repeat(Command):
     def __init__(self, n0, n1, f):

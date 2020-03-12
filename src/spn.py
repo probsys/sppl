@@ -4,6 +4,7 @@
 from collections import ChainMap
 from collections import Counter
 from fractions import Fraction
+from functools import reduce
 from inspect import getfullargspec
 from itertools import chain
 from math import exp
@@ -35,6 +36,7 @@ from .sym_util import NominalValue
 from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_union
+from .sym_util import partition_list_blocks
 from .sym_util import powerset
 from .sym_util import sympify_number
 
@@ -273,6 +275,56 @@ class PartialSumSPN(SPN):
         # Failed.
         return NotImplemented
 
+def spn_simplify_sum(spn):
+    if isinstance(spn.children[0], LeafSPN):
+        return spn_simplify_sum_leaf(spn)
+    if isinstance(spn.children[0], ProductSPN):
+        return spn_simplify_sum_product(spn)
+    assert False, 'Invalid children of SumSPN: %s' % (spn.children,)
+
+def spn_simplify_sum_leaf(spn):
+    assert all(isinstance(c, LeafSPN) for c in spn.children)
+    partition = partition_list_blocks(spn.children)
+    if len(partition) == len(spn.children):
+        return spn
+    children = [spn.children[block[0]] for block in partition]
+    weights = [logsumexp([spn.weights[i] for i in block]) for block in partition]
+    return SumSPN(children, weights)
+
+def spn_simplify_sum_product(spn):
+    assert all(isinstance(c, ProductSPN) for c in spn.children)
+    children_list = [c.children for c in spn.children]
+    children_simplified, weight_simplified = reduce(
+        lambda state, cw: spn_simplify_sum_product_helper(state, cw[0], cw[1]),
+        zip(children_list[1:], spn.weights[1:]),
+        (children_list[0], spn.weights[0]),
+    )
+    assert allclose(logsumexp(weight_simplified), 0)
+    return spn_list_to_product(children_simplified)
+
+def spn_simplify_sum_product_helper(state, children_b, w_b):
+    (children_a, w_a) = state
+    weights_sum = lognorm([w_a, w_b])
+    weight_overall = logsumexp([w_a, w_b])
+    overlap = [(i, j)
+        for j, cb in enumerate(children_b)
+        for i, ca in enumerate(children_a)
+        if ca == cb
+    ]
+    if not overlap:
+        product_a = spn_list_to_product(children_a)
+        product_b = spn_list_to_product(children_b)
+        return ([SumSPN([product_a, product_b], weights_sum)], weight_overall)
+    dup_a = [p[0] for p in overlap]
+    dup_b = [p[1] for p in overlap]
+    uniq_children_a = [c for i, c in enumerate(children_a) if i not in dup_a]
+    uniq_children_b = [c for j, c in enumerate(children_b) if j not in dup_b]
+    dup_children = [c for i, c in enumerate(children_a) if i in dup_a]
+    product_a = spn_list_to_product(uniq_children_a)
+    product_b = spn_list_to_product(uniq_children_b)
+    sum_a_b = SumSPN([product_a, product_b], weights_sum)
+    return ([sum_a_b] + dup_children, weight_overall)
+
 # ==============================================================================
 # Product base class.
 
@@ -346,8 +398,12 @@ class ProductSPN(BranchSPN):
             raise ValueError('Conditioning event "%s" has probability zero'
                 % (str(event_factor),))
         weights = lognorm([logps[i] for i in indexes])
-        children = [self.condition_clause(event_factor[i]) for i in indexes]
-        return SumSPN(children, weights) if len(children) > 1 else children[0]
+        childrens = [self.condition_clause(event_factor[i]) for i in indexes]
+        products = [ProductSPN(children) for children in childrens]
+        if len(products) == 1:
+            return products[0]
+        spn = SumSPN(products, weights)
+        return spn_simplify_sum(spn)
 
     def logprob_conjunction(self, event_factor, J):
         # Return probability of conjunction of |J| conjunctions.
@@ -371,13 +427,15 @@ class ProductSPN(BranchSPN):
 
     def condition_clause(self, clause):
         # Return children conditioned on a clause (one conjunction).
-        children = [
+        return [
             spn.condition_factored([
                 {s:e for s, e in clause.items() if s in spn.get_symbols()}
             ]) if any(s in spn.get_symbols() for s in clause) else spn
             for spn in self.children
         ]
-        return ProductSPN(children)
+
+def spn_list_to_product(children):
+    return children[0] if len(children) == 1 else ProductSPN(children)
 
 # ==============================================================================
 # Basic Distribution base class.

@@ -15,9 +15,11 @@ from spn.dnf import dnf_to_disjoint_union
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
+from spn.math_util import lognorm
 from spn.math_util import logsumexp
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
+from spn.spn import LeafSPN
 from spn.transforms import ExpNat as Exp
 from spn.transforms import Identity
 from spn.transforms import LogNat as Log
@@ -230,40 +232,40 @@ def test_product_condition_or_probabilithy_zero():
     #
     # The most concise representation of spn_condition is:
     #   (Product (Sum [.5 .5] X|X<0 X|X>0) Y)
-    # assert isinstance(spn_condition, ProductSPN)
-    # assert isinstance(spn_condition.children[0], SumSPN)
-    # assert spn_condition.children[0].weights == (-log(2), -log(2))
-    # assert spn_condition.children[0].children[0].conditioned
-    # assert spn_condition.children[0].children[1].conditioned
-    # assert spn_condition.children[0].children[0].support \
-    #     == sympy.Interval.Ropen(-sympy.oo, 0)
-    # assert spn_condition.children[0].children[1].support \
-    #     == sympy.Interval.Lopen(0, sympy.oo)
-    # assert spn_condition.children[1].symbol == Y
-    # assert not spn_condition.children[1].conditioned
+    assert isinstance(spn_condition, ProductSPN)
+    assert isinstance(spn_condition.children[0], SumSPN)
+    assert spn_condition.children[0].weights == (-log(2), -log(2))
+    assert spn_condition.children[0].children[0].conditioned
+    assert spn_condition.children[0].children[1].conditioned
+    assert spn_condition.children[0].children[0].support \
+        == sympy.Interval.Ropen(-sympy.oo, 0)
+    assert spn_condition.children[0].children[1].support \
+        == sympy.Interval.Lopen(0, sympy.oo)
+    assert spn_condition.children[1].symbol == Y
+    assert not spn_condition.children[1].conditioned
     #
     # However, now we solve the constraint and factor the query into
     # a disjoint union at the root of the SPN, not once per node, we
     # no longer have guarantees of generating the smallest network.
     # In this case, the answer is the more verbose:
     #   (Sum [.5 .5] (Product X|X<0 Y) (Product X|X>0 Y)
-    assert isinstance(spn_condition, SumSPN)
-    assert spn_condition.weights == (-log(2), -log(2))
-    assert isinstance(spn_condition.children[0], ProductSPN)
-    assert X \
-        == spn_condition.children[0].children[0].symbol \
-        == spn_condition.children[1].children[0].symbol
-    assert spn_condition.children[0].children[0].conditioned
-    assert spn_condition.children[1].children[0].conditioned
-    assert spn_condition.children[0].children[0].support \
-        == sympy.Interval.Ropen(-sympy.oo, 0)
-    assert spn_condition.children[1].children[0].support \
-        == sympy.Interval.Lopen(0, sympy.oo)
-    assert Y \
-        == spn_condition.children[0].children[1].symbol \
-        == spn_condition.children[1].children[1].symbol
-    assert not spn_condition.children[0].children[1].conditioned
-    assert not spn_condition.children[1].children[1].conditioned
+    # assert isinstance(spn_condition, SumSPN)
+    # assert spn_condition.weights == (-log(2), -log(2))
+    # assert isinstance(spn_condition.children[0], ProductSPN)
+    # assert X \
+    #     == spn_condition.children[0].children[0].symbol \
+    #     == spn_condition.children[1].children[0].symbol
+    # assert spn_condition.children[0].children[0].conditioned
+    # assert spn_condition.children[1].children[0].conditioned
+    # assert spn_condition.children[0].children[0].support \
+    #     == sympy.Interval.Ropen(-sympy.oo, 0)
+    # assert spn_condition.children[1].children[0].support \
+    #     == sympy.Interval.Lopen(0, sympy.oo)
+    # assert Y \
+    #     == spn_condition.children[0].children[1].symbol \
+    #     == spn_condition.children[1].children[1].symbol
+    # assert not spn_condition.children[0].children[1].conditioned
+    # assert not spn_condition.children[1].children[1].conditioned
 
 def test_product_disjoint_union_numerical():
     X = Identity('X')
@@ -308,3 +310,63 @@ def test_product_disjoint_union_nominal():
     assert allclose(student.prob(event_2), 0.5*0.01)
     assert allclose(student.prob(event_3), 0.5*0.99)
     assert allclose(student.prob(event_4), 0.5*0.01)
+
+A = Identity('A')
+B = Identity('B')
+C = Identity('C')
+D = Identity('D')
+spn_abcd \
+    = Norm(loc=0, scale=1)(A) \
+    & Norm(loc=0, scale=1)(B) \
+    & Norm(loc=0, scale=1)(C) \
+    & Norm(loc=0, scale=1)(D)
+def test_product_condition_simplify_a():
+    spn = spn_abcd.condition((A > 1) | (A < -1))
+    assert isinstance(spn, ProductSPN)
+    assert spn_abcd.children[1] in spn.children
+    assert spn_abcd.children[2] in spn.children
+    assert spn_abcd.children[3] in spn.children
+    idx_sum = [i for i, c in enumerate(spn.children) if isinstance(c, SumSPN)]
+    assert len(idx_sum) == 1
+    assert allclose(spn.children[idx_sum[0]].weights[0], -log(2))
+    assert allclose(spn.children[idx_sum[0]].weights[1], -log(2))
+    assert spn.children[idx_sum[0]].children[0].conditioned
+    assert spn.children[idx_sum[0]].children[1].conditioned
+
+def test_product_condition_simplify_ab():
+    spn = spn_abcd.condition((A > 1) | (B < 0))
+    assert isinstance(spn, ProductSPN)
+    assert spn_abcd.children[2] in spn.children
+    assert spn_abcd.children[2] in spn.children
+    idx_sum = [i for i, c in enumerate(spn.children) if isinstance(c, SumSPN)]
+    assert len(idx_sum) == 1
+    spn_sum = spn.children[idx_sum[0]]
+    assert isinstance(spn_sum.children[0], ProductSPN)
+    assert isinstance(spn_sum.children[1], ProductSPN)
+    lp0 = spn_abcd.logprob(A > 1)
+    lp1 = spn_abcd.logprob((B < 0) & ~(A > 1))
+    weights = lognorm([lp0, lp1])
+    assert allclose(spn_sum.weights[0], weights[0])
+    assert allclose(spn_sum.weights[1], weights[1])
+
+def test_product_condition_simplify_abc():
+    spn = spn_abcd.condition((A > 1) | (B < 0) | (C > 2))
+    assert isinstance(spn, ProductSPN)
+    assert len(spn.children) == 2
+    assert spn_abcd.children[3] in spn.children
+    idx_sum = [i for i, c in enumerate(spn.children) if isinstance(c, SumSPN)]
+    assert len(idx_sum) == 1
+    spn_sum = spn.children[idx_sum[0]]
+    assert len(spn_sum.children) == 2
+    lp0 = spn_abcd.logprob(A > 1)
+    lp1 = spn_abcd.logprob((B < 0) & ~(A > 1))
+    lp2 = spn_abcd.logprob((C > 2) & ~(B < 0) & ~(A > 1))
+    weights = lognorm([lp0, lp1, lp2])
+    assert allclose(spn_sum.weights[1], weights[-1])
+    assert isinstance(spn_sum.children[0], ProductSPN)
+    assert isinstance(spn_sum.children[0].children[0], SumSPN)
+    assert isinstance(spn_sum.children[0].children[1], LeafSPN)
+    assert isinstance(spn_sum.children[1], ProductSPN)
+    assert isinstance(spn_sum.children[1].children[0], LeafSPN)
+    assert isinstance(spn_sum.children[1].children[1], LeafSPN)
+    assert isinstance(spn_sum.children[1].children[2], LeafSPN)
