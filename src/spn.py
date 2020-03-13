@@ -594,7 +594,7 @@ class RealDistribution(LeafSPN):
         assert False, 'Unknown set type: %s' % (values,)
 
     def __hash__(self):
-        d = (self.dist.dist.name, self.dist.args, self.dist.kwds)
+        d = (self.dist.dist.name, self.dist.args, tuple(self.dist.kwds.items()))
         x = (self.__class__, self.symbol, d, self.support, self.conditioned)
         return hash(x)
     def __eq__(self, x):
