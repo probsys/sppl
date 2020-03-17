@@ -11,7 +11,6 @@ https://arxiv.org/pdf/1806.02027.pdf
 
 import pytest
 
-from spn.combinators import IfElse
 from spn.distributions import Atomic
 from spn.distributions import NominalDist
 from spn.distributions import Uniform
@@ -37,7 +36,7 @@ def model_exposed():
     P = Identity('P')
     GPA = Identity('GPA')
     nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
-    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
+    perfect = P >> NominalDist({'True': 0.01, 'False': 0.99})
     return ExposedSumSPN(
         spn_weights=nationality,
         children={
@@ -45,97 +44,95 @@ def model_exposed():
             'USA': ExposedSumSPN(
                 spn_weights=perfect,
                 children={
-                    'Imperfect'   : GPA >> Uniform(loc=0, scale=4),
-                    'Perfect'     : GPA >> Atomic(loc=4),
+                    'False'   : GPA >> Uniform(loc=0, scale=4),
+                    'True'    : GPA >> Atomic(loc=4),
                 }),
             # Indian student.
             'India': ExposedSumSPN(
                 spn_weights=perfect,
                 children={
-                    'Perfect'     : GPA >> Atomic(loc=10),
-                    'Imperfect'   : GPA >> Uniform(loc=0, scale=10),
+                    'False'   : GPA >> Uniform(loc=0, scale=10),
+                    'True'    : GPA >> Atomic(loc=10),
                 })},
         )
 
 def model_ifelse_exhuastive():
-    N = Identity('N')
-    P = Identity('P')
-    GPA = Identity('GPA')
-    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
-    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
-    return IfElse(nationality & perfect,
-    [(N << {'India'}) & (P << {'Imperfect'}),
-        GPA >> Uniform(loc=0, scale=10)
-    ],
-    [(N << {'India'}) & (P << {'Perfect'}),
-        GPA >> Atomic(loc=10)
-    ],
-    [(N << {'USA'}) & (P << {'Imperfect'}),
-        GPA >> Uniform(loc=0, scale=4)
-    ],
-    [(N << {'USA'}) & (P << {'Perfect'}),
-        GPA >> Atomic(loc=4)
-    ])
-
-def model_ifelse_nested():
-    N = Identity('N')
-    P = Identity('P')
-    GPA = Identity('GPA')
-    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
-    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
-    return IfElse(nationality,
-    [(N << {'India'}),
-        IfElse(perfect,
-            [(P << {'Imperfect'}), GPA >> Uniform(loc=0, scale=10)],
-            [True, GPA >> Atomic(loc=10)])
-    ],
-    [True,
-        IfElse(perfect,
-            [(P << {'Imperfect'}), GPA >> Uniform(loc=0, scale=4)],
-            [True, GPA >> Atomic(loc=4)])
-    ])
-
-def model_ifelse_non_exhuastive():
-    N = Identity('N')
-    P = Identity('P')
-    GPA = Identity('GPA')
-    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
-    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
-    return IfElse(nationality & perfect,
-        [(N << {'India'}) & (P << {'Imperfect'}),
-            GPA >> Uniform(loc=0, scale=10)
-        ],
-        [(N << {'India'}) & (P << {'Perfect'}),
-            GPA >> Atomic(loc=10)
-        ],
-        [(N << {'USA'}) & (P << {'Imperfect'}),
-            GPA >> Uniform(loc=0, scale=4)
-        ],
-        [True, # Can be slow; complementing Nominals over unknown support.
-            GPA >> Atomic(loc=4)
-        ])
-
-def model_interpreter():
-    # Declare variables in the model.
     Nationality = Variable('Nationality')
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
-
-    # Write the generative model in embedded Python.
     return Start \
-        & Nationality   >> NominalDist({'Indian': 0.5, 'USA': 0.5}) \
+        & Nationality   >> NominalDist({'India': 0.5, 'USA': 0.5}) \
+        & Perfect       >> NominalDist({'True': 0.01, 'False': 0.99}) \
         & Cond (
-            Nationality << {'Indian'},
+            (Nationality << {'India'}) & (Perfect << {'False'}),
+                GPA >> Uniform(loc=0, scale=10)
+            ,
+            (Nationality << {'India'}) & (Perfect << {'True'}),
+                GPA >> Atomic(loc=10)
+            ,
+            (Nationality << {'USA'}) & (Perfect << {'False'}),
+                GPA >> Uniform(loc=0, scale=4)
+            ,
+            (Nationality << {'USA'}) & (Perfect << {'True'}),
+                GPA >> Atomic(loc=4))
+
+def model_ifelse_non_exhuastive():
+    Nationality = Variable('Nationality')
+    Perfect     = Variable('Perfect')
+    GPA         = Variable('GPA')
+    return Start \
+        & Nationality   >> NominalDist({'India': 0.5, 'USA': 0.5}) \
+        & Perfect       >> NominalDist({'True': 0.01, 'False': 0.99}) \
+        & Cond (
+            (Nationality << {'India'}) & (Perfect << {'False'}),
+                GPA >> Uniform(loc=0, scale=10)
+            ,
+            (Nationality << {'India'}) & (Perfect << {'True'}),
+                GPA >> Atomic(loc=10)
+            ,
+            (Nationality << {'USA'}) & (Perfect << {'False'}),
+                GPA >> Uniform(loc=0, scale=4)
+            ,
+            True,
+                GPA >> Atomic(loc=4))
+
+def model_ifelse_nested():
+    Nationality = Variable('Nationality')
+    Perfect     = Variable('Perfect')
+    GPA         = Variable('GPA')
+    return Start \
+        & Nationality   >> NominalDist({'India': 0.5, 'USA': 0.5}) \
+        & Perfect       >> NominalDist({'True': 0.01, 'False': 0.99}) \
+        & Cond (
+            Nationality << {'India'},
+                Cond (
+                    Perfect << {'True'},    GPA >> Atomic(loc=10),
+                    Perfect << {'False'},   GPA >> Uniform(scale=10),
+                ),
+            Nationality << {'USA'},
+                Cond (
+                    Perfect << {'True'},    GPA >> Atomic(loc=4),
+                    Perfect << {'False'},   GPA >> Uniform(scale=4),
+                ))
+
+def model_perfect_nested():
+    Nationality = Variable('Nationality')
+    Perfect     = Variable('Perfect')
+    GPA         = Variable('GPA')
+    return Start \
+        & Nationality   >> NominalDist({'India': 0.5, 'USA': 0.5}) \
+        & Cond (
+            Nationality << {'India'},
                 Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
                 & Cond (
                     Perfect << {'True'},    GPA >> Atomic(loc=10),
-                    Perfect << {'False'},   GPA >> Uniform(scale=10),
+                    True,   GPA >> Uniform(scale=10),
                 ),
             Nationality << {'USA'},
                 Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
                 & Cond (
                     Perfect << {'True'},    GPA >> Atomic(loc=4),
-                    Perfect << {'False'},   GPA >> Uniform(scale=4),
+                    True,   GPA >> Uniform(scale=4),
                 ))
 
 @pytest.mark.parametrize('get_model', [
@@ -144,7 +141,7 @@ def model_interpreter():
     model_ifelse_exhuastive,
     model_ifelse_non_exhuastive,
     model_ifelse_nested,
-    model_interpreter,
+    model_perfect_nested,
 ])
 def test_prior(get_model):
     model = get_model()

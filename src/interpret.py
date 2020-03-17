@@ -4,8 +4,6 @@
 from collections import Callable
 from functools import reduce
 
-from .combinators import make_predicates_else
-from .combinators import make_predicates_noelse
 from .dnf import dnf_normalize
 from .math_util import allclose
 from .math_util import isinf_neg
@@ -70,9 +68,19 @@ class IfElse(Command):
         conditions = self.branches[::2]
         subcommands = self.branches[1::2]
         # Make events for each condition.
-        events_unorm = make_predicates_else(conditions) \
-            if (conditions[-1] is True) else \
-            make_predicates_noelse(conditions)
+        if conditions[-1] is True:
+            events_if = [
+                reduce(lambda x, e: x & ~e, conditions[:i], conditions[i])
+                for i in range(len(conditions)-1)
+            ]
+            event_else = ~reduce(lambda x, e: x|e, conditions[:-1])
+            events_unorm = events_if + [event_else]
+        else:
+            events_unorm = [
+                reduce(lambda x, e: x & ~e, conditions[:i], conditions[i])
+                for i in range(len(conditions))
+            ]
+        # Rewrite events in normalized form.
         events = [dnf_normalize(event) for event in events_unorm]
         # Obtain mixture probabilities.
         weights = [spn.logprob(event) for event in events]

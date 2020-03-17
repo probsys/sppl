@@ -16,7 +16,6 @@ from spn.sym_util import EmptySet
 from spn.sym_util import NominalSet
 from spn.sym_util import UniversalSet
 from spn.sym_util import get_symbols
-from spn.sym_util import partition_list_assignments
 from spn.sym_util import partition_list_blocks
 
 (X0, X1, X2, X3, X4, X5, X6, X7, X8, X9) = symbols('X:10')
@@ -66,18 +65,9 @@ def test_nominal_set_intersections(a, b, solution):
     assert Intersection(a, b) == solution
 
 @pytest.mark.parametrize('a, b', [
-    ([0, 1, 2, 3], {0:0, 1:1, 2:2, 3:3}),
-    ([0, 1, 2, 1], {0:0, 1:1, 2:2, 3:1}),
-    ([0, 0, 2, 0], {0:0, 1:0, 2:1, 3:0}),
-])
-def test_partition_list_assignments(a, b):
-    solution = partition_list_assignments(a)
-    assert solution == b
-
-@pytest.mark.parametrize('a, b', [
     ([0, 1, 2, 3], [[0], [1], [2], [3]]),
     ([0, 1, 2, 1], [[0], [1, 3], [2]]),
-    ([0, 0, 2, 0], [[0, 1, 3], [2]]),
+    (['0', '0', 2, '0'], [[0, 1, 3], [2]]),
 ])
 def test_partition_list_blocks(a, b):
     solution = partition_list_blocks(a)
