@@ -25,9 +25,9 @@ def get_version():
                 return version, version
         return '1.0', '1.0'
 
-    # The output `desc` will be of the form v1.1.2-2-gb92bef6[-dirty]:
+    # The output `desc` will be of the form v1.1.2-7-gb92bef6[-dirty]:
     # - verpart     v1.1.2
-    # - revpart     2
+    # - revpart     7
     # - localpart   gb92bef6[-dirty]
     match = re.match(r'^v([^-]*)-([0-9]+)-(.*)$', desc.decode('utf-8'))
     assert match is not None
