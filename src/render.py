@@ -104,9 +104,8 @@ def render_networkx_image(G, filename, ext='png', show=None):
     import networkx as nx
     from graphviz import Source
     fname_dot = '%s.dot' % (filename,)
-    fname_png = '%s.png' % (filename,)
     # nx.set_edge_attributes(G, 'serif', 'fontname')
     # nx.set_node_attributes(G, 'serif', 'fontname')
     nx.nx_agraph.write_dot(G, fname_dot)
     source = Source.from_file(fname_dot, format=ext)
-    source.render(filename=fname_png, view=show)
+    source.render(filename=filename, view=show)
