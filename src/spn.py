@@ -18,8 +18,8 @@ from sympy import Range
 from sympy import Union
 
 from .dnf import dnf_factor
-from .dnf import dnf_to_disjoint_union
 from .dnf import dnf_normalize
+from .dnf import dnf_to_disjoint_union
 
 from .math_util import allclose
 from .math_util import flip
@@ -40,9 +40,9 @@ from .sym_util import partition_list_blocks
 from .sym_util import powerset
 from .sym_util import sympify_number
 
-from .transforms import EventOr
 from .transforms import EventBasic
 from .transforms import EventCompound
+from .transforms import EventOr
 from .transforms import Identity
 
 inf = float('inf')

@@ -4,8 +4,8 @@
 import pytest
 import sympy
 
-from sympy import Interval
 from sympy import FiniteSet
+from sympy import Interval
 from sympy import Rational as Rat
 from sympy import oo
 

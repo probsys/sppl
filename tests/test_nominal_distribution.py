@@ -7,9 +7,9 @@ from math import log
 import numpy
 import pytest
 
+from spn.distributions import NominalDist
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
-from spn.distributions import NominalDist
 from spn.sym_util import NominalSet
 from spn.transforms import Identity
 

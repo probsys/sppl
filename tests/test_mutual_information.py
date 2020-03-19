@@ -5,8 +5,8 @@ from math import log
 
 import numpy
 
-from spn.math_util import allclose
 from spn.distributions import Norm
+from spn.math_util import allclose
 from spn.transforms import Identity
 
 rng = numpy.random.RandomState(1)

@@ -17,9 +17,9 @@ from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
 from spn.math_util import lognorm
 from spn.math_util import logsumexp
+from spn.spn import LeafSPN
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
-from spn.spn import LeafSPN
 from spn.transforms import ExpNat as Exp
 from spn.transforms import Identity
 from spn.transforms import LogNat as Log

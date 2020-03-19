@@ -12,6 +12,7 @@ from .spn import DiscreteReal
 from .spn import NominalDistribution
 from .spn import ProductSPN
 from .spn import SumSPN
+
 from .transforms import Identity
 
 def scipy_dist_from_json(dist):

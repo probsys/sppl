@@ -7,7 +7,6 @@ from itertools import combinations
 from sympy import Intersection
 
 from .sym_util import EmptySet
-
 from .transforms import EventAnd
 from .transforms import EventBasic
 from .transforms import EventOr
