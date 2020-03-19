@@ -6,47 +6,29 @@ import os
 import re
 import subprocess
 
-# If some modules are not found, we use others, so no need to warn:
-try:
-    from setuptools import setup
-    from setuptools import Extension
-    from setuptools.command.build_py import build_py
-    from setuptools.command.sdist import sdist
-    from setuptools.command.test import test
-except ImportError:
-    from distutils.cmd import Command
-    from distutils.command.build_py import build_py
-    from distutils.command.sdist import sdist
-    from distutils.core import Extension
-    from distutils.core import setup
-    class test(Command):
-        def __init__(self, *args, **kwargs):
-            Command.__init__(self, *args, **kwargs)
-        def initialize_options(self): pass
-        def finalize_options(self): pass
-        def run(self): self.run_tests()
-        def run_tests(self): Command.run_tests(self)
-        def set_undefined_options(self, opt, val):
-            Command.set_undefined_options(self, opt, val)
+from distutils.command.build_py import build_py
+from distutils.command.sdist import sdist
+from distutils.core import setup
 
 def get_version():
-    # The .git directory does not exist in the sdist, so read VERSION.
-    if not os.path.exists('.git'):
-        with open('VERSION', 'r') as f:
-            version = f.read().strip()
-            return version, version
-
     # git describe a commit using the most recent tag reachable from it.
     # Release tags start with v* (XXX what about other tags starting with v?)
-    # and are of the form `v1.1.2`.
-    #
+    # and are of the form: `v1.1[.2]` (major.minor[.teeny]).
+    try:
+        desc = subprocess.check_output([
+            'git', 'describe', '--dirty', '--long', '--match', 'v*',
+        ])
+    except subprocess.CalledProcessError:
+        if os.path.exists('VERSION'):
+            with open('VERSION', 'r') as f:
+                version = f.read().strip()
+                return version, version
+        return '1.0', '1.0'
+
     # The output `desc` will be of the form v1.1.2-2-gb92bef6[-dirty]:
     # - verpart     v1.1.2
     # - revpart     2
     # - localpart   gb92bef6[-dirty]
-    desc = subprocess.check_output([
-        'git', 'describe', '--dirty', '--long', '--match', 'v*',
-    ])
     match = re.match(r'^v([^-]*)-([0-9]+)-(.*)$', desc.decode('utf-8'))
     assert match is not None
     verpart, revpart, localpart = match.groups()
