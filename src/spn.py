@@ -121,6 +121,7 @@ class SPN(object):
 
 class BranchSPN(SPN):
     symbols = None
+    children = None
     def get_symbols(self):
         return self.symbols
     def logprob(self, event):
@@ -761,6 +762,21 @@ class NominalDistribution(LeafSPN):
 
 # ==============================================================================
 # Utilities.
+
+def spn_cache_duplicate_subtrees(spn, memo):
+    if isinstance(spn, LeafSPN):
+        if spn not in memo:
+            memo[spn] = spn
+        return memo[spn]
+    if isinstance(spn, BranchSPN):
+        if spn not in memo:
+            memo[spn] = spn
+            spn.children = list(spn.children)
+            for i, c in enumerate(spn.children):
+                spn.children[i] = spn_cache_duplicate_subtrees(c, memo)
+            spn.children = tuple(spn.children)
+        return memo[spn]
+    assert False, '%s is not an spn' % (spn,)
 
 def event_unfactor(symbol, dnf_factor):
     if len(dnf_factor) == 1:
