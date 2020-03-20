@@ -64,3 +64,66 @@ def test_complex_model_reorder():
                 X[i] >> Bernoulli(p=0.1)
     )))
     assert(allclose(model.prob(Y << {'0'}), 0.2))
+
+def test_repeat_handcode_equivalence():
+    model_repeat = make_model_repeat()
+    model_hand = make_model_handcode()
+
+    assert allclose(model_repeat.prob(Y << {'0', '1'}), 0.4)
+    assert allclose(model_repeat.prob(Z[0] << {0}), 0.5)
+    assert allclose(model_repeat.prob(Z[0] << {1}), 0.5)
+
+    event_condition = (X[0] << {1}) | (Y << {'1'})
+    model_repeat_condition = model_repeat.condition(event_condition)
+    model_hand_condition = model_hand.condition(event_condition)
+
+    for event in [
+            Y << {'0','1'},
+            Z[0] << {0},
+            Z[1] << {0},
+            X[0] << {0},
+            X[1] << {0},
+        ]:
+        lp_repeat = model_repeat.logprob(event)
+        lp_hand = model_hand.logprob(event)
+        assert allclose(lp_hand, lp_repeat)
+
+        lp_repeat_condition = model_repeat_condition.logprob(event)
+        lp_hand_condition = model_hand_condition.logprob(event)
+        assert allclose(lp_hand_condition, lp_repeat_condition)
+
+# ==============================================================================
+# Helper functions.
+
+def make_model_repeat(n=2):
+    return (Start
+        & Y >> NominalDist({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+        & Repeat(0, n, lambda i:
+            Z[i] >> Bernoulli(p=.5)
+            & Cond (
+                (Y << {str(i)}) | (Z[i] << {0}),    X[i] >> Bernoulli(p=.1),
+                Otherwise,                          X[i] >> Bernoulli(p=.5))))
+
+def make_model_handcode():
+    return (Start
+        & Y >> NominalDist({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+        & Z[0] >> Bernoulli(p=.5)
+        & Z[1] >> Bernoulli(p=.5)
+        & Cond (
+            Y << {str(0)},
+                X[0] >> Bernoulli(p=.1)
+                & Cond(
+                    Z[1] << {0},    X[1] >> Bernoulli(p=.1),
+                    Otherwise,      X[1] >> Bernoulli(p=.5)),
+            Y << {str(1)},
+                X[1] >> Bernoulli(p=.1)
+                & Cond(
+                    Z[0] << {0},    X[0] >> Bernoulli(p=.1),
+                    Otherwise,      X[0] >> Bernoulli(p=.5)),
+            Otherwise,
+                Cond(
+                    Z[0] << {0},    X[0] >> Bernoulli(p=.1),
+                    Otherwise,      X[0] >> Bernoulli(p=.5))
+                & Cond(
+                    Z[1] << {0},    X[1] >> Bernoulli(p=.1),
+                    Otherwise,      X[1] >> Bernoulli(p=.5))))
