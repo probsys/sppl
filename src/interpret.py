@@ -10,6 +10,7 @@ from .math_util import isinf_neg
 from .math_util import logsumexp
 from .spn import SPN
 from .spn import SumSPN
+from .spn import spn_cache_duplicate_subtrees
 from .spn import spn_simplify_sum
 
 from .transforms import Identity
@@ -100,7 +101,8 @@ class IfElse(Command):
         if len(children) == 1:
             return children[0]
         spn = SumSPN(children, weights)
-        return spn_simplify_sum(spn)
+        spn_simplified = spn_simplify_sum(spn)
+        return spn_cache_duplicate_subtrees(spn_simplified, {})
 
 class Repeat(Command):
     def __init__(self, n0, n1, f):
