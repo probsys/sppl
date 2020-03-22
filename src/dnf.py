@@ -2,6 +2,7 @@
 # See LICENSE.txt
 
 from functools import reduce
+from itertools import chain
 from itertools import combinations
 
 from sympy import Intersection
@@ -43,27 +44,22 @@ def dnf_factor(event, lookup=None):
     if isinstance(event, EventAnd):
         # Conjunction.
         assert all(isinstance(e, EventBasic) for e in event.subexprs)
-        mappings = [dnf_factor(e, lookup) for e in event.subexprs]
+        mappings = (dnf_factor(e, lookup) for e in event.subexprs)
         events = {}
         for mapping in mappings:
-            assert len(mapping) == 1
-            [(key, ev)] = mapping[0].items()
-            if key not in events:
-                events[key] = ev
-            else:
-                events[key] &= ev
+            for m in mapping:
+                for key, ev in m.items():
+                    if key not in events:
+                        events[key] = ev
+                    else:
+                        events[key] &= ev
         return [events]
 
     if isinstance(event, EventOr):
         # Disjunction.
         assert all(isinstance(e, (EventAnd, EventBasic)) for e in event.subexprs)
-        mappings = [dnf_factor(e, lookup) for e in event.subexprs]
-        events = [None] * len(mappings)
-        for i, mapping in enumerate(mappings):
-            events[i] = {}
-            for key, ev in mapping[0].items():
-                events[i][key] = ev
-        return events
+        mappings = (dnf_factor(e, lookup) for e in event.subexprs)
+        return list(chain.from_iterable(mappings))
 
     assert False, 'Invalid DNF event: %s' % (event,)
 
