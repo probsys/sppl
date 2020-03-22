@@ -476,15 +476,15 @@ class LeafSPN(SPN):
     def logpdf(self, x):
         raise NotImplementedError()
     def logprob(self, event):
-        event_factor = [{self.symbol: event}]
-        return self.logprob_factored(event_factor)
+        raise NotImplementedError()
     def condition(self, event):
-        event_factor = [{self.symbol: event}]
-        return self.condition_factored(event_factor)
+        raise NotImplementedError()
     def logprob_factored(self, event_factor):
-        raise NotImplementedError()
+        event = event_unfactor(self.symbol, event_factor)
+        return self.logprob(event)
     def condition_factored(self, event_factor):
-        raise NotImplementedError()
+        event = event_unfactor(self.symbol, event_factor)
+        return self.condition(event)
 
 # ==============================================================================
 # RealDistribution base class.
@@ -523,8 +523,7 @@ class RealDistribution(LeafSPN):
         # Wrap result in a dictionary.
         return [{self.symbol : x} for x in xs]
 
-    def logprob_factored(self, event_factor):
-        event = event_unfactor(self.symbol, event_factor)
+    def logprob(self, event):
         interval = event.solve()
         values = get_intersection_safe(self.support, interval)
         return self.logprob_values(values)
@@ -560,8 +559,7 @@ class RealDistribution(LeafSPN):
     def logprob_interval(self, values):
         raise NotImplementedError()
 
-    def condition_factored(self, event_factor):
-        event = event_unfactor(self.symbol, event_factor)
+    def condition(self, event):
         interval = event.solve()
         values = get_intersection_safe(self.support, interval)
         weight = self.logprob_values(values)
@@ -716,23 +714,21 @@ class NominalDistribution(LeafSPN):
     def logpdf(self, x):
         return log(self.dist[x]) if x in self.dist else -inf
 
-    def logprob_factored(self, event_factor):
+    def logprob(self, event):
         # TODO: Consider using 1 - Pr[Event] for negation to avoid
         # iterating over domain.
         # if is_event_transformed(event):
         #     raise ValueError('Cannot apply transform to Nominal variable: %s'
         #         % (str(event),))
-        event = event_unfactor(self.symbol, event_factor)
         solution = event.solve()
         values = Intersection(self.support, solution)
         p_event = sum(self.dist[x] for x in values)
         return log(p_event) if p_event != 0 else -inf
 
-    def condition_factored(self, event_factor):
+    def condition(self, event):
         # if is_event_transformed(event):
         #     raise ValueError('Cannot apply transform to Nominal variable: %s'
         #         % (str(event),))
-        event = event_unfactor(self.symbol, event_factor)
         solution = event.solve()
         values = Intersection(self.support, solution)
         p_event = sum([self.dist[x] for x in values])
