@@ -8,6 +8,7 @@ from .dnf import dnf_normalize
 from .math_util import allclose
 from .math_util import isinf_neg
 from .math_util import logsumexp
+from .spn import Memo
 from .spn import SPN
 from .spn import SumSPN
 from .spn import spn_cache_duplicate_subtrees
@@ -83,26 +84,24 @@ class IfElse(Command):
             ]
         # Rewrite events in normalized form.
         events = [dnf_normalize(event) for event in events_unorm]
+        # Prepare memo table.
+        memo = Memo({}, {})
         # Obtain mixture probabilities.
-        weights = [spn.logprob(event) for event in events]
+        weights = [spn.logprob(event, memo) for event in events]
         # Filter the irrelevant ones.
         indexes = [i for i, w in enumerate(weights) if not isinf_neg(w)]
         assert indexes, 'All conditions probability zero.'
         # Obtain conditioned SPNs.
         weights_conditioned = [weights[i] for i in indexes]
-        spns_conditioned = [spn.condition(events[i]) for i in indexes]
+        spns_conditioned = [spn.condition(events[i], memo) for i in indexes]
         assert allclose(logsumexp(weights_conditioned), 0)
         # Make the children.
         children = [
             subcommand.interpret(S)
             for S, subcommand in zip(spns_conditioned, subcommands)
         ]
-        # Return the simplified Sum.
-        if len(children) == 1:
-            return children[0]
-        spn = SumSPN(children, weights)
-        spn_simplified = spn_simplify_sum(spn)
-        return spn_cache_duplicate_subtrees(spn_simplified, {})
+        # Return the SPN.
+        return SumSPN(children, weights) if 1 < len(children) else children[0]
 
 class Repeat(Command):
     def __init__(self, n0, n1, f):
