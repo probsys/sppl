@@ -445,12 +445,15 @@ class ProductSPN(BranchSPN):
 
     def condition_clause(self, clause):
         # Return children conditioned on a clause (one conjunction).
-        return [
-            spn.condition_factored([
-                {s:e for s, e in clause.items() if s in spn.get_symbols()}
-            ]) if any(s in spn.get_symbols() for s in clause) else spn
-            for spn in self.children
-        ]
+        children = []
+        for spn in self.children:
+            spn_condition = spn
+            symbols = spn.get_symbols().intersection(clause)
+            if symbols:
+                spn_clause = ({symbol: clause[symbol] for symbol in symbols},)
+                spn_condition = spn.condition_factored(spn_clause)
+            children.append(spn_condition)
+        return children
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
