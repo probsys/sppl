@@ -39,7 +39,7 @@ def dnf_factor(event, lookup=None):
         symbols = event.symbols()
         assert len(symbols) == 1
         key = lookup[symbols[0]]
-        return [{key: event}]
+        return ({key: event},)
 
     if isinstance(event, EventAnd):
         # Conjunction.
@@ -53,13 +53,13 @@ def dnf_factor(event, lookup=None):
                         events[key] = ev
                     else:
                         events[key] &= ev
-        return [events]
+        return (events,)
 
     if isinstance(event, EventOr):
         # Disjunction.
         assert all(isinstance(e, (EventAnd, EventBasic)) for e in event.subexprs)
         mappings = (dnf_factor(e, lookup) for e in event.subexprs)
-        return list(chain.from_iterable(mappings))
+        return tuple(chain.from_iterable(mappings))
 
     assert False, 'Invalid DNF event: %s' % (event,)
 
