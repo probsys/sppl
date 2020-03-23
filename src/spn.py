@@ -149,8 +149,9 @@ class BranchSPN(SPN):
         conjunctions = [dnf_factor(e) for e in event_dnf.subexprs]
         logps = [self.logprob_factored(c) for c in conjunctions]
         indexes = [i for i, lp in enumerate(logps) if not isinf_neg(lp)]
-        return EventOr([event_dnf.subexprs[i] for i in indexes])\
-            if indexes else None
+        if not indexes:
+            return None
+        return EventOr([event_dnf.subexprs[i] for i in indexes])
 
 # ==============================================================================
 # Sum SPN.
@@ -208,8 +209,9 @@ class SumSPN(BranchSPN):
         logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
         children = [self.children[i].condition_factored(event_factor) for i in indexes]
         weights = lognorm(logps_joint)
-        return SumSPN(children, weights) if len(children) > 1 \
-            else children[0]
+        if len(indexes) == 1:
+            return children[0]
+        return SumSPN(children, weights)
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -367,9 +369,8 @@ class ProductSPN(BranchSPN):
         for symbol in symbols:
             key = self.lookup[symbol]
             if key not in index_to_symbols:
-                index_to_symbols[key] = [symbol]
-            else:
-                index_to_symbols[key].append(symbol)
+                index_to_symbols[key] = []
+            index_to_symbols[key].append(symbol)
         # Obtain the samples.
         samples = [
             self.children[i].sample_subset(symbols_i, N, rng)
@@ -415,8 +416,8 @@ class ProductSPN(BranchSPN):
         weights = lognorm([logps[i] for i in indexes])
         childrens = [self.condition_clause(event_factor[i]) for i in indexes]
         products = [ProductSPN(children) for children in childrens]
-        if len(products) == 1:
-            return products[0]
+        if len(indexes) == 1:
+            spn = products[0]
         spn = SumSPN(products, weights)
         return spn_simplify_sum(spn)
 
@@ -438,7 +439,9 @@ class ProductSPN(BranchSPN):
                         clause[symbol] = event
                     else:
                         clause[symbol] &= event
-        return self.children[key].logprob_factored([clause]) if clause else -inf
+        if not clause:
+            return -inf
+        return self.children[key].logprob_factored((clause,))
 
     def condition_clause(self, clause):
         # Return children conditioned on a clause (one conjunction).
@@ -587,8 +590,9 @@ class RealDistribution(LeafSPN):
                 (type(self))(self.symbol, self.dist, values.args[i], True)
                 for i in indexes
             ]
-            return SumSPN(children, weights) \
-                if 1 < len(indexes) else children[0]
+            if len(indexes) == 1:
+                return children[0]
+            return SumSPN(children, weights)
 
         assert False, 'Unknown set type: %s' % (values,)
 
