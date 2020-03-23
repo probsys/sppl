@@ -117,7 +117,7 @@ class SPN(object):
         return NotImplemented
 
 # ==============================================================================
-# Sum SPN.
+# Branch SPN.
 
 class BranchSPN(SPN):
     symbols = None
