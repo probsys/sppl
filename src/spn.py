@@ -553,9 +553,9 @@ class LeafSPN(SPN):
         spn = self.condition(event)
         memo.condition[key] = spn
         return spn
-    def condition__(self, event):
-        raise NotImplementedError()
     def logprob__(self, event):
+        raise NotImplementedError()
+    def condition__(self, event):
         raise NotImplementedError()
 
 # ==============================================================================
@@ -595,11 +595,6 @@ class RealDistribution(LeafSPN):
         # Wrap result in a dictionary.
         return [{self.symbol : x} for x in xs]
 
-    def logprob__(self, event):
-        interval = event.solve()
-        values = get_intersection_safe(self.support, interval)
-        return self.logprob_values__(values)
-
     def logcdf(self, x):
         if not self.conditioned:
             return self.dist.logcdf(x)
@@ -609,6 +604,11 @@ class RealDistribution(LeafSPN):
             return -inf
         p = logdiffexp(self.dist.logcdf(x), self.logFl)
         return p - self.logZ
+
+    def logprob__(self, event):
+        interval = event.solve()
+        values = get_intersection_safe(self.support, interval)
+        return self.logprob_values__(values)
 
     def logprob_values__(self, values):
         if values is EmptySet:
@@ -636,16 +636,20 @@ class RealDistribution(LeafSPN):
         values = get_intersection_safe(self.support, interval)
         weight = self.logprob_values__(values)
 
+        # Probability zero event.
         if isinf_neg(weight):
             raise ValueError('Conditioning event "%s" has probability zero'
                 % (str(event)))
 
+        # Condition on support.
         if values == self.support:
             return self
 
+        # Condition on one set.
         if isinstance(values, (ContainersFinite, Range, Interval)):
             return (type(self))(self.symbol, self.dist, values, True)
 
+        # Condition on union of sets.
         if isinstance(values, Union):
             weights_unorm = [self.logprob_values__(v) for v in values.args]
             indexes = [i for i, w in enumerate(weights_unorm) if not isinf_neg(w)]
@@ -659,10 +663,9 @@ class RealDistribution(LeafSPN):
                 (type(self))(self.symbol, self.dist, values.args[i], True)
                 for i in indexes
             ]
-            if len(indexes) == 1:
-                return children[0]
-            return SumSPN(children, weights)
+            return SumSPN(children, weights) if 1 < len(indexes) else children[0]
 
+        # Unknown set.
         assert False, 'Unknown set type: %s' % (values,)
 
     def __hash__(self):
@@ -749,7 +752,6 @@ class DiscreteReal(RealDistribution):
     def logprob_finite__(self, values):
         logps = [self.logpdf(float(x)) for x in values]
         return logsumexp(logps)
-
     def logprob_range__(self, values):
         if values.stop <= values.start:
             return -inf
@@ -763,7 +765,6 @@ class DiscreteReal(RealDistribution):
             xs = list(values)
             return self.logprob_finite__(xs)
         raise ValueError('Cannot enumerate infinite set: %s' % (values,))
-
     def logprob_interval__(self, values):
         assert False, 'Atomic distribution cannot intersect an interval!'
 
@@ -786,6 +787,11 @@ class NominalDistribution(LeafSPN):
 
     def logpdf(self, x):
         return log(self.dist[x]) if x in self.dist else -inf
+
+    def sample(self, N, rng):
+        # TODO: Replace with FLDR.
+        xs = flip(self.weights, self.outcomes, N, rng)
+        return [{self.symbol: x} for x in xs]
 
     def logprob__(self, event):
         # TODO: Consider using 1 - Pr[Event] for negation to avoid
@@ -815,11 +821,6 @@ class NominalDistribution(LeafSPN):
             for x in self.support
         }
         return NominalDistribution(self.symbol, dist)
-
-    def sample(self, N, rng):
-        # TODO: Replace with FLDR.
-        xs = flip(self.weights, self.outcomes, N, rng)
-        return [{self.symbol: x} for x in xs]
 
     def __hash__(self):
         x = (self.__class__, self.symbol, tuple(self.dist.items()))
