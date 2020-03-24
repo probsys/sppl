@@ -11,8 +11,6 @@ from .math_util import logsumexp
 from .spn import Memo
 from .spn import SPN
 from .spn import SumSPN
-from .spn import spn_cache_duplicate_subtrees
-from .spn import spn_simplify_sum
 
 from .transforms import Identity
 
