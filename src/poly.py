@@ -34,7 +34,8 @@ def solve_poly_inequality(expr, b, strict, extended=None):
     try:
         with timeout(seconds=TIMEOUT_SYMBOLIC):
             result_symbolic = solve_poly_inequality_symbolically(expr, b, strict)
-            if not isinstance(result_symbolic, sympy.ConditionSet):
+            if not isinstance(result_symbolic,
+                    (sympy.ConditionSet, sympy.Intersection)):
                 return result_symbolic
     except TimeoutError:
         pass
@@ -97,7 +98,8 @@ def solve_poly_equality(expr, b):
     try:
         with timeout(seconds=TIMEOUT_SYMBOLIC):
             result_symbolic = solve_poly_equality_symbolically(expr, b)
-            if not isinstance(result_symbolic, sympy.ConditionSet):
+            if not isinstance(result_symbolic,
+                    (sympy.ConditionSet, sympy.Intersection)):
                 return result_symbolic
     except TimeoutError:
         pass
