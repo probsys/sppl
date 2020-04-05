@@ -3,7 +3,9 @@ Probabilistic Programming with Sum-Product Networks
 
 ## Installation
 
-Please install Python 3 dependencies listed in `requirements.txt`.
+This software is tested on Ubuntu 18.04 and requires Python 3.
+Please install the dependencies listed in `requirements.txt` (PyPI)
+and `requirements.sh` (apt).
 
 ## Tests
 
