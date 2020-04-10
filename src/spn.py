@@ -786,7 +786,10 @@ class NominalDistribution(LeafSPN):
         assert allclose(float(sum(self.weights)),  1)
 
     def logpdf(self, x):
-        return log(self.dist[x]) if x in self.dist else -inf
+        if x not in self.dist:
+            return -inf
+        w = self.dist[x]
+        return log(w[0]) - log(w[1])
 
     def sample(self, N, rng):
         # TODO: Replace with FLDR.
