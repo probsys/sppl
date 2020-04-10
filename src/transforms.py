@@ -215,6 +215,8 @@ class Transform(object):
             return Radical(self, denom)
         if numer == -1:
             return 1 / Radical(self, denom)
+        if denom == 1:
+            return self.__pow__integer(numer)
         # TODO: Consider default choice x**(a/b) = (x**(a))**(1/b)
         return NotImplemented
     def __pow__number(self, x):
@@ -230,10 +232,21 @@ class Transform(object):
         raise ValueError(
             'Cannot raise %s to irrational or floating-point power %s'
             % (str(self), x))
+    def __pow__tuple(self, x):
+        if not isinstance(x, tuple):
+            raise TypeError
+        numer = sympify_number(x[0])
+        denom = sympify_number(x[1])
+        return self.__pow__rational(sympy.Rational(numer, denom))
     def __pow__(self, x):
         # Try to raise to x as a number.
         try:
             return self.__pow__number(x)
+        except TypeError:
+            pass
+        # Try to raise to x as a tuple.
+        try:
+            return self.__pow__tuple(x)
         except TypeError:
             pass
         # Failed.
