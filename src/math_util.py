@@ -35,7 +35,8 @@ def flip(p, array, size, rng):
     return rng.choice(array, size=size, p=p)
 
 def normalize(p):
-    return numpy.asarray(p, dtype=float) / sum(p)
+    s = float(sum(p))
+    return numpy.asarray(p, dtype=float) / s
 
 def allclose(values, x):
     return numpy.allclose(values, x)
