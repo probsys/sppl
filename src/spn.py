@@ -781,12 +781,15 @@ class NominalDistribution(LeafSPN):
         self.dist = {NominalValue(x): Fraction(w) for x, w in dist.items()}
         # Derived attributes.
         self.support = NominalSet(*dist.keys())
-        self.outcomes = list(self.dist)
-        self.weights = [float(x) for x in self.dist.values()]
+        self.outcomes = list(self.dist.keys())
+        self.weights = list(self.dist.values())
         assert allclose(float(sum(self.weights)),  1)
 
     def logpdf(self, x):
-        return log(self.dist[x]) if x in self.dist else -inf
+        if x not in self.dist:
+            return -inf
+        w = self.dist[x]
+        return log(w[0]) - log(w[1])
 
     def sample(self, N, rng):
         # TODO: Replace with FLDR.

@@ -9,5 +9,3 @@ build/
 clean.sh
 dist/
 htmlcov/
-notebooks/
-notes

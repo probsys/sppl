@@ -176,9 +176,9 @@ def test_parse_15():
 
 def test_parse_16():
     # (x**(1/7))**4 < 9
-    expr = ((X**Rat(1,7)))**4
-    expr_prime = Pow(Radical(Y, 7), 4)
-    assert expr == expr_prime
+    for expr in [((X**Rat(1,7)))**4, (X**(1,7))**4]:
+        expr_prime = Pow(Radical(Y, 7), 4)
+        assert expr == expr_prime
 
     event = EventInterval(expr, Interval.open(-oo, 9))
     assert (expr < 9) == event
@@ -255,6 +255,7 @@ def test_parse_21__ci_():
 
 def test_parse_24_negative_power():
     assert X**(-3) == Reciprocal(Pow(X, 3))
+    assert X**((-3, 1)) == Reciprocal(Pow(X, 3))
     assert X**(-Rat(1, 3)) == Reciprocal(Radical(X, 3))
     with pytest.raises(ValueError):
         X**0
@@ -294,7 +295,7 @@ def test_parse_26_piecewise_one_expr_compound_event():
             ])])
 
 def test_parse_27_piecewise_many():
-    assert (Y < 0)*(Y**2) + (0 <= Y)*Y**(Rat(1, 2)) == Piecewise(
+    assert (Y < 0)*(Y**2) + (0 <= Y)*Y**((1, 2)) == Piecewise(
         [
             Poly(Y, [0, 0, 1]),
             Radical(Y, 2)],
@@ -327,13 +328,17 @@ def test_errors():
     with pytest.raises(ValueError):
         Y**2 + (0 <= Y) * Y
     with pytest.raises(ValueError):
-        (Y <= 0)*(Y**2) + (0 <= Y)*Y**(Rat(1, 2))
+        (Y <= 0)*(Y**2) + (0 <= Y)*Y**((1, 2))
     with pytest.raises(ValueError):
-        (Y <= 0)*(Y**2) + (0 <= Identity('Z'))*Y**(Rat(1, 2))
+        (Y <= 0)*(Y**2) + (0 <= Identity('Z'))*Y**((1, 2))
     with pytest.raises(ValueError):
-        (Y <= 0)*(Y**2) + (0 <= Identity('Z'))*Identity('Z')**(Rat(1, 2))
+        (Y <= 0)*(Y**2) + (0 <= Identity('Z'))*Identity('Z')**((1, 2))
 
     # TypeErrors from 'return NotImplemented'.
+    with pytest.raises(TypeError):
+        Abs(X)**(1.1, 8)
+    with pytest.raises(TypeError):
+        Abs(X)**(7, 8)
     with pytest.raises(TypeError):
         X + 'a'
     with pytest.raises(TypeError):
