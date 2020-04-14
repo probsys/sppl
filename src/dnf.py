@@ -36,7 +36,7 @@ def dnf_factor(event, lookup=None):
 
     if isinstance(event, EventBasic):
         # Literal.
-        symbols = event.symbols()
+        symbols = tuple(event.symbols())
         assert len(symbols) == 1
         key = lookup[symbols[0]]
         return ({key: event},)

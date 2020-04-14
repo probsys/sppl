@@ -26,6 +26,7 @@ from .sym_util import ExtReals
 from .sym_util import ExtRealsPos
 from .sym_util import Reals
 from .sym_util import UniversalSet
+from .sym_util import get_union
 
 from .sym_util import ContainersFinite
 from .sym_util import NominalSet
@@ -356,7 +357,7 @@ class Identity(Injective):
         self.subexpr = self
         self.token = token
     def symbols(self):
-        return (self,)
+        return {self}
     def domain(self):
         return ExtReals
     def range(self):
@@ -670,7 +671,7 @@ class Piecewise(Transform):
         self.symbol = get_piecewise_symbol(self.subexprs, self.events)
         self.domains = get_piecewise_domains(self.events)
     def symbols(self):
-        return (self.symbol,)
+        return {self.symbol}
     def domain(self):
         return sympy.Union(*self.domains)
     def range(self):
@@ -719,10 +720,10 @@ class Piecewise(Transform):
 def get_piecewise_symbol(subexprs, events):
     if len(subexprs) != len(events):
         raise ValueError('Piecewise requires same no. of subexprs and events.')
-    symbols_subexprs = set(chain(*[s.symbols() for s in subexprs]))
+    symbols_subexprs = get_union([s.symbols() for s in subexprs])
     if len(symbols_subexprs) > 1:
         raise ValueError('Piecewise cannot have multi-symbol subexpressions.')
-    symbols_events = set(chain(*[e.symbols() for e in events]))
+    symbols_events = get_union([e.symbols() for e in events])
     if len(symbols_subexprs) > 1:
         raise ValueError('Piecewise cannot have multi-symbol events.')
     if symbols_subexprs != symbols_events:
@@ -1049,8 +1050,7 @@ class EventCompound(Event):
         assert all(isinstance(s, Event) for s in subexprs)
         self.subexprs = tuple(subexprs)
     def symbols(self):
-        return tuple(set(chain.from_iterable([
-            event.symbols() for event in self.subexprs])))
+        return get_union([event.symbols() for event in self.subexprs])
     def domain(self):
         if len(self.symbols()) > 1:
             raise ValueError('No domain for multi-symbol Event.')
