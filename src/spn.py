@@ -247,10 +247,6 @@ class SumSPN(BranchSPN):
 class ExposedSumSPN(SumSPN):
     def __init__(self, children, spn_weights):
         """Weighted mixture of SPNs with exposed internal choice."""
-        # TODO: Consider allowing a general SPN with a single Nominal
-        # output variable.  Implementing this capability will require the
-        # methods to check the type (nominal/real) and support of a general
-        # SPN.
         assert isinstance(spn_weights, NominalDistribution)
         weights = [
             spn_weights.logprob(spn_weights.symbol << {n})
