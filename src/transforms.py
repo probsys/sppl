@@ -867,7 +867,7 @@ class EventBasic(Event):
             and (self.values == event.values) \
             and (self.subexpr == event.subexpr)
     def __hash__(self):
-        x = (self.__class__, self.subexpr)
+        x = (self.__class__, self.subexpr, self.values)
         return hash(x)
 
 class EventInterval(EventBasic):
