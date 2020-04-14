@@ -516,6 +516,7 @@ class LeafSPN(SPN):
     def logpdf(self, x):
         raise NotImplementedError()
     def logprob(self, event, memo=None):
+        assert event.get_symbols() == self.get_symbols()
         if memo is None:
             return self.logprob__(event)
         key = self.get_memo_key(({self.symbol: event},))
@@ -523,6 +524,7 @@ class LeafSPN(SPN):
             memo.logprob[key] = self.logprob__(event)
         return memo.logprob[key]
     def condition(self, event, memo=None):
+        assert event.get_symbols() == self.get_symbols()
         if memo is None:
             return self.condition__(event)
         key = self.get_memo_key(({self.symbol: event},))

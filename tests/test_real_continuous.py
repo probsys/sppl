@@ -70,6 +70,9 @@ def test_numeric_distribution_normal():
     x = spn.logprob((X << {1, 2}) | (X < -1))
     assert allclose(x, spn.logprob(X < -1))
 
+    with pytest.raises(AssertionError):
+        spn.logprob(Identity('Y') << {1, 2})
+
 def test_numeric_distribution_gamma():
     X = Identity('X')
 
