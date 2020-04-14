@@ -706,10 +706,10 @@ class Piecewise(Transform):
 def get_piecewise_symbol(subexprs, events):
     if len(subexprs) != len(events):
         raise ValueError('Piecewise requires same no. of subexprs and events.')
-    symbols_subexprs = get_union([s.get_symbols() for s in subexprs])
+    symbols_subexprs = get_union([subexpr.get_symbols() for subexpr in subexprs])
     if len(symbols_subexprs) > 1:
         raise ValueError('Piecewise cannot have multi-symbol subexpressions.')
-    symbols_events = get_union([e.get_symbols() for e in events])
+    symbols_events = get_union([event.get_symbols() for event in events])
     if len(symbols_subexprs) > 1:
         raise ValueError('Piecewise cannot have multi-symbol events.')
     if symbols_subexprs != symbols_events:
@@ -1031,9 +1031,9 @@ class EventFiniteNominal(EventBasic):
 
 class EventCompound(Event):
     def __init__(self, subexprs):
-        assert all(isinstance(s, Event) for s in subexprs)
-        self.subexprs = tuple([make_subexpr(e) for e in subexprs])
-        self.symbols = get_union([e.get_symbols() for e in subexprs])
+        assert all(isinstance(subexpr, Event) for subexpr in subexprs)
+        self.subexprs = tuple([make_subexpr(event) for event in subexprs])
+        self.symbols = get_union([event.get_symbols() for event in subexprs])
     def domain(self):
         if len(self.symbols) > 1:
             raise ValueError('No domain for multi-symbol Event.')
@@ -1080,7 +1080,7 @@ class EventOr(EventCompound):
         return isinstance(event, EventOr) and (self.subexprs == event.subexprs)
     def __invert__(self):
         sub_events = [~event for event in self.subexprs]
-        return reduce(lambda state, e: state & e, sub_events)
+        return reduce(lambda state, event: state & event, sub_events)
     def __repr__(self):
         return 'EventOr(%s)' % (repr(self.subexprs,))
     def __str__(self):
@@ -1133,7 +1133,7 @@ class EventAnd(EventCompound):
         return isinstance(event, EventAnd) and (self.subexprs == event.subexprs)
     def __invert__(self):
         sub_events = [~event for event in self.subexprs]
-        return reduce(lambda state, e: state | e, sub_events)
+        return reduce(lambda state, event: state | event, sub_events)
     def __repr__(self):
         return 'EventAnd(%s)' % (repr(self.subexprs,))
     def __str__(self):
