@@ -41,6 +41,7 @@ from .sym_util import partition_list_blocks
 from .sym_util import powerset
 from .sym_util import sympify_number
 
+from .transforms import Event
 from .transforms import EventBasic
 from .transforms import EventCompound
 from .transforms import EventOr
@@ -118,10 +119,16 @@ class SPN(object):
         # Failed.
         return NotImplemented
 
-    def get_memo_key(self, event_factor):
-        x = id(self)
-        y = tuple(tuple(x.items()) for x in event_factor)
-        return (x, y)
+    def get_memo_key(self, e):
+        if isinstance(e, (list, tuple)):
+            x = id(self)
+            y = tuple(tuple(conjunction.items()) for conjunction in e)
+            return (x, y)
+        if isinstance(e, Event):
+            x = id(self)
+            y = hash(e)
+            return (x, y)
+        assert False, 'Unknown event type: %s' % (e,)
 
 # ==============================================================================
 # Branch SPN.
@@ -134,22 +141,34 @@ class BranchSPN(SPN):
     def logprob(self, event, memo=None):
         if memo is None:
             memo = Memo({}, {})
+        # Check memo table.
+        key = self.get_memo_key(event)
+        if key in memo.logprob:
+            return memo.logprob[key]
+        # Compute and memoize.
         event_dnf = dnf_normalize(event)
         event_dnf_pruned = self.prune_events(event_dnf, memo)
         if event_dnf_pruned is None:
             return -inf
         event_factor = dnf_factor(event_dnf_pruned)
-        return self.logprob_factored(event_factor, memo)
+        memo.logprob[key] = self.logprob_factored(event_factor, memo)
+        return memo.logprob[key]
     def condition(self, event, memo=None):
         if memo is None:
             memo = Memo({}, {})
+        # Check memo table.
+        key = self.get_memo_key(event)
+        if key in memo.condition:
+            return memo.condition[key]
+        # Compute and memoize.
         event_dnf = dnf_normalize(event)
         event_dnf_pruned = self.prune_events(event_dnf, memo)
         if event_dnf_pruned is None:
             raise ValueError('Zero probability event: %s' % (event,))
         event_disjoint = dnf_to_disjoint_union(event_dnf_pruned)
         event_factor = dnf_factor(event_disjoint)
-        return self.condition_factored(event_factor, memo)
+        memo.condition[key] = self.condition_factored(event_factor, memo)
+        return memo.condition[key]
     def logprob_factored(self, event_factor, memo):
         raise NotImplementedError()
     def condition_factored(self, event_factor, memo):
