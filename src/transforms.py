@@ -785,8 +785,8 @@ class Event(Transform):
         return NotImplemented
 
 class EventBasic(Event):
-    values = None
     subexpr = None
+    values = None
 
     def symbols(self):
         return self.subexpr.symbols()
