@@ -1,6 +1,9 @@
 Probabilistic Programming with Sum-Product Networks
 ===================================================
 
+The Kernel Language
+-------------------
+
 Domain Variables
 
   n ∈ Naturals
@@ -8,72 +11,100 @@ Domain Variables
   w ∈ [0,1]
   s ∈ Strings
   x ∈ Var
-  y ∈ ArrVar
-  z ∈ Vars = x | y[n]
 
-Transform Data Type (Semantic Domain)
+Transform Data Type
 
   i ∈ InfiniteSet
-    = Interval(r₁, r₂)
-    | Interval.open(r₁, r₂)
-    | Interval.Lopen(r₁, r₂)
-    | Interval.Ropen(r₁, r₂)
+    = Interval(r₁, r₂)                      // [r₁, r₂]
+    | Interval.open(r₁, r₂)                 // (r₁, r₂)
+    | Interval.Lopen(r₁, r₂)                // (r₁, r₂]
+    | Interval.Ropen(r₁, r₂)                // [r₁, r₂)
 
   f ∈ FiniteSet
-    = EmptySet
-    | FiniteSetReal(r₁, …, rₘ)
-    | FiniteSetNominal(s₁, …, sₘ)
+    = EmptySet                              // ∅
+    | FiniteSetReal(r₁, …, rₘ)              // {r₁, …, rₘ}
+    | FiniteSetNominal(s₁, …, sₘ)           // {s₁, …, sₘ}
 
-  v ∈ Sets := i | f | Union([v₁, …, vₘ]) | Complement f
+  v ∈ Set
+    = i
+    | f
+    | Union([v₁, …, vₘ])                    // v₁ ∪ … ∪ vₘ
+    | Complement f                          // (by cases)
 
-  g ∈ Transform
-    = Identity(x)                           // One-to-One
-    | Reciprocal(g)                         // One-to-One
-    | Radical(g, n)                         // One-to-One
-    | Exponent(g, r)                        // One-to-One
-    | Logarithm(g, r)                       // One-to-One
-    | Abs(g)                                // Many-to-One
-    | Polynomial(g, [r₀, …, rₘ])            // Many-to-One
-    | Piecewise([g₁, …, gₘ], [e₁, …, eₘ])   // Many-to-One
+  t ∈ Transform
+    = Identity(x)                           // x               one-to-one
+    | Reciprocal(t)                         // 1 / t(x)        one-to-one
+    | Radical(t, n)                         // ⁿ√t(x)          one-to-one
+    | Exponent(t, r)                        // rᵗ⁽ˣ⁾           one-to-one
+    | Logarithm(t, r)                       // logᵣ(t(x))      one-to-one
+    | Abs(t)                                // |t(x)|          many-to-one
+    | Polynomial(t, [r₀, …, rₘ])            // ∑rᵢtⁱ(x)        many-to-one
+    | Piecewise([t₁, …, tₘ], [e₁, …, eₘ])   // ∑I[eᵢ(x)]tᵢ(x)  many-to-one
 
-  e ∈ Event <: Transforms                   // Many-to-One
-    = EventInterval(t, i)
-    | EventFinteReal(t, [r₁, …, rₘ])
-    | EventFiniteNominal(t, [s₁, …, sₘ])
-    | EventOr([e₁, …, eₘ])
-    | EventAnd([e₁, …, eₘ])
+  e ∈ Event <: Transforms
+    = EventBasic(t, v)                      // {t(x) ∈ v} = {y|t(y) ∈ v}
+    | EventOr([e₁, …, eₘ])                  // e₁ ∨ … ∨ eₘ
+    | EventAnd([e₁, …, eₘ])                 // e₁ ∧ … ∧ eₘ
+    | EventNot(e)                           // ~e
 
-  invert              :: Transform -> Sets -> Sets
-  solve               :: Event -> Sets
+  invert              :: Transform → Set → Set
+  solve               :: Event → Set
+  simplify            :: Event → Event
 
-SPN Type (Semantic Domain)
+SPN Type
 
-  θ ∈ CDF
+  F ∈ ℜ → [0,1]  (a CDF, i.e., F(x) = μ((-∞, x]), and cadlag)
+
   d ∈ Distribution
-    = Nominal {sᵢ:pᵢ ∣ i=1, …, m}
-    | RealContinuous Θ
-    | RealDiscrete θ
+    = Nominal {sᵢ: pᵢ ∣ i=1, …, m}        // μ({sᵢ}) = pᵢ
+    | RealAtomic i F                      // μ(i) := F(i) - F(i-1)
+    | RealContinuous i F                  // μ((-∞, x]) = F(x)
 
   s ∈ SPN
     = (ℓ x d)                   [Leaf]
     | (⊗ s₁ … sₘ)               [Product]
     | (⊕ (w₁ s₁) … (wₙ sₘ))     [Sum]
 
-  The denotation of an SPN is a probability measure,
-    𝐏⟦.⟧ : SPN -> (e -> [0,1])
+The denotation of an SPN is a probability measure.
+The scope function returns the set of distinct symbols in s:
 
-  Operations on SPN:
-  condition           :: SPN -> e -> SPN
-  mutual-information  :: SPN -> e₁ -> e₂ -> Reals
+  scope :: SPN → {Vars}
+  scope(ℓ x d) = {x}
+  scope(⊗ s₁ … sₘ) = ∪ᵢ scope(sᵢ)
+  scope((⊕ (w₁ s₁) … (wₙ sₘ))) = ∪ᵢ scope(sᵢ)
 
-Modeling Language (Syntactic Domain)
+Let n = |scope(s)|.
+
+  𝐏⟦.⟧ :: SPN → σ[(R ⊎ S)ⁿ] → [0, 1]
+
+  σ(R ⊎ S) := B(R ⊎ S)
+  The Borel sigma algebra on the disjoint union topological space,
+    where R is given the usual topology,
+    and S is given the discrete topology.
+
+  Semantic functions on SPN
+
+  [Probability]         𝐏⟦.⟧ :: SPN → Event → [0,1]
+  [Condition]           𝐂⟦.⟧ :: SPN → Event → SPN
+  [Mutual Information]  𝐌⟦.⟧ :: SPN → Event → Event → Reals
+
+- Give a denotational semantics of the kernel language
+- Give a small-step operational semantics for the modeling language.
+
+The Modeling Language
+---------------------
+
+Also known as the "syntactic sugar"
+
+y ∈ ArrVar
+z ∈ Vars = x | y[n]
 
   t ∈ Transformations
     = x                         [Identity]
     | 1/t                       [Reciprocal]
     | ⁿ√t                       [Radical]
     | rᵗ                        [Exp]
-    | logᵣ(t)                   [Log]
+    | log(t, r)                 [Log]
     | abs(t)                    [Abs]
     | r₀ + r₁t + … + rₘtᵐ       [Polynomial]
     | ϕ₁t₁ + ϕ₂t₂ + ... + ϕₙtₙ  [Piecewise]
@@ -82,15 +113,13 @@ Modeling Language (Syntactic Domain)
     | {r₁, …, rₘ}               [RealFinite]
     | {s₁, …, sₘ}               [NominalFinite]
 
+  c ∈ Comparison = < | <=
   ϕ ∈ Predicate :=
-    | t < r                 [LessThan]
-    | t <= r                [LessThanEquals]
-    | r < t                 [GreaterThan]
-    | r <= t                [GreatherThanEquals]
+    | t c r                 [Less]
+    | r c t                 [Greater]
     | t << f                [Containment]
     | ϕ₁ & ϕ₂               [Conjunction]
-    | ϕ₁ /| ϕ₂              [Disjunction]
-    | ϕ₁ ^ ϕ₂               [XOR]
+    | ϕ₁ | ϕ₂               [Disjunction]
     | ~ϕ                    [Negation]
 
   d ∈ Dist
@@ -100,13 +129,12 @@ Modeling Language (Syntactic Domain)
     | w₁*d₁ + w₂*d₂                 [MixtureDist]
 
   c ∈ Program
-    = y ← array(n)              [DeclareArr]
-    | z ~ d                     [Sample]
-    | z ← t                     [Assign]
-    | c₁ ; c₂                   [Sequence]
-    | if ϕ then c₁ else c₂      [If-Else]
-    | λx. c                     [Lambda]
-    | repeat n n' f             [Repeat]
+    = y ← array(n)                                  [DeclareArr]
+    | z ~ d                                         [Sample]
+    | z ← t                                         [Transform]
+    | c₁ ; c₂                                       [Sequence]
+    | if ϕ₁ then c₁ elif ϕ₂ then c₂ … else cₙ       [Condition]
+    | repeat n n' λi.c                              [Repeat]
 
 Small Step Semantics
 
@@ -130,10 +158,10 @@ Small Step Semantics
 
 
 [Sample]  ----------------------------------
-          ⟨(s, σ), x ~ d⟩ → (⊗ s (ℓ x d), σ)
+          ⟨(s, σ), x ~ d⟩ → (⊗ s (ℓ x d), σ[x\Identity(x)])
 
-[Assign]  -----------------------------
-          ⟨(s, σ), x ← t⟩ → (s, [x\t]σ)
+[Transform]  -----------------------------
+             ⟨(s, σ), z ← t⟩ → (s, [z\t]σ)
 
              ⟨(s, σ), c₁ → (s₁, σ₁)  ⟨(s₁, σ₁), c₂ → (s₂, σ₂)
 [Sequence]   ------------------------------------------------
@@ -144,11 +172,22 @@ Small Step Semantics
           ⟨(s, σ), if ϕ then c₁ else c₂⟩ → ⊕ (𝐏⟦s⟧(ϕ[σ])) (s₁, σ₁)
                                              (1-𝐏⟦s⟧(~ϕ[σ])) (s₂, σ₂)
 
-
 [Repeat-False]
       --------------------------------  (where n' <= n)
-      ⟨(s, σ), repeat n n' f⟩ -> (s, σ)
+      ⟨(s, σ), repeat n n' λx.c⟩ → (s, σ)
 
-[Repeat-True]
+[Repeat-True-v1]
+
     ------------------------------------------------------------  (where n < n')
-    ⟨(s, σ), repeat n λx.c⟩ -> ⟨(s, σ), ( (λx.c)(n); repeat (n+1) n' λx.c)⟩
+    ⟨(s, σ), repeat n λx.c⟩ → ⟨(s, σ), ( (λx.c)(n); repeat (n+1) n' λx.c)⟩
+
+[Repeat-True-v2]
+
+    ⟨(s,σ), [x\n]c⟩ → (s', σ')  ⟨(s',σ'), repeat (n+1) n' λx.c⟩ → (s'', σ'')
+    ------------------------------------------------------------  (where n < n')
+    ⟨(s, σ), repeat n λx.c⟩ → (s'', σ'')
+
+    The notation [x\n]c means:
+
+      syntactically replace every instance of variable x with the numeral
+      n in the expression c.
