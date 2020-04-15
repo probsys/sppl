@@ -1221,7 +1221,7 @@ def Pow(subexpr, n):
     return Poly(subexpr, coeffs)
 
 def expr_in_env(expr, env):
-    return any(s in env for s in expr.get_symbols())
+    return env and any(env.get(s,s) != s for s in expr.get_symbols())
 
 def transform_interval(interval, a, b, flip=None):
     return \
