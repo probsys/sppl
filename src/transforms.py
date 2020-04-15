@@ -52,6 +52,17 @@ class Transform(object):
     def range(self):
         raise NotImplementedError()
 
+    def substitute(self, env):
+        # TODO: Reject following cases, which result in infinite loop:
+        # (1) env[X] = f(X)                 // check for self-reference
+        # (2) env[X] = f(Z); env[Z] = g(X)  // detect cycle in digraph
+        event_prime = self
+        while expr_in_env(event_prime, env):
+            event_prime = event_prime.subs(env)
+        return event_prime
+    def subs(self, env):
+        raise NotImplementedError()
+
     def evaluate(self, assignment):
         raise NotImplementedError()
     def ffwd(self, x):
@@ -362,6 +373,10 @@ class Identity(Injective):
         return ExtReals
     def range(self):
         return ExtReals
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        return env[self]
     def evaluate(self, assignment):
         if self not in assignment:
             raise ValueError('Cannot evaluate %s on %s' % (str(self), assignment))
@@ -400,6 +415,11 @@ class Radical(Injective):
         return ExtRealsPos
     def range(self):
         return ExtRealsPos
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Radical(subexpr_prime, self.degree)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -432,6 +452,11 @@ class Exp(Injective):
         return ExtReals
     def range(self):
         return ExtRealsPos
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Exp(subexpr_prime, self.base)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -466,6 +491,11 @@ class Log(Injective):
         return ExtRealsPos
     def range(self):
         return ExtReals
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Log(subexpr_prime, self.base)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -503,6 +533,11 @@ class Abs(Transform):
         return ExtReals
     def range(self):
         return ExtRealsPos
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Abs(subexpr_prime)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -542,6 +577,11 @@ class Reciprocal(Transform):
         return ExtReals - sympy.FiniteSet(0)
     def range(self):
         return Reals - sympy.FiniteSet(0)
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Reciprocal(subexpr_prime)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -599,6 +639,11 @@ class Poly(Transform):
         pos_inf = sympy.FiniteSet(oo) if result.right == oo else EmptySet
         neg_inf = sympy.FiniteSet(-oo) if result.left == -oo else EmptySet
         return sympy.Union(result, pos_inf, neg_inf)
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Poly(subexpr_prime, self.coeffs)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -663,6 +708,13 @@ class Piecewise(Transform):
     def range(self):
         ranges = [subexpr.range() for subexpr in self.subexprs]
         return sympy.Union(*ranges)
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        # TODO: Check whether this logic is correct.
+        subexprs_prime = [subexpr.subs(env) for subexpr in self.subexprs]
+        events_prime = [event.subs(env) for event in self.events]
+        return Piecewise(subexprs_prime, events_prime)
     def evaluate(self, assignment):
         raise NotImplementedError()
     def ffwd(self, x):
@@ -777,6 +829,11 @@ class EventBasic(Event):
 
     def domain(self):
         return self.subexpr.domain()
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return type(self)(subexpr_prime, self.values)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -1039,6 +1096,11 @@ class EventCompound(Event):
             raise ValueError('No domain for multi-symbol Event.')
         domains = [event.domain() for event in self.subexprs]
         return sympy.Intersection(*domains)
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexprs_prime = [subexpr.subs(env) for subexpr in self.subexprs]
+        return type(self)(subexprs_prime)
 
 class EventOr(EventCompound):
     def evaluate(self, assignment):
@@ -1157,6 +1219,9 @@ def Pow(subexpr, n):
     assert 0 <= n
     coeffs = [0]*n + [1]
     return Poly(subexpr, coeffs)
+
+def expr_in_env(expr, env):
+    return any(s in env for s in expr.get_symbols())
 
 def transform_interval(interval, a, b, flip=None):
     return \
