@@ -47,7 +47,6 @@ from .transforms import EventOr
 from .transforms import Identity
 
 inf = float('inf')
-Memo = namedtuple('Memo', ['logprob', 'condition'])
 
 # ==============================================================================
 # SPN (base class).
@@ -833,6 +832,8 @@ class NominalDistribution(LeafSPN):
 
 # ==============================================================================
 # Utilities.
+
+Memo = namedtuple('Memo', ['logprob', 'condition'])
 
 def spn_cache_duplicate_subtrees(spn, memo):
     if isinstance(spn, LeafSPN):
