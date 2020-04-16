@@ -441,9 +441,7 @@ class ProductSPN(BranchSPN):
             # Compute probability of this conjunction.
             logprob = self.logprob_conjunction(event_factor, J, memo)
             # Add probability to either positive or negative sums.
-            prefactor = (-1)**(len(J) - 1)
-            x = logps_pos if prefactor > 0 else logps_neg
-            x.append(logprob)
+            (logps_pos if len(J) % 2 else logps_neg).append(logprob)
         # Aggregate positive term.
         logp_pos = logsumexp(logps_pos)
         if isinf_neg(logp_pos) or not logps_neg:
