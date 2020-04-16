@@ -565,13 +565,13 @@ class LeafSPN(SPN):
         # Check memo table.
         key = self.get_memo_key(event_factor)
         if key not in memo.logprob:
-            event = self.event_factor_to_event(event_factor)
+            event = event_factor_to_event(event_factor)
             memo.logprob[key] = self.logprob(event)
         return memo.logprob[key]
     def condition_factored(self, event_factor, memo):
         key = self.get_memo_key(event_factor)
         if key not in memo.condition:
-            event = self.event_factor_to_event(event_factor)
+            event = event_factor_to_event(event_factor)
             memo.condition[key] = self.condition(event)
         return memo.condition[key]
     def sample__(self, N, rng):
@@ -580,14 +580,6 @@ class LeafSPN(SPN):
         raise NotImplementedError()
     def condition__(self, event):
         raise NotImplementedError()
-
-    def event_factor_to_event(self, dnf_factor):
-        conjunctions = (
-            reduce(lambda x, e: x & e,
-                (conjunction[s] for s in self.env if s in conjunction))
-            for conjunction in dnf_factor
-        )
-        return reduce(lambda x, e: x | e, conjunctions)
 
 # ==============================================================================
 # RealDistribution base class.
@@ -930,3 +922,10 @@ def merge_samples(samples):
     # input [[{X:1, Y:2}, {X:0, Y:1}], [{Z:0}, {Z:1}]] (N=2)
     # output [{X:1, Y:2, Z:0}, {X:0, Y:1, Z:1}]
     return [dict(ChainMap(*sample_list)) for sample_list in zip(*samples)]
+
+def event_factor_to_event(event_factor):
+    conjunctions = (
+        reduce(lambda x, e: x & e, conjunction.values())
+        for conjunction in event_factor
+    )
+    return reduce(lambda x, e: x | e, conjunctions)
