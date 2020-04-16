@@ -53,6 +53,7 @@ inf = float('inf')
 # SPN (base class).
 
 class SPN(object):
+    env = None             # Environment mapping symbols to transforms.
     def __init__(self):
         raise NotImplementedError()
     def sample(self, N, rng):
@@ -153,8 +154,18 @@ class BranchSPN(SPN):
         event_factor = dnf_factor(event_disjoint)
         return self.condition_factored(event_factor, memo)
     def logprob_factored(self, event_factor, memo):
-        raise NotImplementedError()
+        key = self.get_memo_key(event_factor)
+        if key not in memo.logprob:
+            memo.logprob[key] = self.logprob_factored__(event_factor, memo)
+        return memo.logprob[key]
     def condition_factored(self, event_factor, memo):
+        key = self.get_memo_key(event_factor)
+        if key not in memo.condition:
+            memo.condition[key] = self.condition_factored__(event_factor, memo)
+        return memo.condition[key]
+    def logprob_factored__(self, event_factor, memo):
+        raise NotImplementedError()
+    def condition_factored__(self, event_factor, memo):
         raise NotImplementedError()
     def prune_events(self, event_dnf, memo):
         if not isinstance(event_dnf, EventOr):
@@ -220,31 +231,18 @@ class SumSPN(BranchSPN):
         assert are_identical(symbols)
         self.symbols = self.children[0].get_symbols()
 
-    def logprob_factored(self, event_factor, memo):
-        # Check memo table.
-        key = self.get_memo_key(event_factor)
-        if key in memo.logprob:
-            return memo.logprob[key]
-        # Compute and memoize.
+    def logprob_factored__(self, event_factor, memo):
         logps = [spn.logprob_factored(event_factor, memo) for spn in self.children]
         logp = logsumexp([p + w for (p, w) in zip(logps, self.weights)])
-        memo.logprob[key] = logp
         return logp
 
-    def condition_factored(self, event_factor, memo):
-        # Check memo table.
-        key = self.get_memo_key(event_factor)
-        if key in memo.condition:
-            return memo.condition[key]
-        # Compute and memoize.
+    def condition_factored__(self, event_factor, memo):
         logps_condt = [spn.logprob_factored(event_factor, memo) for spn in self.children]
         indexes = [i for i, lp in enumerate(logps_condt) if not isinf_neg(lp)]
         logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
         children = [self.children[i].condition_factored(event_factor, memo) for i in indexes]
         weights = lognorm(logps_joint)
-        spn = SumSPN(children, weights) if len(indexes) > 1 else children[0]
-        memo.condition[key] = spn
-        return spn
+        return SumSPN(children, weights) if len(indexes) > 1 else children[0]
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -432,12 +430,7 @@ class ProductSPN(BranchSPN):
         self.lookup = {s:i for i, syms in enumerate(symbols) for s in syms}
         self.symbols = frozenset(get_union(symbols))
 
-    def logprob_factored(self, event_factor, memo):
-        key = self.get_memo_key(event_factor)
-        # Check memo table.
-        if key in memo.logprob:
-            return memo.logprob[key]
-        # Compute and memoize.
+    def logprob_factored__(self, event_factor, memo):
         # Adopting Inclusion--Exclusion principle for DNF event:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
         indexes = range(len(event_factor))
@@ -457,16 +450,9 @@ class ProductSPN(BranchSPN):
             return logp_pos
         # Aggregate negative terms and return the difference.
         logp_neg = logsumexp(logps_neg) if logps_neg else -inf
-        logp = logdiffexp(logp_pos, logp_neg)
-        memo.logprob[key] = logp
-        return logp
+        return logdiffexp(logp_pos, logp_neg)
 
-    def condition_factored(self, event_factor, memo):
-        # Check memo table.
-        key = self.get_memo_key(event_factor)
-        if key in memo.condition:
-            return memo.condition[key]
-        # Compute and memoize.
+    def condition_factored__(self, event_factor, memo):
         logps = [self.logprob_conjunction([c], [0], memo) for c in event_factor]
         assert allclose(logsumexp(logps), self.logprob_factored(event_factor, memo))
         indexes = [i for (i, lp) in enumerate(logps) if not isinf_neg(lp)]
@@ -481,8 +467,7 @@ class ProductSPN(BranchSPN):
         else:
             spn_sum = SumSPN(products, weights)
             spn = spn_simplify_sum(spn_sum)
-        memo.condition[key] = spn
-        return memo.condition[key]
+        return spn
 
     def logprob_conjunction(self, event_factor, J, memo):
         # Return probability of conjunction of |J| conjunctions.
@@ -533,7 +518,6 @@ def spn_list_to_product(children):
 
 class LeafSPN(SPN):
     symbol = None          # Symbol (Identity) of base random variable
-    env = None             # Environment mapping symbols to transforms.
     def get_symbols(self):
         return frozenset(self.env)
     def sample(self, N, rng):
@@ -580,23 +564,16 @@ class LeafSPN(SPN):
     def logprob_factored(self, event_factor, memo):
         # Check memo table.
         key = self.get_memo_key(event_factor)
-        if key in memo.logprob:
-            return memo.logprob[key]
-        # Compute and memoize.
-        event = self.event_factor_to_event(event_factor)
-        lp = self.logprob(event)
-        memo.logprob[key] = lp
-        return lp
+        if key not in memo.logprob:
+            event = self.event_factor_to_event(event_factor)
+            memo.logprob[key] = self.logprob(event)
+        return memo.logprob[key]
     def condition_factored(self, event_factor, memo):
-        # Check memo table.
         key = self.get_memo_key(event_factor)
-        if key in memo.condition:
-            return memo.condition[key]
-        # Compute and memoize.
-        event = self.event_factor_to_event(event_factor)
-        spn = self.condition(event)
-        memo.condition[key] = spn
-        return spn
+        if key not in memo.condition:
+            event = self.event_factor_to_event(event_factor)
+            memo.condition[key] = self.condition(event)
+        return memo.condition[key]
     def sample__(self, N, rng):
         raise NotImplementedError()
     def logprob__(self, event):
