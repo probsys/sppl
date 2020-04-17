@@ -231,7 +231,7 @@ class Transform(object):
         if denom == 1:
             return self.__pow__integer(numer)
         # TODO: Consider default choice x**(a/b) = (x**(a))**(1/b)
-        return NotImplemented
+        raise ValueError('Cannot raise %s to %s' % (str(self), x))
     def __pow__number(self, x):
         x_val = sympify_number(x)
         if isinstance(x_val, sympy.Integer):
@@ -438,7 +438,7 @@ class Radical(Injective):
         return 'Radical(degree=%s, %s)' \
             % (repr(self.degree), repr(self.subexpr))
     def __str__(self):
-        return '(%s)**(1/%d)' % (str(self.subexpr), self.degree)
+        return '(%s)**(1, %d)' % (str(self.subexpr), self.degree)
     def __hash__(self):
         x = (self.__class__, self.subexpr, self.degree)
         return hash(x)

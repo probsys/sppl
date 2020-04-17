@@ -318,6 +318,10 @@ def test_errors():
     with pytest.raises(ValueError):
         X**(1.71)
     with pytest.raises(ValueError):
+        Abs(X)**(1.1, 8)
+    with pytest.raises(ValueError):
+        Abs(X)**(7, 8)
+    with pytest.raises(ValueError):
         (-3)**X
     with pytest.raises(ValueError):
         (Identity('Z')**2)*(Y > 0)
@@ -335,10 +339,6 @@ def test_errors():
         (Y <= 0)*(Y**2) + (0 <= Identity('Z'))*Identity('Z')**((1, 2))
 
     # TypeErrors from 'return NotImplemented'.
-    with pytest.raises(TypeError):
-        Abs(X)**(1.1, 8)
-    with pytest.raises(TypeError):
-        Abs(X)**(7, 8)
     with pytest.raises(TypeError):
         X + 'a'
     with pytest.raises(TypeError):
