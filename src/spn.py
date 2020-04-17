@@ -138,10 +138,9 @@ class BranchSPN(SPN):
         if memo is None:
             memo = Memo({}, {})
         event_dnf = dnf_normalize(event)
-        event_dnf_pruned = self.prune_events(event_dnf, memo)
-        if event_dnf_pruned is None:
+        if event_dnf is None:
             return -inf
-        event_factor = dnf_factor(event_dnf_pruned)
+        event_factor = dnf_factor(event_dnf)
         return self.logprob_factored(event_factor, memo)
     def condition(self, event, memo=None):
         if memo is None:
