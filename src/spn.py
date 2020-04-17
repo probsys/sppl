@@ -146,10 +146,16 @@ class BranchSPN(SPN):
         if memo is None:
             memo = Memo({}, {})
         event_dnf = dnf_normalize(event)
-        event_dnf_pruned = self.prune_events(event_dnf, memo)
-        if event_dnf_pruned is None:
+        if event_dnf is None:
             raise ValueError('Zero probability event: %s' % (event,))
-        event_disjoint = dnf_to_disjoint_union(event_dnf_pruned)
+        if isinstance(event_dnf, EventOr):
+            conjunctions = [dnf_factor(e) for e in event_dnf.subexprs]
+            logps = [self.logprob_factored(c, memo) for c in conjunctions]
+            indexes = [i for i, lp in enumerate(logps) if not isinf_neg(lp)]
+            if not indexes:
+                raise ValueError('Zero probability event: %s' % (event,))
+            event_dnf = EventOr([event_dnf.subexprs[i] for i in indexes])
+        event_disjoint = dnf_to_disjoint_union(event_dnf)
         event_factor = dnf_factor(event_disjoint)
         return self.condition_factored(event_factor, memo)
     def logprob_factored(self, event_factor, memo):
@@ -166,15 +172,6 @@ class BranchSPN(SPN):
         raise NotImplementedError()
     def condition_factored__(self, event_factor, memo):
         raise NotImplementedError()
-    def prune_events(self, event_dnf, memo):
-        if not isinstance(event_dnf, EventOr):
-            return event_dnf
-        conjunctions = [dnf_factor(e) for e in event_dnf.subexprs]
-        logps = [self.logprob_factored(c, memo) for c in conjunctions]
-        indexes = [i for i, lp in enumerate(logps) if not isinf_neg(lp)]
-        if not indexes:
-            return None
-        return EventOr([event_dnf.subexprs[i] for i in indexes])
 
 # ==============================================================================
 # Sum SPN.
