@@ -433,14 +433,26 @@ class ProductSPN(BranchSPN):
     def logprob_factored__(self, event_factor, memo):
         # Adopting Inclusion--Exclusion principle for DNF event:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
-        indexes = range(len(event_factor))
-        subsets = list(powerset(indexes, start=1))
-        # Compute probabilities of all the conjunctions.
+        #
+        # TODO: This implementation is based on "shallow"-filtering, where
+        # all singletons with probability zeros are discarded before
+        # constructing the power set.  A more efficient implementation is
+        # recursive filtering, where the powerset is constructed
+        # incrementally, by leveraging the fact that
+        #   J \subset J' and isinf_neg(J) implies isinf_neg(J').
+        # https://github.com/probcomp/sum-product-dsl/issues/58
         (logps_pos, logps_neg) = ([], [])
+        indexes = []
+        # Compute probabilities of singleton subsets.
+        for i in range(len(event_factor)):
+            logprob = self.logprob_conjunction(event_factor, [i], memo)
+            logps_pos.append(logprob)
+            if not isinf_neg(logprob):
+                indexes.append(i)
+        # Compute probabilities of remaining subsets.
+        subsets = list(powerset(indexes, start=2))
         for J in subsets:
-            # Compute probability of this conjunction.
             logprob = self.logprob_conjunction(event_factor, J, memo)
-            # Add probability to either positive or negative sums.
             (logps_pos if len(J) % 2 else logps_neg).append(logprob)
         # Aggregate positive term.
         logp_pos = logsumexp(logps_pos)
