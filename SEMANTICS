@@ -56,7 +56,7 @@ SPN Type
   F ∈ ℜ → [0,1]  (a CDF, i.e., F(x) = μ((-∞, x]), and cadlag)
 
   d ∈ Distribution
-    = Nominal {sᵢ: pᵢ ∣ i=1, …, m}        // μ({sᵢ}) = pᵢ
+    = Nominal {s₁:p₁, …, sₘ:pₘ}           // μ({sᵢ}) = pᵢ
     | RealAtomic i F                      // μ(i) := F(i) - F(i-1)
     | RealContinuous i F                  // μ((-∞, x]) = F(x)
 
@@ -123,10 +123,10 @@ z ∈ Vars = x | y[n]
     | ~ϕ                    [Negation]
 
   d ∈ Dist
-    = Nominal {sᵢ:pᵢ ∣ i=1, …, m}   [NominalDist]
+    = {s₁:p₁, …, sₘ:pₘ}           [NominalDist]
     | Normal μ ν | …                [ContinuousDist]
     | Poisson λ | …                 [DiscreteDist]
-    | w₁*d₁ + w₂*d₂                 [MixtureDist]
+    | w₁*d₁ + … wₙ*dₙ               [MixtureDist]
 
   c ∈ Program
     = y ← array(n)                                  [DeclareArr]
@@ -157,8 +157,29 @@ Small Step Semantics
       ~ϕ -> ~ϕ[σ]
 
 
+Big-Step Semantics for Distributions
+
+[PrimitiveDist]       --------------------
+                      Normal μ ν ⥥ (RealContinuous (-∞, ∞) Fₙ)
+
+                      --------------------
+                      Poisson μ ⥥ (RealDiscrete [0, ∞) Fₚ)
+
+                      --------------------
+                      {s₁:p₁, …, sₘ:pₘ} ⥥ Nominal {s₁:p₁, …, sₘ:pₘ}
+
+                dᵢ ⥥ sᵢ (i=1, …, n)
+[MixtureDist]  ----------------------------------  (where ∑ᵢwᵢ = 1)
+                (w₁*d₁ + … + wₙ*dₙ) ⥥ (⊕ (wᵢ sᵢ))
+
+Big-Step Semantics for Transformations
+
+  …
+
+Small-Step Semantics for Commands
+
 [Sample]  ----------------------------------
-          ⟨(s, σ), x ~ d⟩ → (⊗ s (ℓ x d), σ[x\Identity(x)])
+          ⟨(s, σ), x ~ d⟩ → (⊗ s (ℓ x d))
 
 [Transform]  -----------------------------
              ⟨(s, σ), z ← t⟩ → (s, [z\t]σ)
