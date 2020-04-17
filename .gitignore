@@ -1,11 +1,9 @@
-egg-info
 .cache/
 .coverage
 /src/version.py
-
 __pycache__/
-
 build/
 clean.sh
 dist/
+egg-info
 htmlcov/
