@@ -220,12 +220,8 @@ class SumSPN(BranchSPN):
         return list(chain.from_iterable(samples))
 
     def transform(self, symbol, expr):
-        for spn in self.children:
-            spn.transform(symbol, expr)
-        # Update the symbols.
-        symbols = [spn.get_symbols() for spn in self.children]
-        assert are_identical(symbols)
-        self.symbols = self.children[0].get_symbols()
+        children = [spn.transform(symbol, expr) for spn in self.children]
+        return SumSPN(children, self.weights)
 
     def logprob_factored__(self, event_factor, memo):
         logps = [spn.logprob_factored(event_factor, memo) for spn in self.children]
@@ -414,17 +410,14 @@ class ProductSPN(BranchSPN):
         # on the event (recursively, unfortunately).
         expr_symbols = expr.get_symbols()
         assert all(e in self.get_symbols() for e in expr_symbols)
-        children = [
-            spn for spn in self.children
+        index = [
+            i for i, spn in enumerate(self.children)
             if all(s in spn.get_symbols() for s in expr_symbols)
         ]
-        assert len(children) == 1, 'No child has all symbols in: %s' % (expr,)
-        children[0].transform(symbol, expr)
-        # Update the symbols.
-        symbols = [spn.get_symbols() for spn in self.children]
-        assert are_disjoint(symbols)
-        self.lookup = {s:i for i, syms in enumerate(symbols) for s in syms}
-        self.symbols = frozenset(get_union(symbols))
+        assert len(index) == 1, 'No child has all symbols in: %s' % (expr,)
+        children = list(self.children)
+        children[index[0]] = children[index[0]].transform(symbol, expr)
+        return ProductSPN(children)
 
     def logprob_factored__(self, event_factor, memo):
         # Adopting Inclusion--Exclusion principle for DNF event:
@@ -593,14 +586,14 @@ class LeafSPN(SPN):
 class RealDistribution(LeafSPN):
     """Base class for distribution with a cumulative distribution function."""
 
-    def __init__(self, symbol, dist, support, conditioned=None):
+    def __init__(self, symbol, dist, support, conditioned=None, env=None):
         assert isinstance(symbol, Identity)
         self.symbol = symbol
         self.dist = dist
         self.support = support
         self.conditioned = conditioned
+        self.env = env or OrderedDict([(symbol, symbol)])
         # Derive attributes.
-        self.env = OrderedDict([(symbol, symbol)])
         self.xl = float(support.inf)
         self.xu = float(support.sup)
         # Attributes to be populated by child classes.
@@ -613,7 +606,10 @@ class RealDistribution(LeafSPN):
     def transform(self, symbol, expr):
         assert symbol not in self.env
         assert all(s in self.env for s in expr.get_symbols())
-        self.env[symbol] = expr
+        env = OrderedDict(self.env)
+        env[symbol] = expr
+        return (type(self))(self.symbol, self.dist, self.support,
+            self.conditioned, env)
 
     def sample__(self, N, rng):
         if self.conditioned:
@@ -682,7 +678,7 @@ class RealDistribution(LeafSPN):
 
         # Condition on one set.
         if isinstance(values, (ContainersFinite, Range, Interval)):
-            return (type(self))(self.symbol, self.dist, values, True)
+            return (type(self))(self.symbol, self.dist, values, True, self.env)
 
         # Condition on union of sets.
         if isinstance(values, Union):
@@ -695,7 +691,7 @@ class RealDistribution(LeafSPN):
             # https://stats.stackexchange.com/questions/66616/converting-normalizing-very-small-likelihood-values-to-probability
             weights = lognorm([weights_unorm[i] for i in indexes])
             children = [
-                (type(self))(self.symbol, self.dist, values.args[i], True)
+                (type(self))(self.symbol, self.dist, values.args[i], True, self.env)
                 for i in indexes
             ]
             return SumSPN(children, weights) if 1 < len(indexes) else children[0]
@@ -705,7 +701,8 @@ class RealDistribution(LeafSPN):
 
     def __hash__(self):
         d = (self.dist.dist.name, self.dist.args, tuple(self.dist.kwds.items()))
-        x = (self.__class__, self.symbol, d, self.support, self.conditioned)
+        e = tuple(self.env.items())
+        x = (self.__class__, self.symbol, d, self.support, self.conditioned, e)
         return hash(x)
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -714,15 +711,16 @@ class RealDistribution(LeafSPN):
             and self.dist.args == x.dist.args \
             and self.dist.kwds == x.dist.kwds \
             and self.support == x.support \
-            and self.conditioned == x.conditioned
+            and self.conditioned == x.conditioned \
+            and self.env == x.env
 
 # ==============================================================================
 # Continuous RealDistribution.
 
 class ContinuousReal(RealDistribution):
     """Non-atomic distribution with a cumulative distribution function."""
-    def __init__(self, symbol, dist, support, conditioned=None):
-        super().__init__(symbol, dist, support, conditioned)
+    def __init__(self, symbol, dist, support, conditioned=None, env=None):
+        super().__init__(symbol, dist, support, conditioned, env)
         if conditioned:
             self.Fl = self.dist.cdf(self.xl)
             self.Fu = self.dist.cdf(self.xu)
@@ -762,8 +760,8 @@ class ContinuousReal(RealDistribution):
 class DiscreteReal(RealDistribution):
     """Atomic distribution with a cumulative distribution function."""
 
-    def __init__(self, symbol, dist, support, conditioned=None):
-        super().__init__(symbol, dist, support, conditioned)
+    def __init__(self, symbol, dist, support, conditioned=None, env=None):
+        super().__init__(symbol, dist, support, conditioned, env)
         if conditioned:
             self.Fl = self.dist.cdf(self.xl - 1)
             self.Fu = self.dist.cdf(self.xu)
