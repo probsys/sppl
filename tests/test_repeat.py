@@ -41,7 +41,7 @@ def test_complex_model():
     # Slow for larger number of repetitions
     # https://github.com/probcomp/sum-product-dsl/issues/43
     model = (Start
-    & Y >> NominalDist({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+    & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
     & Repeat(0, 3, lambda i:
         Z[i] >> Bernoulli(p=0.1)
         & Cond (
@@ -51,7 +51,7 @@ def test_complex_model():
 
 def test_complex_model_reorder():
     model = (Start
-    & Y >> NominalDist({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+    & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
     & Repeat(0, 3, lambda i:
         Z[i] >> Bernoulli(p=0.1))
     & Repeat(0, 3, lambda i:
@@ -119,7 +119,7 @@ def make_model_repeat(n=2):
 
 def make_model_handcode():
     return (Start
-        & Y >> NominalDist({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+        & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
         & Z[0] >> Bernoulli(p=.5)
         & Z[1] >> Bernoulli(p=.5)
         & Cond (

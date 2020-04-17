@@ -19,6 +19,11 @@ class Variable(Identity):
         if isinstance(f, Callable):
             symbol = Identity(self.token)
             return Sample(symbol, f)
+        if isinstance(f, dict):
+            from .distributions import NominalDist
+            symbol = Identity(self.token)
+            f_prime = NominalDist(f)
+            return Sample(symbol, f_prime)
         return NotImplemented
     def __hash__(self):
         symbol = Identity(self.token)

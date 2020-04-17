@@ -81,8 +81,8 @@ def model_ifelse_non_exhuastive():
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
     return Start \
-        & Nationality   >> NominalDist({'India': 0.5, 'USA': 0.5}) \
-        & Perfect       >> NominalDist({'True': 0.01, 'False': 0.99}) \
+        & Nationality   >> {'India': 0.5, 'USA': 0.5} \
+        & Perfect       >> {'True': 0.01, 'False': 0.99} \
         & Cond (
             (Nationality << {'India'}) & (Perfect << {'False'}),
                 GPA >> Uniform(loc=0, scale=10)
@@ -101,8 +101,8 @@ def model_ifelse_nested():
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
     return Start \
-        & Nationality   >> NominalDist({'India': 0.5, 'USA': 0.5}) \
-        & Perfect       >> NominalDist({'True': 0.01, 'False': 0.99}) \
+        & Nationality   >> {'India': 0.5, 'USA': 0.5} \
+        & Perfect       >> {'True': 0.01, 'False': 0.99} \
         & Cond (
             Nationality << {'India'},
                 Cond (
@@ -120,16 +120,16 @@ def model_perfect_nested():
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
     return Start \
-        & Nationality   >> NominalDist({'India': 0.5, 'USA': 0.5}) \
+        & Nationality   >> {'India': 0.5, 'USA': 0.5} \
         & Cond (
             Nationality << {'India'},
-                Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
+                Perfect >> {'True': 0.01, 'False': 0.99} \
                 & Cond (
                     Perfect << {'True'},    GPA >> Atomic(loc=10),
                     True,   GPA >> Uniform(scale=10),
                 ),
             Nationality << {'USA'},
-                Perfect >> NominalDist({'True': 0.01, 'False': 0.99}) \
+                Perfect >> {'True': 0.01, 'False': 0.99} \
                 & Cond (
                     Perfect << {'True'},    GPA >> Atomic(loc=4),
                     True,   GPA >> Uniform(scale=4),

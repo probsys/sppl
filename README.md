@@ -85,15 +85,15 @@ Perfect     = Variable('Perfect')
 GPA         = Variable('GPA')
 
 model = (Start
-        & Nationality   >> NominalDist({'Indian': 0.5, 'USA': 0.5})
+        & Nationality   >> {'Indian': 0.5, 'USA': 0.5}
         & Cond (
             (Nationality << {'Indian'}),
-                Perfect >> NominalDist({'True': 0.01, 'False': 0.99})
+                Perfect >> {'True': 0.01, 'False': 0.99}
                 & Cond (
                     Perfect << {'True'},    GPA >> Atomic(loc=10),
                     Otherwise,              GPA >> Uniform(scale=10)),
             Otherwise,
-                Perfect >> NominalDist({'True': 0.01, 'False': 0.99})
+                Perfect >> {'True': 0.01, 'False': 0.99}
                 & Cond (
                     Perfect << {'True'},    GPA >> Atomic(loc=4),
                     Otherwise,              GPA >> Uniform(scale=4))))
