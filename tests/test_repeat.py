@@ -98,8 +98,7 @@ def test_repeat_handcode_equivalence():
     # following code:
     #
     #   from spn import render
-    #   G = render.render_networkx_graph(model_repeat)
-    #   render.render_networkx_image(G, '/tmp/model_repeat.png', show=True)
+    #   render.render_graphviz(spn, '/tmp/model_repeat.png', show=True)
     #
     # See also test_cache_duplicate_subtrees.test_cache_complex_sum_of_product
     a = model_repeat.children[0].children[0].children[1].children[0]

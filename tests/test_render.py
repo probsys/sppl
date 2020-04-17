@@ -3,16 +3,18 @@
 
 import tempfile
 
+import pytest
+
 from spn.distributions import Bernoulli
 from spn.distributions import NominalDist
 from spn.interpret import Cond
 from spn.interpret import Otherwise
 from spn.interpret import Start
 from spn.interpret import Variable
+from spn.render import render_graphviz
 from spn.render import render_nested_lists
 from spn.render import render_nested_lists_concise
 from spn.render import render_networkx_graph
-from spn.render import render_networkx_image
 
 def test_render_crash():
     Y = Variable('Y')
@@ -26,6 +28,8 @@ def test_render_crash():
             Otherwise,                 X >> Bernoulli(p=0.1)))
     render_nested_lists_concise(model)
     render_nested_lists(model)
-    G = render_networkx_graph(model)
+    render_networkx_graph(model)
+    with pytest.raises(Exception):
+        render_graphviz(model, 'foo')
     with tempfile.NamedTemporaryFile(delete=False) as f:
-        render_networkx_image(G, f.name, ext='png')
+        render_graphviz(model, '%s.png' % (f.name,))

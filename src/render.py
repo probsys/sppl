@@ -100,12 +100,18 @@ def render_networkx_graph(spn):
         return G
     assert False, 'Unknown SPN type: %s' % (spn,)
 
-def render_networkx_image(G, filename, ext='png', show=None):
+def render_graphviz(spn, filename, show=None):
     import networkx as nx
     from graphviz import Source
-    fname_dot = '%s.dot' % (filename,)
+    G = render_networkx_graph(spn)
+    tokens = filename.split('.')
+    base = '.'.join(tokens[:-1])
+    ext = tokens[-1]
+    assert ext in ['png', 'pdf'], 'Extension must be .pdf or .png'
+    fname_dot = '%s.dot' % (base,)
     # nx.set_edge_attributes(G, 'serif', 'fontname')
     # nx.set_node_attributes(G, 'serif', 'fontname')
     nx.nx_agraph.write_dot(G, fname_dot)
     source = Source.from_file(fname_dot, format=ext)
     source.render(filename=filename, view=show)
+    return source
