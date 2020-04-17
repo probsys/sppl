@@ -480,11 +480,11 @@ class ProductSPN(BranchSPN):
 
     def logprob_conjunction(self, event_factor, J, memo):
         # Return probability of conjunction of |J| conjunctions.
-        keys = set([self.lookup[s] for j in J for s in event_factor[j]])
-        return sum([
+        keys = set(self.lookup[s] for j in J for s in event_factor[j])
+        return sum(
             self.logprob_conjunction_key(event_factor, J, key, memo)
             for key in keys
-        ])
+        )
 
     def logprob_conjunction_key(self, event_factor, J, key, memo):
         # Return probability of conjunction of |J| conjunction, for given key.
