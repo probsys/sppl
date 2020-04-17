@@ -1,0 +1,17 @@
+FROM            ubuntu:18.04
+MAINTAINER      MIT Probabilistic Computing Project
+
+                #  Create a Python 3 environment.
+RUN             apt-get update && apt-get install -y virtualenv
+RUN             virtualenv -p $(which python3) /venv
+
+                # Add the source code.
+ADD             . /sum-product-dsl
+WORKDIR         /sum-product-dsl
+
+                # Build and test.
+RUN             . /venv/bin/activate && sh requirements.sh
+RUN             . /venv/bin/activate && pip install -r requirements.txt
+RUN             . /venv/bin/activate && ./check.sh tests
+RUN             . /venv/bin/activate && python setup.py sdist
+RUN             . /venv/bin/activate && python setup.py bdist

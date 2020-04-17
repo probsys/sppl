@@ -18,7 +18,7 @@ def get_version():
         desc = subprocess.check_output([
             'git', 'describe', '--dirty', '--long', '--match', 'v*',
         ])
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         if os.path.exists('VERSION'):
             with open('VERSION', 'r') as f:
                 version = f.read().strip()
