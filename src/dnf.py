@@ -32,13 +32,14 @@ def dnf_factor(event, lookup=None):
     #       2: e(X4)},
     # ]
     if lookup is None:
-        lookup = {s:s for s in event.symbols()}
+        lookup = {s:s for s in event.get_symbols()}
 
     if isinstance(event, EventBasic):
         # Literal.
-        symbols = event.symbols()
+        symbols = event.get_symbols()
         assert len(symbols) == 1
-        key = lookup[symbols[0]]
+        symbol = list(symbols)[0]
+        key = lookup[symbol]
         return ({key: event},)
 
     if isinstance(event, EventAnd):

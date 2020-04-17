@@ -19,7 +19,7 @@ from .timeout import timeout
 TIMEOUT_SYMBOLIC = 5
 
 def get_poly_symbol(expr):
-    symbols = get_symbols(expr)
+    symbols = tuple(get_symbols(expr))
     assert len(symbols) == 1
     return symbols[0]
 

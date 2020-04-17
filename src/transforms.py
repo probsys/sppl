@@ -26,6 +26,7 @@ from .sym_util import ExtReals
 from .sym_util import ExtRealsPos
 from .sym_util import Reals
 from .sym_util import UniversalSet
+from .sym_util import get_union
 
 from .sym_util import ContainersFinite
 from .sym_util import NominalSet
@@ -42,12 +43,24 @@ from .sym_util import sympify_number
 
 class Transform(object):
     subexpr = None
+    symbols = None
 
-    def symbols(self):
-        raise NotImplementedError()
+    def get_symbols(self):
+        return self.symbols
     def domain(self):
         raise NotImplementedError()
     def range(self):
+        raise NotImplementedError()
+
+    def substitute(self, env):
+        # TODO: Reject following cases, which result in infinite loop:
+        # (1) env[X] = f(X)                 // check for self-reference
+        # (2) env[X] = f(Z); env[Z] = g(X)  // detect cycle in digraph
+        event_prime = self
+        while expr_in_env(event_prime, env):
+            event_prime = event_prime.subs(env)
+        return event_prime
+    def subs(self, env):
         raise NotImplementedError()
 
     def evaluate(self, assignment):
@@ -355,12 +368,15 @@ class Identity(Injective):
         assert isinstance(token, str)
         self.subexpr = self
         self.token = token
-    def symbols(self):
-        return (self,)
+        self.symbols = frozenset({self})
     def domain(self):
         return ExtReals
     def range(self):
         return ExtReals
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        return env[self]
     def evaluate(self, assignment):
         if self not in assignment:
             raise ValueError('Cannot evaluate %s on %s' % (str(self), assignment))
@@ -393,14 +409,17 @@ class Identity(Injective):
 class Radical(Injective):
     def __init__(self, subexpr, degree):
         assert degree != 0
-        self.subexpr = make_subexpr(subexpr)
+        self.subexpr = make_subexpr(subexpr, self)
         self.degree = degree
-    def symbols(self):
-        return self.subexpr.symbols()
     def domain(self):
         return ExtRealsPos
     def range(self):
         return ExtRealsPos
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Radical(subexpr_prime, self.degree)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -427,14 +446,17 @@ class Radical(Injective):
 class Exp(Injective):
     def __init__(self, subexpr, base):
         assert base > 0
-        self.subexpr = make_subexpr(subexpr)
+        self.subexpr = make_subexpr(subexpr, self)
         self.base = base
-    def symbols(self):
-        return self.subexpr.symbols()
     def domain(self):
         return ExtReals
     def range(self):
         return ExtRealsPos
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Exp(subexpr_prime, self.base)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -463,14 +485,17 @@ class Exp(Injective):
 class Log(Injective):
     def __init__(self, subexpr, base):
         assert base > 1
-        self.subexpr = make_subexpr(subexpr)
+        self.subexpr = make_subexpr(subexpr, self)
         self.base = base
-    def symbols(self):
-        return self.subexpr.symbols()
     def domain(self):
         return ExtRealsPos
     def range(self):
         return ExtReals
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Log(subexpr_prime, self.base)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -503,13 +528,16 @@ class Log(Injective):
 
 class Abs(Transform):
     def __init__(self, subexpr):
-        self.subexpr = make_subexpr(subexpr)
-    def symbols(self):
-        return self.subexpr.symbols()
+        self.subexpr = make_subexpr(subexpr, self)
     def domain(self):
         return ExtReals
     def range(self):
         return ExtRealsPos
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Abs(subexpr_prime)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -544,13 +572,16 @@ class Abs(Transform):
 
 class Reciprocal(Transform):
     def __init__(self, subexpr):
-        self.subexpr = make_subexpr(subexpr)
-    def symbols(self):
-        return self.subexpr.symbols()
+        self.subexpr = make_subexpr(subexpr, self)
     def domain(self):
         return ExtReals - sympy.FiniteSet(0)
     def range(self):
         return Reals - sympy.FiniteSet(0)
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Reciprocal(subexpr_prime)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -595,12 +626,10 @@ class Reciprocal(Transform):
 class Poly(Transform):
     def __init__(self, subexpr, coeffs):
         assert len(coeffs) > 1
-        self.subexpr = make_subexpr(subexpr)
+        self.subexpr = make_subexpr(subexpr, self)
         self.coeffs = tuple(coeffs)
         self.degree = len(coeffs) - 1
         self.symexpr = make_sympy_polynomial(coeffs)
-    def symbols(self):
-        return self.subexpr.symbols()
     def domain(self):
         return ExtReals
     def range(self):
@@ -610,6 +639,11 @@ class Poly(Transform):
         pos_inf = sympy.FiniteSet(oo) if result.right == oo else EmptySet
         neg_inf = sympy.FiniteSet(-oo) if result.left == -oo else EmptySet
         return sympy.Union(result, pos_inf, neg_inf)
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return Poly(subexpr_prime, self.coeffs)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -667,15 +701,20 @@ class Piecewise(Transform):
     def __init__(self, subexprs, events):
         self.subexprs = [make_subexpr(subexpr) for subexpr in subexprs]
         self.events = [make_event(event) for event in events]
-        self.symbol = get_piecewise_symbol(self.subexprs, self.events)
+        self.symbols = get_piecewise_symbol(self.subexprs, self.events)
         self.domains = get_piecewise_domains(self.events)
-    def symbols(self):
-        return (self.symbol,)
     def domain(self):
         return sympy.Union(*self.domains)
     def range(self):
         ranges = [subexpr.range() for subexpr in self.subexprs]
         return sympy.Union(*ranges)
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        # TODO: Check whether this logic is correct.
+        subexprs_prime = [subexpr.subs(env) for subexpr in self.subexprs]
+        events_prime = [event.subs(env) for event in self.events]
+        return Piecewise(subexprs_prime, events_prime)
     def evaluate(self, assignment):
         raise NotImplementedError()
     def ffwd(self, x):
@@ -719,15 +758,15 @@ class Piecewise(Transform):
 def get_piecewise_symbol(subexprs, events):
     if len(subexprs) != len(events):
         raise ValueError('Piecewise requires same no. of subexprs and events.')
-    symbols_subexprs = set(chain(*[s.symbols() for s in subexprs]))
+    symbols_subexprs = get_union([subexpr.get_symbols() for subexpr in subexprs])
     if len(symbols_subexprs) > 1:
         raise ValueError('Piecewise cannot have multi-symbol subexpressions.')
-    symbols_events = set(chain(*[e.symbols() for e in events]))
+    symbols_events = get_union([event.get_symbols() for event in events])
     if len(symbols_subexprs) > 1:
         raise ValueError('Piecewise cannot have multi-symbol events.')
     if symbols_subexprs != symbols_events:
         raise ValueError('Piecewise events and subexprs need same symbols.')
-    return list(symbols_subexprs)[0]
+    return symbols_subexprs
 
 def get_piecewise_domains(events):
     domains = [event.solve() for event in events]
@@ -759,7 +798,7 @@ class Event(Transform):
 
     # Event methods.
     def solve(self):
-        if len(self.symbols()) > 1:
+        if len(self.symbols) > 1:
             raise ValueError('Cannot solve multi-symbol Event.')
         return self.invert({1})
     def to_dnf(self):
@@ -788,10 +827,13 @@ class EventBasic(Event):
     subexpr = None
     values = None
 
-    def symbols(self):
-        return self.subexpr.symbols()
     def domain(self):
         return self.subexpr.domain()
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexpr_prime = self.subexpr.subs(env)
+        return type(self)(subexpr_prime, self.values)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -873,7 +915,7 @@ class EventBasic(Event):
 class EventInterval(EventBasic):
     def __init__(self, subexpr, values):
         assert isinstance(values, sympy.Interval)
-        self.subexpr = subexpr
+        self.subexpr = make_subexpr(subexpr, self)
         self.values = values
     def finv(self, y):
         if y not in self.range():
@@ -950,7 +992,7 @@ class EventFiniteReal(EventBasic):
     def __init__(self, subexpr, values):
         assert isinstance(values, ContainersFinite) or values is EmptySet
         assert all(is_number(v) for v in values)
-        self.subexpr = subexpr
+        self.subexpr = make_subexpr(subexpr, self)
         self.values = sympy.FiniteSet(*values)
     def finv(self, y):
         if y not in self.range():
@@ -982,7 +1024,7 @@ class EventFiniteNominal(EventBasic):
             or values is UniversalSet \
             or isinstance(values, sympy.Complement)
         assert special or is_nominal_set(values)
-        self.subexpr = subexpr
+        self.subexpr = make_subexpr(subexpr, self)
         self.values = values if special else values
         self.transformed = not isinstance(self.subexpr, Identity)
         self.complemented = isinstance(values, sympy.Complement)
@@ -1046,16 +1088,19 @@ class EventFiniteNominal(EventBasic):
 
 class EventCompound(Event):
     def __init__(self, subexprs):
-        assert all(isinstance(s, Event) for s in subexprs)
-        self.subexprs = tuple(subexprs)
-    def symbols(self):
-        return tuple(set(chain.from_iterable([
-            event.symbols() for event in self.subexprs])))
+        assert all(isinstance(subexpr, Event) for subexpr in subexprs)
+        self.subexprs = tuple([make_subexpr(event) for event in subexprs])
+        self.symbols = get_union([event.get_symbols() for event in subexprs])
     def domain(self):
-        if len(self.symbols()) > 1:
+        if len(self.symbols) > 1:
             raise ValueError('No domain for multi-symbol Event.')
         domains = [event.domain() for event in self.subexprs]
         return sympy.Intersection(*domains)
+    def subs(self, env):
+        if not expr_in_env(self, env):
+            return self
+        subexprs_prime = [subexpr.subs(env) for subexpr in self.subexprs]
+        return type(self)(subexprs_prime)
 
 class EventOr(EventCompound):
     def evaluate(self, assignment):
@@ -1097,7 +1142,7 @@ class EventOr(EventCompound):
         return isinstance(event, EventOr) and (self.subexprs == event.subexprs)
     def __invert__(self):
         sub_events = [~event for event in self.subexprs]
-        return reduce(lambda state, e: state & e, sub_events)
+        return reduce(lambda state, event: state & event, sub_events)
     def __repr__(self):
         return 'EventOr(%s)' % (repr(self.subexprs,))
     def __str__(self):
@@ -1150,7 +1195,7 @@ class EventAnd(EventCompound):
         return isinstance(event, EventAnd) and (self.subexprs == event.subexprs)
     def __invert__(self):
         sub_events = [~event for event in self.subexprs]
-        return reduce(lambda state, e: state | e, sub_events)
+        return reduce(lambda state, event: state | event, sub_events)
     def __repr__(self):
         return 'EventAnd(%s)' % (repr(self.subexprs,))
     def __str__(self):
@@ -1175,6 +1220,9 @@ def Pow(subexpr, n):
     coeffs = [0]*n + [1]
     return Poly(subexpr, coeffs)
 
+def expr_in_env(expr, env):
+    return env and any(env.get(s,s) != s for s in expr.get_symbols())
+
 def transform_interval(interval, a, b, flip=None):
     return \
         sympy.Interval(a, b, interval.left_open, interval.right_open) \
@@ -1185,8 +1233,10 @@ def make_sympy_polynomial(coeffs):
     terms = [c*symX**i for (i,c) in enumerate(coeffs)]
     return sympy.Add(*terms)
 
-def make_subexpr(subexpr):
+def make_subexpr(subexpr, expr=None):
     if isinstance(subexpr, Transform):
+        if expr is not None:
+            expr.symbols = subexpr.symbols
         return subexpr
     raise TypeError('Invalid subexpr %s with type %s'
         % (subexpr, str(type(subexpr))))

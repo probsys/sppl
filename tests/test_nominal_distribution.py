@@ -34,10 +34,11 @@ def test_nominal_distribution():
     samples = spn.sample(100, rng)
     assert all(s[X] in spn.support for s in samples)
 
-    samples = spn.sample_subset([X, 'A'], 100, rng)
-    assert all(s[X] in spn.support for s in samples)
+    samples = spn.sample_subset([X], 100, rng)
+    assert all(len(s)==1 and s[X] in spn.support for s in samples)
 
-    assert spn.sample_subset(['f'], 100, rng) is None
+    with pytest.raises(Exception):
+        spn.sample_subset(['f'], 100, rng)
 
     predicate = lambda X: (X in {'a', 'b'}) or X in {'c'}
     samples = spn.sample_func(predicate, 100, rng)

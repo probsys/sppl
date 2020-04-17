@@ -57,7 +57,7 @@ def are_identical(sets):
 
 def powerset(values, start=0):
     s = list(values)
-    subsets = [combinations(s, k) for k in range(start, len(s) + 1)]
+    subsets = (combinations(s, k) for k in range(start, len(s) + 1))
     return chain.from_iterable(subsets)
 
 def partition_list_blocks(values):

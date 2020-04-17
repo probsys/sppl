@@ -37,7 +37,7 @@ def test_numeric_distribution_normal():
 
     spn.sample(100, rng)
     spn.sample_subset([X], 100, rng)
-    assert spn.sample_subset([], 100, rng) is None
+    assert spn.sample_subset([], 100, rng) == [{}]*100
     spn.sample_func(lambda X: X**2, 1, rng)
     spn.sample_func(lambda X: abs(X)+X**2, 1, rng)
     spn.sample_func(lambda X: X**2 if X > 0 else X**3, 100, rng)
@@ -69,6 +69,9 @@ def test_numeric_distribution_normal():
 
     x = spn.logprob((X << {1, 2}) | (X < -1))
     assert allclose(x, spn.logprob(X < -1))
+
+    with pytest.raises(AssertionError):
+        spn.logprob(Identity('Y') << {1, 2})
 
 def test_numeric_distribution_gamma():
     X = Identity('X')
