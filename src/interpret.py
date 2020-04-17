@@ -59,6 +59,14 @@ class Sample(Command):
         leaf = self.symbol >> self.distribution
         return leaf if (spn is None) else spn & leaf
 
+class Transform(Command):
+    def __init__(self, symbol, expr):
+        self.symbol = symbol
+        self.expr = expr
+    def interpret(self, spn=None):
+        assert spn is not None
+        return spn.transform(self.symbol, self.expr)
+
 class IfElse(Command):
     def __init__(self, *branches):
         assert len(branches) % 2 == 0
