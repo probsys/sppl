@@ -10,15 +10,14 @@ import numpy
 import sympy
 
 from spn.distributions import Gamma
-from spn.distributions import NominalDist
 from spn.distributions import Norm
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
 from spn.math_util import logsumexp
-from spn.spn import ContinuousReal
+from spn.spn import ContinuousLeaf
 from spn.spn import ExposedSumSPN
-from spn.spn import NominalDistribution
+from spn.spn import NominalLeaf
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 from spn.spn import spn_simplify_sum
@@ -48,7 +47,7 @@ def test_sum_normal_gamma():
         spn.sample_func(lambda Y: abs(X**3), 100, rng)
 
     spn_condition = spn.condition(X < 0)
-    assert isinstance(spn_condition, ContinuousReal)
+    assert isinstance(spn_condition, ContinuousLeaf)
     assert spn_condition.conditioned
     assert spn_condition.logprob(X < 0) == 0
     samples = spn_condition.sample(100, rng)
@@ -62,10 +61,10 @@ def test_sum_normal_gamma():
 def test_sum_normal_gamma_exposed():
     X = Identity('X')
     W = Identity('W')
-    weights = (W >> NominalDist({
+    weights = (W >> {
         '0': Fraction(2,3),
         '1': Fraction(1,3),
-    }))
+    })
     children = {
         '0': X >> Norm(loc=0, scale=1),
         '1': X >> Gamma(loc=0, a=1),
@@ -98,15 +97,15 @@ def test_sum_normal_gamma_exposed():
 
     spn_condition = spn.condition((W << {'1'}))
     assert isinstance(spn_condition, ProductSPN)
-    assert isinstance(spn_condition.children[0], NominalDistribution)
-    assert isinstance(spn_condition.children[1], ContinuousReal)
+    assert isinstance(spn_condition.children[0], NominalLeaf)
+    assert isinstance(spn_condition.children[1], ContinuousLeaf)
     assert spn_condition.logprob(X < 5) == spn.children[1].logprob(X < 5)
 
 def test_sum_normal_nominal():
     X = Identity('X')
     children = [
         X >> Norm(loc=0, scale=1),
-        X >> NominalDist({'low': Fraction(3, 10), 'high': Fraction(7, 10)}),
+        X >> {'low': Fraction(3, 10), 'high': Fraction(7, 10)},
     ]
     weights = [log(Fraction(4,7)), log(Fraction(3, 7))]
 
@@ -138,7 +137,7 @@ def test_sum_normal_nominal():
         log(Fraction(4, 7)) + spn.children[0].logprob(X**2 < 9))
 
     spn_condition = spn.condition(X**2 < 9)
-    assert isinstance(spn_condition, ContinuousReal)
+    assert isinstance(spn_condition, ContinuousLeaf)
     assert spn_condition.support == sympy.Interval.open(-3, 3)
 
     spn_condition = spn.condition((X**2 < 9) | X << {'low'})

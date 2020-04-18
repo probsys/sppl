@@ -7,7 +7,6 @@ from math import log
 import numpy
 import pytest
 
-from spn.distributions import NominalDist
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.sym_util import NominalSet
@@ -17,8 +16,7 @@ rng = numpy.random.RandomState(1)
 
 def test_nominal_distribution():
     X = Identity('X')
-    probs = {'a': Fraction(1, 5), 'b': Fraction(1, 5), 'c': Fraction(3, 5)}
-    spn = X >> NominalDist(probs)
+    spn = X >> {'a': Fraction(1, 5), 'b': Fraction(1, 5), 'c': Fraction(3, 5)}
     assert allclose(spn.logprob(X << {'a'}), log(Fraction(1, 5)))
     assert allclose(spn.logprob(X << {'b'}), log(Fraction(1, 5)))
     assert allclose(spn.logprob(X << {'a', 'c'}), log(Fraction(4, 5)))

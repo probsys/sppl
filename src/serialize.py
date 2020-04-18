@@ -7,9 +7,9 @@ from fractions import Fraction
 
 import scipy.stats
 
-from .spn import ContinuousReal
-from .spn import DiscreteReal
-from .spn import NominalDistribution
+from .spn import ContinuousLeaf
+from .spn import DiscreteLeaf
+from .spn import NominalLeaf
 from .spn import ProductSPN
 from .spn import SumSPN
 
@@ -27,24 +27,24 @@ def scipy_dist_to_json(dist):
     }
 
 def spn_from_json(metadata):
-    if metadata['class'] == 'NominalDistribution':
+    if metadata['class'] == 'NominalLeaf':
         symbol = Identity(metadata['symbol'])
         dist = {x: Fraction(w[0], w[1]) for x, w in metadata['dist']}
-        return NominalDistribution(symbol, dist)
-    if metadata['class'] == 'ContinuousReal':
+        return NominalLeaf(symbol, dist)
+    if metadata['class'] == 'ContinuousLeaf':
         symbol = Identity(metadata['symbol'])
         dist = scipy_dist_from_json(metadata['dist'])
         # from sympy import *
         support = eval(metadata['support'])
         conditioned = metadata['conditioned']
-        return ContinuousReal(symbol, dist, support, conditioned)
-    if metadata['class'] == 'DiscreteReal':
+        return ContinuousLeaf(symbol, dist, support, conditioned)
+    if metadata['class'] == 'DiscreteLeaf':
         symbol = Identity(metadata['symbol'])
         dist = scipy_dist_from_json(metadata['dist'])
         # from sympy import *
         support = eval(metadata['support'])
         conditioned = metadata['conditioned']
-        return DiscreteReal(symbol, dist, support, conditioned)
+        return DiscreteLeaf(symbol, dist, support, conditioned)
     if metadata['class'] == 'SumSPN':
         children = [spn_from_json(c) for c in metadata['children']]
         weights = metadata['weights']
@@ -53,29 +53,29 @@ def spn_from_json(metadata):
         children = [spn_from_json(c) for c in metadata['children']]
         return ProductSPN(children)
 
-    assert False, 'Cannot convert %s to SPN' % (medata,)
+    assert False, 'Cannot convert %s to SPN' % (metadata,)
 
 def spn_to_json(spn):
-    if isinstance(spn, NominalDistribution):
+    if isinstance(spn, NominalLeaf):
         return {
-            'class'        : 'NominalDistribution',
+            'class'        : 'NominalLeaf',
             'symbol'        : spn.symbol.token,
             'dist'         : [
                 (str(x), (w.numerator, w.denominator))
                 for x, w in spn.dist.items()
             ]
         }
-    if isinstance(spn, ContinuousReal):
+    if isinstance(spn, ContinuousLeaf):
         return {
-            'class'        : 'ContinuousReal',
+            'class'        : 'ContinuousLeaf',
             'symbol'        : spn.symbol.token,
             'dist'          : scipy_dist_to_json(spn.dist),
             'support'       : str(spn.support),
             'conditioned'   : spn.conditioned,
         }
-    if isinstance(spn, DiscreteReal):
+    if isinstance(spn, DiscreteLeaf):
         return {
-            'class'        : 'DiscreteReal',
+            'class'        : 'DiscreteLeaf',
             'symbol'        : spn.symbol.token,
             'dist'          : scipy_dist_to_json(spn.dist),
             'support'       : str(spn.support),

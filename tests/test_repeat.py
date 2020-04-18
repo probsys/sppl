@@ -4,7 +4,6 @@
 from math import log
 
 from spn.distributions import Bernoulli
-from spn.distributions import NominalDist
 from spn.interpret import Cond
 from spn.interpret import Otherwise
 from spn.interpret import Repeat
@@ -110,7 +109,7 @@ def test_repeat_handcode_equivalence():
 
 def make_model_repeat(n=2):
     return (Start
-        & Y >> NominalDist({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+        & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
         & Repeat(0, n, lambda i:
             Z[i] >> Bernoulli(p=.5)
             & Cond (

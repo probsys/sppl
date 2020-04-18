@@ -1,24 +1,12 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from fractions import Fraction
 from math import log
 
-import pytest
-
 import numpy
-import sympy
 
 from spn.distributions import Bernoulli
-from spn.distributions import Gamma
-from spn.distributions import NominalDist
 from spn.distributions import Norm
-from spn.math_util import allclose
-from spn.math_util import isinf_neg
-from spn.math_util import logdiffexp
-from spn.math_util import logsumexp
-from spn.spn import ContinuousReal
-from spn.spn import ExposedSumSPN
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 from spn.spn import spn_cache_duplicate_subtrees
@@ -54,14 +42,14 @@ def test_cache_complex_sum_of_product():
                 (X[0] >> Bernoulli(p=.1)),
                 SumSPN([
                     (Z[0] >> Bernoulli(p=.5))
-                        & (Y >> NominalDist({'0':.1, '1': .9})),
+                        & (Y >> {'0':.1, '1': .9}),
                     (Z[0] >> Bernoulli(p=.1))
-                        & (Y >> NominalDist({'0':.9, '1': .1}))
+                        & (Y >> {'0':.9, '1': .1})
                 ], weights=[log(.730), log(.270)])
             ]),
             ProductSPN([
                 Z[0] >> Bernoulli(p=.1),
-                Y >> NominalDist({'0':.9, '1':.1}),
+                Y >> {'0':.9, '1':.1},
                 X[0] >> Bernoulli(p=.5),
             ]),
         ], weights=[log(.925), log(.075)])
@@ -79,10 +67,10 @@ def test_cache_complex_sum_of_product():
             ProductSPN([
                 Z[1] >> Bernoulli(p=.7),
                 SumSPN([
-                    Y >> NominalDist({'0':.3, '1':.7})
+                    Y >> {'0':.3, '1':.7}
                         & X[0] >> Bernoulli(p=.1)
                         & Z[0] >> Bernoulli(p=.1),
-                    Y >> NominalDist({'0':.7, '1':.3})
+                    Y >> {'0':.7, '1':.3}
                         & X[0] >> Bernoulli(p=.5)
                         & Z[0] >> Bernoulli(p=.5),
                 ], weights=[log(.9), log(.1)])

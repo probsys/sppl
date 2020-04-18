@@ -4,7 +4,6 @@
 import numpy
 import pytest
 
-from spn.distributions import NominalDist
 from spn.distributions import Norm
 from spn.distributions import Poisson
 from spn.math_util import allclose
@@ -60,7 +59,7 @@ def test_transform_sum():
     Y = Identity('Y')
     spn \
         = 0.3*(X >> Norm(loc=0, scale=1)) \
-        | 0.7*(X >> NominalDist({'0': 0.4, '1': 0.6}))
+        | 0.7*(X >> {'0': 0.4, '1': 0.6})
     with pytest.raises(Exception):
         # Cannot transform Nominal variate.
         spn.transform(Z, X**2)

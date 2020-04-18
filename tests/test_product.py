@@ -9,7 +9,6 @@ import numpy
 import sympy
 
 from spn.distributions import Gamma
-from spn.distributions import NominalDist
 from spn.distributions import Norm
 from spn.dnf import dnf_to_disjoint_union
 from spn.math_util import allclose
@@ -292,8 +291,8 @@ def test_product_disjoint_union_nominal():
     N = Identity('N')
     P = Identity('P')
 
-    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
-    perfect = P >> NominalDist({'Imperfect': 0.99, 'Perfect': 0.01})
+    nationality = N >> {'India': 0.5, 'USA': 0.5}
+    perfect = P >> {'Imperfect': 0.99, 'Perfect': 0.01}
     student = nationality & perfect
 
     condition_1 = (N << {'India'}) & (P << {'Imperfect'})

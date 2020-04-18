@@ -20,10 +20,8 @@ class Variable(transforms.Identity):
             symbol = transforms.Identity(self.token)
             return Sample(symbol, f)
         if isinstance(f, dict):
-            from .distributions import NominalDist
             symbol = transforms.Identity(self.token)
-            f_prime = NominalDist(f)
-            return Sample(symbol, f_prime)
+            return Sample(symbol, f)
         if isinstance(f, transforms.Transform):
             symbol = transforms.Identity(self.token)
             return Transform(symbol, f)

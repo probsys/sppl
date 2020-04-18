@@ -5,13 +5,11 @@ import time
 
 from math import exp
 
-from .spn import BranchSPN
-from .spn import ContinuousReal
-from .spn import DiscreteReal
+from .spn import RealLeaf
+from .spn import DiscreteLeaf
 from .spn import LeafSPN
-from .spn import NominalDistribution
+from .spn import NominalLeaf
 from .spn import ProductSPN
-from .spn import RealDistribution
 from .spn import SumSPN
 
 def render_nested_lists_concise(spn):
@@ -28,20 +26,20 @@ def render_nested_lists_concise(spn):
         ]
 
 def render_nested_lists(spn):
-    if isinstance(spn, NominalDistribution):
-        return ['NominalDistribution', [
+    if isinstance(spn, NominalLeaf):
+        return ['NominalLeaf', [
             ['symbol', spn.symbol],
             ['dist', {str(x): float(w) for x, w in spn.dist.items()}]]
         ]
-    if isinstance(spn, ContinuousReal):
-        return ['ContinuousReal', [
+    if isinstance(spn, RealLeaf):
+        return ['RealLeaf', [
             ['symbol', spn.symbol],
             ['dist', (spn.dist.dist.name, spn.dist.args, spn.dist.kwds)],
             ['support', spn.support],
             ['conditioned', spn.conditioned]]
         ]
-    if isinstance(spn, DiscreteReal):
-        return ['DiscreteReal', [
+    if isinstance(spn, DiscreteLeaf):
+        return ['DiscreteLeaf', [
             ['symbol', spn.symbol],
             ['dist', (spn.dist.dist.name, spn.dist.args, spn.dist.kwds)],
             ['support', spn.support],
@@ -64,12 +62,12 @@ def render_nested_lists(spn):
 
 def render_networkx_graph(spn):
     import networkx as nx
-    if isinstance(spn, NominalDistribution):
+    if isinstance(spn, NominalLeaf):
         G = nx.DiGraph()
         root = str(time.time())
         G.add_node(root, label='%s\n%s' % (spn.symbol.token, 'Nominal'))
         return G
-    if isinstance(spn, RealDistribution):
+    if isinstance(spn, RealLeaf):
         G = nx.DiGraph()
         root = str(time.time())
         G.add_node(root, label='%s\n%s' % (spn.symbol.token, spn.dist.dist.name))

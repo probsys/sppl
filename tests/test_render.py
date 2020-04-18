@@ -6,7 +6,6 @@ import tempfile
 import pytest
 
 from spn.distributions import Bernoulli
-from spn.distributions import NominalDist
 from spn.interpret import Cond
 from spn.interpret import Otherwise
 from spn.interpret import Start
@@ -21,7 +20,7 @@ def test_render_crash():
     X = Variable('X')
     Z = Variable('Z')
     model = (Start
-        & Y >> NominalDist({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+        & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
         & Z >> Bernoulli(p=0.1)
         & Cond (
             Y << {str(0)} | Z << {0},  X >> Bernoulli(p=1/(0+1)),

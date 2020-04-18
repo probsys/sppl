@@ -404,6 +404,9 @@ class Identity(Injective):
     def __rshift__(self, f):
         if isinstance(f, Callable):
             return f(self)
+        if isinstance(f, dict):
+            from .spn import NominalLeaf
+            return NominalLeaf(self, f)
         return NotImplemented
 
 class Radical(Injective):

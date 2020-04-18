@@ -12,7 +12,6 @@ https://arxiv.org/pdf/1806.02027.pdf
 import pytest
 
 from spn.distributions import Atomic
-from spn.distributions import NominalDist
 from spn.distributions import Uniform
 from spn.interpret import Cond
 from spn.interpret import Start
@@ -35,8 +34,8 @@ def model_exposed():
     N = Identity('N')
     P = Identity('P')
     GPA = Identity('GPA')
-    nationality = N >> NominalDist({'India': 0.5, 'USA': 0.5})
-    perfect = P >> NominalDist({'True': 0.01, 'False': 0.99})
+    nationality = N >> {'India': 0.5, 'USA': 0.5}
+    perfect = P >> {'True': 0.01, 'False': 0.99}
     return ExposedSumSPN(
         spn_weights=nationality,
         children={
@@ -61,8 +60,8 @@ def model_ifelse_exhuastive():
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
     return Start \
-        & Nationality   >> NominalDist({'India': 0.5, 'USA': 0.5}) \
-        & Perfect       >> NominalDist({'True': 0.01, 'False': 0.99}) \
+        & Nationality   >> {'India': 0.5, 'USA': 0.5} \
+        & Perfect       >> {'True': 0.01, 'False': 0.99} \
         & Cond (
             (Nationality << {'India'}) & (Perfect << {'False'}),
                 GPA >> Uniform(loc=0, scale=10)

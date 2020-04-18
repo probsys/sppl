@@ -247,14 +247,14 @@ class SumSPN(BranchSPN):
 class ExposedSumSPN(SumSPN):
     def __init__(self, children, spn_weights):
         """Weighted mixture of SPNs with exposed internal choice."""
-        assert isinstance(spn_weights, NominalDistribution)
+        assert isinstance(spn_weights, NominalLeaf)
         weights = [
             spn_weights.logprob(spn_weights.symbol << {n})
             for n in spn_weights.support
         ]
         children = [
             ProductSPN([
-                NominalDistribution(spn_weights.symbol, {str(n): 1}),
+                NominalLeaf(spn_weights.symbol, {str(n): 1}),
                 children[n]
             ]) for n in spn_weights.support
         ]
@@ -581,9 +581,9 @@ class LeafSPN(SPN):
         raise NotImplementedError()
 
 # ==============================================================================
-# RealDistribution base class.
+# RealLeaf base class.
 
-class RealDistribution(LeafSPN):
+class RealLeaf(LeafSPN):
     """Base class for distribution with a cumulative distribution function."""
 
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
@@ -715,9 +715,9 @@ class RealDistribution(LeafSPN):
             and self.env == x.env
 
 # ==============================================================================
-# Continuous RealDistribution.
+# Continuous RealLeaf.
 
-class ContinuousReal(RealDistribution):
+class ContinuousLeaf(RealLeaf):
     """Non-atomic distribution with a cumulative distribution function."""
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
         super().__init__(symbol, dist, support, conditioned, env)
@@ -755,9 +755,9 @@ class ContinuousReal(RealDistribution):
         return logdiffexp(logFu, logFl)
 
 # ==============================================================================
-# Discrete RealDistribution.
+# Discrete RealLeaf.
 
-class DiscreteReal(RealDistribution):
+class DiscreteLeaf(RealLeaf):
     """Atomic distribution with a cumulative distribution function."""
 
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
@@ -804,7 +804,7 @@ class DiscreteReal(RealDistribution):
 # ==============================================================================
 # Nominal distribution.
 
-class NominalDistribution(LeafSPN):
+class NominalLeaf(LeafSPN):
     """Atomic distribution, no cumulative distribution function."""
 
     def __init__(self, symbol, dist):
@@ -860,7 +860,7 @@ class NominalDistribution(LeafSPN):
             str(x) : (self.dist[x] / p_event) if x in values else 0
             for x in self.support
         }
-        return NominalDistribution(self.symbol, dist)
+        return NominalLeaf(self.symbol, dist)
 
     def __hash__(self):
         x = (self.__class__, self.symbol, tuple(self.dist.items()))

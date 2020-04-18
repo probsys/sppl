@@ -5,7 +5,7 @@ from math import log
 
 import pytest
 
-from spn.spn import ContinuousReal
+from spn.spn import ContinuousLeaf
 from spn.spn import PartialSumSPN
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
@@ -132,4 +132,4 @@ def test_or_and():
     a = (0.3*(X >> Norm()) | 0.7*(X >> Gamma(a=1))) & (Z >> Norm())
     assert isinstance(a, ProductSPN)
     assert isinstance(a.children[0], SumSPN)
-    assert isinstance(a.children[1], ContinuousReal)
+    assert isinstance(a.children[1], ContinuousLeaf)
