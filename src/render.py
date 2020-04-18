@@ -113,3 +113,59 @@ def render_graphviz(spn, filename, show=None):
     source = Source.from_file(fname_dot, format=ext)
     source.render(filename=filename, view=show)
     return source
+
+from collections import namedtuple
+ImpState = namedtuple('ImpState', ['indentation'])
+get_indentation = lambda state: ' ' * state.indentation
+
+def render_imp_distribution(distribution):
+    from .distributions import RealDistribution
+    if isinstance(distribution, dict):
+        str_dist = ', '.join('\'%s\': %s' % (k, v) for k, v in distribution.items())
+        return '{%s}' % (str_dist)
+    if isinstance(distribution, RealDistribution):
+        str_kwds = ', '.join('%s=%s' % (k, v) for k, v in distribution.kwargs.items())
+        return '%s(%s)' % (distribution.dist.name, str_kwds)
+    assert False, 'Unknown distribution: %s' % (distribution,)
+
+def render_imp_command(command, state=None):
+    from .interpret import Sample
+    from .interpret import Transform
+    from .interpret import Repeat
+    from .interpret import IfElse
+    from .interpret import Sequence
+    from .interpret import Otherwise
+    if state is None:
+        state = ImpState(indentation=0)
+    if isinstance(command, Sample):
+        str_dist = render_imp_distribution(command.distribution)
+        idt = get_indentation(state)
+        return '%s%s ~ %s' % (idt, command.symbol, str_dist)
+    if isinstance(command, Transform):
+        idt = get_indentation(state)
+        return '%s%s ~ %s' % (idt, command.symbol, command.expr)
+    if isinstance(command, IfElse):
+        conditions = command.branches[::2]
+        branches = command.branches[1::2]
+        assert len(conditions) == len(branches)
+        str_blocks = [''] * len(conditions)
+        state_prime = ImpState(state.indentation+4)
+        idt = get_indentation(state)
+        for i, (condition, branch) in enumerate(zip(conditions, branches)):
+            if i == 0:
+                str_condition = '%sif (%s)' % (idt, condition)
+            elif condition is Otherwise:
+                str_condition = '%selse' % (idt)
+            else:
+                str_condition = '%selif (%s)' % (idt, condition)
+            str_branch = render_imp_command(branch, state_prime)
+            str_blocks[i] = ':\n'.join([str_condition, str_branch])
+        return '\n'.join(str_blocks)
+    if isinstance(command, Repeat):
+        commands = [command.f(i) for i in range(command.n0, command.n1)]
+        command_prime = Sequence(*commands)
+        return render_imp_command(command_prime, state)
+    if isinstance(command, Sequence):
+        str_cmds = [render_imp_command(c, state) for c in command.commands]
+        return ';\n'.join(str_cmds)
+    assert False, 'Unknown command: %s' % (command,)
