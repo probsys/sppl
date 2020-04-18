@@ -5,8 +5,8 @@ from math import log
 
 import numpy
 
-from spn.distributions import Bernoulli
-from spn.distributions import Norm
+from spn.distributions import bernoulli
+from spn.distributions import norm
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 from spn.spn import spn_cache_duplicate_subtrees
@@ -20,15 +20,15 @@ X = [Identity('X[0]'), Identity('X[1]')]
 Z = [Identity('Z[0]'), Identity('Z[1]')]
 
 def test_cache_simple_leaf():
-    spn = .5 * (W >> Norm(loc=0, scale=1)) | .5 * (W >> Norm(loc=0, scale=1))
+    spn = .5 * (W >> norm(loc=0, scale=1)) | .5 * (W >> norm(loc=0, scale=1))
     assert spn.children[0] is not spn.children[1]
     spn_cached = spn_cache_duplicate_subtrees(spn, {})
     assert spn_cached.children[0] is spn_cached.children[1]
 
 def test_cache_simple_sum_of_product():
     spn \
-        = 0.3 * ((W >> Norm(loc=0, scale=1)) & (Y >> Norm(loc=0, scale=1))) \
-        | 0.7 * ((W >> Norm(loc=0, scale=1)) & (Y >> Norm(loc=0, scale=2)))
+        = 0.3 * ((W >> norm(loc=0, scale=1)) & (Y >> norm(loc=0, scale=1))) \
+        | 0.7 * ((W >> norm(loc=0, scale=1)) & (Y >> norm(loc=0, scale=2)))
     spn_cached = spn_cache_duplicate_subtrees(spn, {})
     assert spn_cached.children[0].children[0] is spn_cached.children[1].children[0]
 
@@ -39,18 +39,18 @@ def test_cache_complex_sum_of_product():
     for i in range(2):
         duplicate_subtrees[i] = SumSPN([
             ProductSPN([
-                (X[0] >> Bernoulli(p=.1)),
+                (X[0] >> bernoulli(p=.1)),
                 SumSPN([
-                    (Z[0] >> Bernoulli(p=.5))
+                    (Z[0] >> bernoulli(p=.5))
                         & (Y >> {'0':.1, '1': .9}),
-                    (Z[0] >> Bernoulli(p=.1))
+                    (Z[0] >> bernoulli(p=.1))
                         & (Y >> {'0':.9, '1': .1})
                 ], weights=[log(.730), log(.270)])
             ]),
             ProductSPN([
-                Z[0] >> Bernoulli(p=.1),
+                Z[0] >> bernoulli(p=.1),
                 Y >> {'0':.9, '1':.1},
-                X[0] >> Bernoulli(p=.5),
+                X[0] >> bernoulli(p=.5),
             ]),
         ], weights=[log(.925), log(.075)])
 
@@ -58,29 +58,29 @@ def test_cache_complex_sum_of_product():
     assert duplicate_subtrees[0] is not duplicate_subtrees[1]
 
     left_subtree = ProductSPN([
-        X[1] >> Bernoulli(p=.5),
+        X[1] >> bernoulli(p=.5),
         SumSPN([
             ProductSPN([
                 duplicate_subtrees[0],
-                Z[1] >> Bernoulli(p=.5),
+                Z[1] >> bernoulli(p=.5),
             ]),
             ProductSPN([
-                Z[1] >> Bernoulli(p=.7),
+                Z[1] >> bernoulli(p=.7),
                 SumSPN([
                     Y >> {'0':.3, '1':.7}
-                        & X[0] >> Bernoulli(p=.1)
-                        & Z[0] >> Bernoulli(p=.1),
+                        & X[0] >> bernoulli(p=.1)
+                        & Z[0] >> bernoulli(p=.1),
                     Y >> {'0':.7, '1':.3}
-                        & X[0] >> Bernoulli(p=.5)
-                        & Z[0] >> Bernoulli(p=.5),
+                        & X[0] >> bernoulli(p=.5)
+                        & Z[0] >> bernoulli(p=.5),
                 ], weights=[log(.9), log(.1)])
             ])
         ], weights=[log(.783), log(.217)])
     ])
 
     right_subtree = ProductSPN([
-        Z[1] >> Bernoulli(p=.8),
-        X[1] >> Bernoulli(p=.1),
+        Z[1] >> bernoulli(p=.8),
+        X[1] >> bernoulli(p=.1),
         duplicate_subtrees[1]
     ])
 

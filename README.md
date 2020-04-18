@@ -18,7 +18,7 @@ Run the following command in the shell:
 1. Burglary Network
 
 ```python
-from spn.distributions import Bernoulli
+from spn.distributions import bernoulli
 from spn.interpret import Cond
 from spn.interpret import Otherwise
 from spn.interpret import Start
@@ -33,24 +33,24 @@ MaryCalls   = Variable('MC')
 
 # Define the model.
 model = (Start
-    & Burglary >> Bernoulli(p=0.001)
-    & Earthquake >> Bernoulli(p=0.002)
+    & Burglary >> bernoulli(p=0.001)
+    & Earthquake >> bernoulli(p=0.002)
     & Cond (
         Burglary << {1},
             Cond (
-                Earthquake << {1},  Alarm >> Bernoulli(p=0.95),
-                Otherwise,          Alarm >> Bernoulli(p=0.94)),
+                Earthquake << {1},  Alarm >> bernoulli(p=0.95),
+                Otherwise,          Alarm >> bernoulli(p=0.94)),
         Otherwise,
             Cond (
-                Earthquake << {1},  Alarm >> Bernoulli(p=0.29),
-                Otherwise,          Alarm >> Bernoulli(p=0.001)))
+                Earthquake << {1},  Alarm >> bernoulli(p=0.29),
+                Otherwise,          Alarm >> bernoulli(p=0.001)))
     & Cond (
         Alarm << {1},
-            JohnCalls >> Bernoulli(p=0.90)
-            & MaryCalls >> Bernoulli(p=0.70),
+            JohnCalls >> bernoulli(p=0.90)
+            & MaryCalls >> bernoulli(p=0.70),
         Otherwise,
-            JohnCalls >> Bernoulli(p=0.05)
-            & MaryCalls >> Bernoulli(p=0.01),
+            JohnCalls >> bernoulli(p=0.05)
+            & MaryCalls >> bernoulli(p=0.01),
         ))
 
 # Ask a marginal query.
@@ -72,8 +72,8 @@ print(model.mutual_information(event_a, event_b))
 2. Indian GPA
 
 ```python
-from spn.distributions import Atomic
-from spn.distributions import Uniform
+from spn.distributions import atomic
+from spn.distributions import uniform
 from spn.interpret import Cond
 from spn.interpret import Otherwise
 from spn.interpret import Start
@@ -90,11 +90,11 @@ model = (Start
             (Nationality << {'Indian'}),
                 Perfect >> {'True': 0.01, 'False': 0.99}
                 & Cond (
-                    Perfect << {'True'},    GPA >> Atomic(loc=10),
-                    Otherwise,              GPA >> Uniform(scale=10)),
+                    Perfect << {'True'},    GPA >> atomic(loc=10),
+                    Otherwise,              GPA >> uniform(scale=10)),
             Otherwise,
                 Perfect >> {'True': 0.01, 'False': 0.99}
                 & Cond (
-                    Perfect << {'True'},    GPA >> Atomic(loc=4),
-                    Otherwise,              GPA >> Uniform(scale=4))))
+                    Perfect << {'True'},    GPA >> atomic(loc=4),
+                    Otherwise,              GPA >> uniform(scale=4))))
 ```

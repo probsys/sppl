@@ -8,8 +8,8 @@ import pytest
 import numpy
 import sympy
 
-from spn.distributions import Gamma
-from spn.distributions import Norm
+from spn.distributions import gamma
+from spn.distributions import norm
 from spn.dnf import dnf_to_disjoint_union
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
@@ -32,11 +32,11 @@ def test_product_distribution_normal_gamma_basic():
     X4 = Identity('X4')
     children = [
         ProductSPN([
-            X1 >> Norm(loc=0, scale=1),
-            X4 >> Norm(loc=10, scale=1),
+            X1 >> norm(loc=0, scale=1),
+            X4 >> norm(loc=10, scale=1),
         ]),
-        X2 >> Gamma(loc=0, a=1),
-        X3 >> Norm(loc=2, scale=3)
+        X2 >> gamma(loc=0, a=1),
+        X3 >> norm(loc=2, scale=3)
     ]
     spn = ProductSPN(children)
     assert spn.children == (
@@ -70,7 +70,7 @@ def test_product_distribution_normal_gamma_basic():
 def test_product_inclusion_exclusion_basic():
     X = Identity('X')
     Y = Identity('Y')
-    spn = ProductSPN([X >> Norm(loc=0, scale=1), Y >> Gamma(a=1)])
+    spn = ProductSPN([X >> norm(loc=0, scale=1), Y >> gamma(a=1)])
 
     a = spn.logprob(X > 0.1)
     b = spn.logprob(Y < 0.5)
@@ -113,7 +113,7 @@ def test_product_inclusion_exclusion_basic():
 def test_product_condition_basic():
     X = Identity('X')
     Y = Identity('Y')
-    spn = ProductSPN([X >> Norm(loc=0, scale=1), Y >> Gamma(a=1)])
+    spn = ProductSPN([X >> norm(loc=0, scale=1), Y >> gamma(a=1)])
 
     # Condition on (X > 0) and ((X > 0) | (Y < 0))
     # where the second clause reduces to first as Y < 0
@@ -199,7 +199,7 @@ def test_product_condition_basic():
 def test_product_condition_or_probabilithy_zero():
     X = Identity('X')
     Y = Identity('Y')
-    spn = ProductSPN([X >> Norm(loc=0, scale=1), Y >> Gamma(a=1)])
+    spn = ProductSPN([X >> norm(loc=0, scale=1), Y >> gamma(a=1)])
 
     # Condition on event which has probability zero.
     event = (X > 2) & (X < 2)
@@ -271,9 +271,9 @@ def test_product_disjoint_union_numerical():
     Y = Identity('Y')
     Z = Identity('Z')
     spn = ProductSPN([
-        X >> Norm(loc=0, scale=1),
-        Y >> Norm(loc=0, scale=2),
-        Z >> Norm(loc=0, scale=2),
+        X >> norm(loc=0, scale=1),
+        Y >> norm(loc=0, scale=2),
+        Z >> norm(loc=0, scale=2),
     ])
 
     for event in [
@@ -315,10 +315,10 @@ B = Identity('B')
 C = Identity('C')
 D = Identity('D')
 spn_abcd \
-    = Norm(loc=0, scale=1)(A) \
-    & Norm(loc=0, scale=1)(B) \
-    & Norm(loc=0, scale=1)(C) \
-    & Norm(loc=0, scale=1)(D)
+    = norm(loc=0, scale=1)(A) \
+    & norm(loc=0, scale=1)(B) \
+    & norm(loc=0, scale=1)(C) \
+    & norm(loc=0, scale=1)(D)
 def test_product_condition_simplify_a():
     spn = spn_abcd.condition((A > 1) | (A < -1))
     assert isinstance(spn, ProductSPN)

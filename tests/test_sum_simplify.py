@@ -5,8 +5,8 @@ from math import log
 
 import numpy
 
-from spn.distributions import Gamma
-from spn.distributions import Norm
+from spn.distributions import gamma
+from spn.distributions import norm
 from spn.math_util import allclose
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
@@ -19,9 +19,9 @@ def test_sum_simplify_nested_sum_1():
     X = Identity('X')
     children = [
         SumSPN(
-            [X >> Norm(loc=0, scale=1), X >> Norm(loc=0, scale=2)],
+            [X >> norm(loc=0, scale=1), X >> norm(loc=0, scale=2)],
             [log(0.4), log(0.6)]),
-        X >> Gamma(loc=0, a=1),
+        X >> gamma(loc=0, a=1),
     ]
     spn = SumSPN(children, [log(0.7), log(0.3)])
     assert spn.children == (
@@ -38,14 +38,14 @@ def test_sum_simplify_nested_sum_2():
     W = Identity('W')
     children = [
         SumSPN([
-            (X >> Norm(loc=0, scale=1)) & (W >> Norm(loc=0, scale=2)),
-            (X >> Norm(loc=0, scale=2)) & (W >> Norm(loc=0, scale=1))],
+            (X >> norm(loc=0, scale=1)) & (W >> norm(loc=0, scale=2)),
+            (X >> norm(loc=0, scale=2)) & (W >> norm(loc=0, scale=1))],
             [log(0.9), log(0.1)]),
-        (X >> Norm(loc=0, scale=4)) & (W >> Norm(loc=0, scale=10)),
+        (X >> norm(loc=0, scale=4)) & (W >> norm(loc=0, scale=10)),
         SumSPN([
-            (X >> Norm(loc=0, scale=1)) & (W >> Norm(loc=0, scale=2)),
-            (X >> Norm(loc=0, scale=2)) & (W >> Norm(loc=0, scale=1)),
-            (X >> Norm(loc=0, scale=8)) & (W >> Norm(loc=0, scale=3)),],
+            (X >> norm(loc=0, scale=1)) & (W >> norm(loc=0, scale=2)),
+            (X >> norm(loc=0, scale=2)) & (W >> norm(loc=0, scale=1)),
+            (X >> norm(loc=0, scale=8)) & (W >> norm(loc=0, scale=3)),],
             [log(0.4), log(0.3), log(0.3)]),
     ]
     spn = SumSPN(children, [log(0.4), log(0.4), log(0.2)])
@@ -65,19 +65,19 @@ def test_sum_simplify_nested_sum_2():
     assert allclose(spn.weights[5], log(0.2) + log(0.3))
 
 def test_sum_simplify_leaf():
-    Xd0 = Identity('X') >> Norm(loc=0, scale=1)
-    Xd1 = Identity('X') >> Norm(loc=0, scale=2)
-    Xd2 = Identity('X') >> Norm(loc=0, scale=3)
+    Xd0 = Identity('X') >> norm(loc=0, scale=1)
+    Xd1 = Identity('X') >> norm(loc=0, scale=2)
+    Xd2 = Identity('X') >> norm(loc=0, scale=3)
     spn = SumSPN([Xd0, Xd1, Xd2], [log(0.5), log(0.1), log(.4)])
     assert spn_simplify_sum(spn) == spn
 
-    Xd0 = Identity('X') >> Norm(loc=0, scale=1)
-    Xd1 = Identity('X') >> Norm(loc=0, scale=1)
-    Xd2 = Identity('X') >> Norm(loc=0, scale=1)
+    Xd0 = Identity('X') >> norm(loc=0, scale=1)
+    Xd1 = Identity('X') >> norm(loc=0, scale=1)
+    Xd2 = Identity('X') >> norm(loc=0, scale=1)
     spn = SumSPN([Xd0, Xd1, Xd2], [log(0.5), log(0.1), log(.4)])
     assert spn_simplify_sum(spn) == Xd0
 
-    Xd3 = Identity('X') >> Norm(loc=0, scale=2)
+    Xd3 = Identity('X') >> norm(loc=0, scale=2)
     spn = SumSPN([Xd0, Xd3, Xd1, Xd3], [log(0.5), log(0.1), log(.3), log(.1)])
     spn_simplified = spn_simplify_sum(spn)
     assert len(spn_simplified.children) == 2
@@ -87,14 +87,14 @@ def test_sum_simplify_leaf():
     assert allclose(spn_simplified.weights[1], log(0.2))
 
 def test_sum_simplify_product_collapse():
-    A1 = Identity('A') >> Norm(loc=0, scale=1)
-    A0 = Identity('A') >> Norm(loc=0, scale=1)
-    B = Identity('B') >> Norm(loc=0, scale=1)
-    B1 = Identity('B') >> Norm(loc=0, scale=1)
-    B0 = Identity('B') >> Norm(loc=0, scale=1)
-    C = Identity('C') >> Norm(loc=0, scale=1)
-    C1 = Identity('C') >> Norm(loc=0, scale=1)
-    D = Identity('D') >> Norm(loc=0, scale=1)
+    A1 = Identity('A') >> norm(loc=0, scale=1)
+    A0 = Identity('A') >> norm(loc=0, scale=1)
+    B = Identity('B') >> norm(loc=0, scale=1)
+    B1 = Identity('B') >> norm(loc=0, scale=1)
+    B0 = Identity('B') >> norm(loc=0, scale=1)
+    C = Identity('C') >> norm(loc=0, scale=1)
+    C1 = Identity('C') >> norm(loc=0, scale=1)
+    D = Identity('D') >> norm(loc=0, scale=1)
     spn = SumSPN([
         ProductSPN([A1, B, C, D]),
         ProductSPN([A0, B1, C, D]),
@@ -103,14 +103,14 @@ def test_sum_simplify_product_collapse():
     assert spn_simplify_sum(spn) == ProductSPN([A1, B, C, D])
 
 def test_sum_simplify_product_complex():
-    A1 = Identity('A') >> Norm(loc=0, scale=1)
-    A0 = Identity('A') >> Norm(loc=0, scale=2)
-    B = Identity('B') >> Norm(loc=0, scale=1)
-    B1 = Identity('B') >> Norm(loc=0, scale=2)
-    B0 = Identity('B') >> Norm(loc=0, scale=3)
-    C = Identity('C') >> Norm(loc=0, scale=1)
-    C1 = Identity('C') >> Norm(loc=0, scale=2)
-    D = Identity('D') >> Norm(loc=0, scale=1)
+    A1 = Identity('A') >> norm(loc=0, scale=1)
+    A0 = Identity('A') >> norm(loc=0, scale=2)
+    B = Identity('B') >> norm(loc=0, scale=1)
+    B1 = Identity('B') >> norm(loc=0, scale=2)
+    B0 = Identity('B') >> norm(loc=0, scale=3)
+    C = Identity('C') >> norm(loc=0, scale=1)
+    C1 = Identity('C') >> norm(loc=0, scale=2)
+    D = Identity('D') >> norm(loc=0, scale=1)
     spn = SumSPN([
         ProductSPN([A1, B, C, D]),
         ProductSPN([A0, B1, C, D]),

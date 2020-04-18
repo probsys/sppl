@@ -6,8 +6,8 @@ import pytest
 import numpy
 import sympy
 
-from spn.distributions import Poisson
-from spn.distributions import Randint
+from spn.distributions import poisson
+from spn.distributions import randint
 from spn.math_util import allclose
 from spn.math_util import logdiffexp
 from spn.math_util import logsumexp
@@ -19,7 +19,7 @@ rng = numpy.random.RandomState(1)
 
 def test_poisson():
     X = Identity('X')
-    spn = X >> Poisson(mu=5)
+    spn = X >> poisson(mu=5)
 
     a = spn.logprob((1 <= X) <= 7)
     b = spn.logprob(X << {1,2,3,4,5,6,7})
@@ -80,7 +80,7 @@ def test_poisson():
 
 def test_randint():
     X = Identity('X')
-    spn = X >> Randint(low=0, high=5)
+    spn = X >> randint(low=0, high=5)
     assert spn.logprob(X < 5) == spn.logprob(X <= 4) == 0
     # i.e., X is not in [0, 3]
     spn_condition = spn.condition(~((X+1) << {1, 4}))

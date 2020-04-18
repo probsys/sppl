@@ -11,8 +11,8 @@ https://arxiv.org/pdf/1806.02027.pdf
 
 import pytest
 
-from spn.distributions import Atomic
-from spn.distributions import Uniform
+from spn.distributions import atomic
+from spn.distributions import uniform
 from spn.interpret import Cond
 from spn.interpret import Start
 from spn.interpret import Variable
@@ -24,11 +24,11 @@ def model_no_latents():
     GPA = Identity('GPA')
     return \
         0.5 * ( # American student
-            0.99 * (GPA >> Uniform(loc=0, scale=4)) | \
-            0.01 * (GPA >> Atomic(loc=4))) | \
+            0.99 * (GPA >> uniform(loc=0, scale=4)) | \
+            0.01 * (GPA >> atomic(loc=4))) | \
         0.5 * ( # Indian student
-            0.99 * (GPA >> Uniform(loc=0, scale=10)) | \
-            0.01 * (GPA >> Atomic(loc=10)))
+            0.99 * (GPA >> uniform(loc=0, scale=10)) | \
+            0.01 * (GPA >> atomic(loc=10)))
 
 def model_exposed():
     N = Identity('N')
@@ -43,15 +43,15 @@ def model_exposed():
             'USA': ExposedSumSPN(
                 spn_weights=perfect,
                 children={
-                    'False'   : GPA >> Uniform(loc=0, scale=4),
-                    'True'    : GPA >> Atomic(loc=4),
+                    'False'   : GPA >> uniform(loc=0, scale=4),
+                    'True'    : GPA >> atomic(loc=4),
                 }),
             # Indian student.
             'India': ExposedSumSPN(
                 spn_weights=perfect,
                 children={
-                    'False'   : GPA >> Uniform(loc=0, scale=10),
-                    'True'    : GPA >> Atomic(loc=10),
+                    'False'   : GPA >> uniform(loc=0, scale=10),
+                    'True'    : GPA >> atomic(loc=10),
                 })},
         )
 
@@ -64,16 +64,16 @@ def model_ifelse_exhuastive():
         & Perfect       >> {'True': 0.01, 'False': 0.99} \
         & Cond (
             (Nationality << {'India'}) & (Perfect << {'False'}),
-                GPA >> Uniform(loc=0, scale=10)
+                GPA >> uniform(loc=0, scale=10)
             ,
             (Nationality << {'India'}) & (Perfect << {'True'}),
-                GPA >> Atomic(loc=10)
+                GPA >> atomic(loc=10)
             ,
             (Nationality << {'USA'}) & (Perfect << {'False'}),
-                GPA >> Uniform(loc=0, scale=4)
+                GPA >> uniform(loc=0, scale=4)
             ,
             (Nationality << {'USA'}) & (Perfect << {'True'}),
-                GPA >> Atomic(loc=4))
+                GPA >> atomic(loc=4))
 
 def model_ifelse_non_exhuastive():
     Nationality = Variable('Nationality')
@@ -84,16 +84,16 @@ def model_ifelse_non_exhuastive():
         & Perfect       >> {'True': 0.01, 'False': 0.99} \
         & Cond (
             (Nationality << {'India'}) & (Perfect << {'False'}),
-                GPA >> Uniform(loc=0, scale=10)
+                GPA >> uniform(loc=0, scale=10)
             ,
             (Nationality << {'India'}) & (Perfect << {'True'}),
-                GPA >> Atomic(loc=10)
+                GPA >> atomic(loc=10)
             ,
             (Nationality << {'USA'}) & (Perfect << {'False'}),
-                GPA >> Uniform(loc=0, scale=4)
+                GPA >> uniform(loc=0, scale=4)
             ,
             True,
-                GPA >> Atomic(loc=4))
+                GPA >> atomic(loc=4))
 
 def model_ifelse_nested():
     Nationality = Variable('Nationality')
@@ -105,13 +105,13 @@ def model_ifelse_nested():
         & Cond (
             Nationality << {'India'},
                 Cond (
-                    Perfect << {'True'},    GPA >> Atomic(loc=10),
-                    Perfect << {'False'},   GPA >> Uniform(scale=10),
+                    Perfect << {'True'},    GPA >> atomic(loc=10),
+                    Perfect << {'False'},   GPA >> uniform(scale=10),
                 ),
             Nationality << {'USA'},
                 Cond (
-                    Perfect << {'True'},    GPA >> Atomic(loc=4),
-                    Perfect << {'False'},   GPA >> Uniform(scale=4),
+                    Perfect << {'True'},    GPA >> atomic(loc=4),
+                    Perfect << {'False'},   GPA >> uniform(scale=4),
                 ))
 
 def model_perfect_nested():
@@ -124,14 +124,14 @@ def model_perfect_nested():
             Nationality << {'India'},
                 Perfect >> {'True': 0.01, 'False': 0.99} \
                 & Cond (
-                    Perfect << {'True'},    GPA >> Atomic(loc=10),
-                    True,   GPA >> Uniform(scale=10),
+                    Perfect << {'True'},    GPA >> atomic(loc=10),
+                    True,   GPA >> uniform(scale=10),
                 ),
             Nationality << {'USA'},
                 Perfect >> {'True': 0.01, 'False': 0.99} \
                 & Cond (
-                    Perfect << {'True'},    GPA >> Atomic(loc=4),
-                    True,   GPA >> Uniform(scale=4),
+                    Perfect << {'True'},    GPA >> atomic(loc=4),
+                    True,   GPA >> uniform(scale=4),
                 ))
 
 @pytest.mark.parametrize('get_model', [

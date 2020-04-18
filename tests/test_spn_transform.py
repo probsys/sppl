@@ -4,8 +4,8 @@
 import numpy
 import pytest
 
-from spn.distributions import Norm
-from spn.distributions import Poisson
+from spn.distributions import norm
+from spn.distributions import poisson
 from spn.math_util import allclose
 from spn.transforms import Identity
 
@@ -15,7 +15,7 @@ def test_transform_real_leaf_logprob():
     X = Identity('X')
     Y = Identity('Y')
     Z = Identity('Z')
-    spn = (X >> Norm(loc=0, scale=1))
+    spn = (X >> norm(loc=0, scale=1))
 
     with pytest.raises(AssertionError):
         spn.transform(Z, Y**2)
@@ -43,7 +43,7 @@ def test_transform_real_leaf_sample():
     X = Identity('X')
     Z = Identity('Z')
     Y = Identity('Y')
-    spn = (X >> Poisson(loc=-1, mu=1))
+    spn = (X >> poisson(loc=-1, mu=1))
     spn = spn.transform(Z, X+1)
     spn = spn.transform(Y, Z-1)
     samples = spn.sample(100, rng)
@@ -58,14 +58,14 @@ def test_transform_sum():
     Z = Identity('Z')
     Y = Identity('Y')
     spn \
-        = 0.3*(X >> Norm(loc=0, scale=1)) \
+        = 0.3*(X >> norm(loc=0, scale=1)) \
         | 0.7*(X >> {'0': 0.4, '1': 0.6})
     with pytest.raises(Exception):
         # Cannot transform Nominal variate.
         spn.transform(Z, X**2)
     spn \
-        = 0.3*(X >> Norm(loc=0, scale=1)) \
-        | 0.7*(X >> Poisson(mu=2))
+        = 0.3*(X >> norm(loc=0, scale=1)) \
+        | 0.7*(X >> poisson(mu=2))
     spn = spn.transform(Z, X**2)
     assert spn.logprob(Z < 1) == spn.logprob(X**2 < 1)
     assert spn.children[0].env == spn.children[1].env
@@ -81,8 +81,8 @@ def test_transform_product():
     Z = Identity('Z')
     V = Identity('V')
     spn \
-        = (X >> Norm(loc=0, scale=1)) \
-        & (Y >> Poisson(mu=10))
+        = (X >> norm(loc=0, scale=1)) \
+        & (Y >> poisson(mu=10))
     with pytest.raises(Exception):
         # Cannot use symbols from different transforms.
         spn.transform(W, (X > 0) | (Y << {'0'}))

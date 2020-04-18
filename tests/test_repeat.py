@@ -3,7 +3,7 @@
 
 from math import log
 
-from spn.distributions import Bernoulli
+from spn.distributions import bernoulli
 from spn.interpret import Cond
 from spn.interpret import Otherwise
 from spn.interpret import Repeat
@@ -18,9 +18,9 @@ Z = VariableArray('Z', 5)
 
 def test_simple_model():
     model = (Start
-        & Y >> Bernoulli(p=0.5)
+        & Y >> bernoulli(p=0.5)
         & Repeat(0, 5, lambda i:
-            X[i] >> Bernoulli(p=1/(i+1))))
+            X[i] >> bernoulli(p=1/(i+1))))
 
     symbols = model.get_symbols()
     assert len(symbols) == 6
@@ -42,25 +42,25 @@ def test_complex_model():
     model = (Start
     & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
     & Repeat(0, 3, lambda i:
-        Z[i] >> Bernoulli(p=0.1)
+        Z[i] >> bernoulli(p=0.1)
         & Cond (
-            Y << {str(i)} | Z[i] << {0},  X[i] >> Bernoulli(p=1/(i+1)),
-            Otherwise,                    X[i] >> Bernoulli(p=0.1))))
+            Y << {str(i)} | Z[i] << {0},  X[i] >> bernoulli(p=1/(i+1)),
+            Otherwise,                    X[i] >> bernoulli(p=0.1))))
     assert allclose(model.prob(Y << {'0'}), 0.2)
 
 def test_complex_model_reorder():
     model = (Start
     & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
     & Repeat(0, 3, lambda i:
-        Z[i] >> Bernoulli(p=0.1))
+        Z[i] >> bernoulli(p=0.1))
     & Repeat(0, 3, lambda i:
         Cond (
             Y << {str(i)},
-                X[i] >> Bernoulli(p=1/(i+1)),
+                X[i] >> bernoulli(p=1/(i+1)),
             Z[i] << {0},
-                X[i] >> Bernoulli(p=1/(i+1)),
+                X[i] >> bernoulli(p=1/(i+1)),
             Otherwise,
-                X[i] >> Bernoulli(p=0.1)
+                X[i] >> bernoulli(p=0.1)
     )))
     assert(allclose(model.prob(Y << {'0'}), 0.2))
 
@@ -111,31 +111,31 @@ def make_model_repeat(n=2):
     return (Start
         & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
         & Repeat(0, n, lambda i:
-            Z[i] >> Bernoulli(p=.5)
+            Z[i] >> bernoulli(p=.5)
             & Cond (
-                (Y << {str(i)}) | (Z[i] << {0}),    X[i] >> Bernoulli(p=.1),
-                Otherwise,                          X[i] >> Bernoulli(p=.5))))
+                (Y << {str(i)}) | (Z[i] << {0}),    X[i] >> bernoulli(p=.1),
+                Otherwise,                          X[i] >> bernoulli(p=.5))))
 
 def make_model_handcode():
     return (Start
         & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
-        & Z[0] >> Bernoulli(p=.5)
-        & Z[1] >> Bernoulli(p=.5)
+        & Z[0] >> bernoulli(p=.5)
+        & Z[1] >> bernoulli(p=.5)
         & Cond (
             Y << {str(0)},
-                X[0] >> Bernoulli(p=.1)
+                X[0] >> bernoulli(p=.1)
                 & Cond(
-                    Z[1] << {0},    X[1] >> Bernoulli(p=.1),
-                    Otherwise,      X[1] >> Bernoulli(p=.5)),
+                    Z[1] << {0},    X[1] >> bernoulli(p=.1),
+                    Otherwise,      X[1] >> bernoulli(p=.5)),
             Y << {str(1)},
-                X[1] >> Bernoulli(p=.1)
+                X[1] >> bernoulli(p=.1)
                 & Cond(
-                    Z[0] << {0},    X[0] >> Bernoulli(p=.1),
-                    Otherwise,      X[0] >> Bernoulli(p=.5)),
+                    Z[0] << {0},    X[0] >> bernoulli(p=.1),
+                    Otherwise,      X[0] >> bernoulli(p=.5)),
             Otherwise,
                 Cond(
-                    Z[0] << {0},    X[0] >> Bernoulli(p=.1),
-                    Otherwise,      X[0] >> Bernoulli(p=.5))
+                    Z[0] << {0},    X[0] >> bernoulli(p=.1),
+                    Otherwise,      X[0] >> bernoulli(p=.5))
                 & Cond(
-                    Z[1] << {0},    X[1] >> Bernoulli(p=.1),
-                    Otherwise,      X[1] >> Bernoulli(p=.5))))
+                    Z[1] << {0},    X[1] >> bernoulli(p=.1),
+                    Otherwise,      X[1] >> bernoulli(p=.5))))

@@ -8,7 +8,7 @@ Artificial Intelligence: A Modern Approach (3rd Edition).
 Russel and Norvig, Fig 14.2 pp 512.
 '''
 
-from spn.distributions import Bernoulli
+from spn.distributions import bernoulli
 from spn.interpret import Cond
 from spn.interpret import Otherwise
 from spn.interpret import Start
@@ -21,24 +21,24 @@ JohnCalls = Variable('JC')
 MaryCalls = Variable('MC')
 
 model = (Start
-    & Burglary >> Bernoulli(p=0.001)
-    & Earthquake >> Bernoulli(p=0.002)
+    & Burglary >> bernoulli(p=0.001)
+    & Earthquake >> bernoulli(p=0.002)
     & Cond (
         Burglary << {1},
             Cond (
-                Earthquake << {1},  Alarm >> Bernoulli(p=0.95),
-                Otherwise,          Alarm >> Bernoulli(p=0.94)),
+                Earthquake << {1},  Alarm >> bernoulli(p=0.95),
+                Otherwise,          Alarm >> bernoulli(p=0.94)),
         Otherwise,
             Cond (
-                Earthquake << {1},  Alarm >> Bernoulli(p=0.29),
-                Otherwise,          Alarm >> Bernoulli(p=0.001)))
+                Earthquake << {1},  Alarm >> bernoulli(p=0.29),
+                Otherwise,          Alarm >> bernoulli(p=0.001)))
     & Cond (
         Alarm << {1},
-            JohnCalls >> Bernoulli(p=0.90)
-            & MaryCalls >> Bernoulli(p=0.70),
+            JohnCalls >> bernoulli(p=0.90)
+            & MaryCalls >> bernoulli(p=0.70),
         Otherwise,
-            JohnCalls >> Bernoulli(p=0.05)
-            & MaryCalls >> Bernoulli(p=0.01),
+            JohnCalls >> bernoulli(p=0.05)
+            & MaryCalls >> bernoulli(p=0.01),
         ))
 
 def test_marginal_probability():

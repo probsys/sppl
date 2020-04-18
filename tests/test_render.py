@@ -5,7 +5,7 @@ import tempfile
 
 import pytest
 
-from spn.distributions import Bernoulli
+from spn.distributions import bernoulli
 from spn.interpret import Cond
 from spn.interpret import Otherwise
 from spn.interpret import Start
@@ -21,10 +21,10 @@ def test_render_crash():
     Z = Variable('Z')
     model = (Start
         & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
-        & Z >> Bernoulli(p=0.1)
+        & Z >> bernoulli(p=0.1)
         & Cond (
-            Y << {str(0)} | Z << {0},  X >> Bernoulli(p=1/(0+1)),
-            Otherwise,                 X >> Bernoulli(p=0.1)))
+            Y << {str(0)} | Z << {0},  X >> bernoulli(p=1/(0+1)),
+            Otherwise,                 X >> bernoulli(p=0.1)))
     render_nested_lists_concise(model)
     render_nested_lists(model)
     render_networkx_graph(model)

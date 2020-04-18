@@ -8,8 +8,8 @@ import pytest
 import scipy.stats
 import sympy
 
-from spn.distributions import Gamma
-from spn.distributions import Norm
+from spn.distributions import gamma
+from spn.distributions import norm
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
@@ -22,7 +22,7 @@ rng = numpy.random.RandomState(1)
 
 def test_numeric_distribution_normal():
     X = Identity('X')
-    spn = (X >> Norm(loc=0, scale=1))
+    spn = (X >> norm(loc=0, scale=1))
 
     assert allclose(spn.logprob(X > 0), -log(2))
     assert allclose(spn.logprob(abs(X) < 2), log(spn.dist.cdf(2) - spn.dist.cdf(-2)))
@@ -76,7 +76,7 @@ def test_numeric_distribution_normal():
 def test_numeric_distribution_gamma():
     X = Identity('X')
 
-    spn = (X >> Gamma(a=1, scale=1))
+    spn = (X >> gamma(a=1, scale=1))
     with pytest.raises(ValueError):
         spn.condition((X << {1, 2}) | (X < 0))
 

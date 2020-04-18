@@ -9,8 +9,8 @@ import pytest
 import numpy
 import sympy
 
-from spn.distributions import Gamma
-from spn.distributions import Norm
+from spn.distributions import gamma
+from spn.distributions import norm
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
@@ -33,7 +33,7 @@ def test_sum_normal_gamma():
         log(Fraction(1, 3))
     ]
     spn = SumSPN(
-        [X >> Norm(loc=0, scale=1), X >> Gamma(loc=0, a=1),], weights)
+        [X >> norm(loc=0, scale=1), X >> gamma(loc=0, a=1),], weights)
 
     assert spn.logprob(X > 0) == logsumexp([
         spn.weights[0] + spn.children[0].logprob(X > 0),
@@ -66,8 +66,8 @@ def test_sum_normal_gamma_exposed():
         '1': Fraction(1,3),
     })
     children = {
-        '0': X >> Norm(loc=0, scale=1),
-        '1': X >> Gamma(loc=0, a=1),
+        '0': X >> norm(loc=0, scale=1),
+        '1': X >> gamma(loc=0, a=1),
     }
     spn = ExposedSumSPN(children, weights)
 
@@ -104,7 +104,7 @@ def test_sum_normal_gamma_exposed():
 def test_sum_normal_nominal():
     X = Identity('X')
     children = [
-        X >> Norm(loc=0, scale=1),
+        X >> norm(loc=0, scale=1),
         X >> {'low': Fraction(3, 10), 'high': Fraction(7, 10)},
     ]
     weights = [log(Fraction(4,7)), log(Fraction(3, 7))]

@@ -3,8 +3,8 @@
 
 from math import log
 
-from spn.distributions import Bernoulli
-from spn.distributions import Norm
+from spn.distributions import bernoulli
+from spn.distributions import norm
 from spn.interpret import Cond
 from spn.interpret import Otherwise
 from spn.interpret import Start
@@ -18,7 +18,7 @@ Z = Variable('Z')
 
 def test_simple_transform():
     model = (Start
-        & X >> Norm(loc=0, scale=1)
+        & X >> norm(loc=0, scale=1)
         & Z >> X**2)
     assert model.get_symbols() == {Z, X}
     assert model.env == {Z:X**2, X:X}
@@ -26,7 +26,7 @@ def test_simple_transform():
 
 def test_if_else_transform():
     model = (Start
-        & X >> Norm(loc=0, scale=1)
+        & X >> norm(loc=0, scale=1)
         & Cond (
             X > 0,
                 Z >> X**2,
@@ -41,8 +41,8 @@ def test_if_else_transform():
 
 def test_if_else_transform_reverse():
     model = (Start
-        & X >> Norm(loc=0, scale=1)
-        & Y >> Bernoulli(p=0.5)
+        & X >> norm(loc=0, scale=1)
+        & Y >> bernoulli(p=0.5)
         & Cond (
             Y << {0},
                 Z >> X**2,
