@@ -19,7 +19,7 @@ Z = Variable('Z')
 def test_simple_transform():
     model = (Start
         & X >> Norm(loc=0, scale=1)
-        & Transform(Z, X**2))
+        & Z >> X**2)
     assert model.get_symbols() == {Z, X}
     assert model.env == {Z:X**2, X:X}
     assert (model.logprob(Z > 0)) == 0
@@ -29,9 +29,9 @@ def test_if_else_transform():
         & X >> Norm(loc=0, scale=1)
         & Cond (
             X > 0,
-                Transform(Z, X**2),
+                Z >> X**2,
             Otherwise,
-                Transform(Z, X)
+                Z >> X
             ))
     assert model.children[0].env == {X:X, Z:X**2}
     assert model.children[1].env == {X:X, Z:X}
@@ -45,8 +45,8 @@ def test_if_else_transform_reverse():
         & Y >> Bernoulli(p=0.5)
         & Cond (
             Y << {0},
-                Transform(Z, X**2),
+                Z >> X**2,
             Otherwise,
-                Transform(Z, X),
+                Z >> X,
             ))
     assert allclose(model.logprob(Z > 0), log(3) - log(4))

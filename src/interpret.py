@@ -12,21 +12,24 @@ from .spn import Memo
 from .spn import SPN
 from .spn import SumSPN
 
-from .transforms import Identity
+from . import transforms
 
-class Variable(Identity):
+class Variable(transforms.Identity):
     def __rshift__(self, f):
         if isinstance(f, Callable):
-            symbol = Identity(self.token)
+            symbol = transforms.Identity(self.token)
             return Sample(symbol, f)
         if isinstance(f, dict):
             from .distributions import NominalDist
-            symbol = Identity(self.token)
+            symbol = transforms.Identity(self.token)
             f_prime = NominalDist(f)
             return Sample(symbol, f_prime)
+        if isinstance(f, transforms.Transform):
+            symbol = transforms.Identity(self.token)
+            return Transform(symbol, f)
         return NotImplemented
     def __hash__(self):
-        symbol = Identity(self.token)
+        symbol = transforms.Identity(self.token)
         x = (symbol.__class__, self.token)
         return hash(x)
 
