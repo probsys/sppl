@@ -196,7 +196,8 @@ class SumSPN(BranchSPN):
 
         symbols = [spn.get_symbols() for spn in self.children]
         if not are_identical(symbols):
-            raise ValueError('Mixture must have identical symbols.')
+            syms = '\n'.join([', '.join(sorted(str(x) for x in s)) for s in symbols])
+            raise ValueError('Mixture must have identical symbols:\n%s' % (syms,))
         self.symbols = self.children[0].get_symbols()
 
     def sample(self, N, rng):
@@ -374,7 +375,8 @@ class ProductSPN(BranchSPN):
         # Derived attributes.
         symbols = [spn.get_symbols() for spn in self.children]
         if not are_disjoint(symbols):
-            raise ValueError('Product must have disjoint symbols')
+            syms = '\n'.join([', '.join(sorted(str(x) for x in s)) for s in symbols])
+            raise ValueError('Product must have disjoint symbols:\n%s' % (syms,))
         self.lookup = {s:i for i, syms in enumerate(symbols) for s in syms}
         self.symbols = frozenset(get_union(symbols))
 
