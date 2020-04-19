@@ -4,12 +4,12 @@
 from math import log
 
 from spn.distributions import bernoulli
-from spn.interpret import Cond
-from spn.interpret import Otherwise
-from spn.interpret import Repeat
-from spn.interpret import Start
-from spn.interpret import Variable
-from spn.interpret import VariableArray
+from spn.interpreter import Cond
+from spn.interpreter import Otherwise
+from spn.interpreter import Repeat
+from spn.interpreter import Start
+from spn.interpreter import Variable
+from spn.interpreter import VariableArray
 from spn.math_util import allclose
 
 Y = Variable('Y')

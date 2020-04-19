@@ -6,10 +6,10 @@ import tempfile
 import pytest
 
 from spn.distributions import bernoulli
-from spn.interpret import Cond
-from spn.interpret import Otherwise
-from spn.interpret import Start
-from spn.interpret import Variable
+from spn.interpreter import Cond
+from spn.interpreter import Otherwise
+from spn.interpreter import Start
+from spn.interpreter import Variable
 from spn.render import render_graphviz
 from spn.render import render_nested_lists
 from spn.render import render_nested_lists_concise

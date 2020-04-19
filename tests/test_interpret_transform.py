@@ -5,11 +5,11 @@ from math import log
 
 from spn.distributions import bernoulli
 from spn.distributions import norm
-from spn.interpret import Cond
-from spn.interpret import Otherwise
-from spn.interpret import Start
-from spn.interpret import Transform
-from spn.interpret import Variable
+from spn.interpreter import Cond
+from spn.interpreter import Otherwise
+from spn.interpreter import Start
+from spn.interpreter import Transform
+from spn.interpreter import Variable
 from spn.math_util import allclose
 
 X = Variable('X')

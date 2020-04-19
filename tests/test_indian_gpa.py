@@ -13,9 +13,9 @@ import pytest
 
 from spn.distributions import atomic
 from spn.distributions import uniform
-from spn.interpret import Cond
-from spn.interpret import Start
-from spn.interpret import Variable
+from spn.interpreter import Cond
+from spn.interpreter import Start
+from spn.interpreter import Variable
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
 from spn.transforms import Identity

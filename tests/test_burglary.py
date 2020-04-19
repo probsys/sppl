@@ -9,10 +9,10 @@ Russel and Norvig, Fig 14.2 pp 512.
 '''
 
 from spn.distributions import bernoulli
-from spn.interpret import Cond
-from spn.interpret import Otherwise
-from spn.interpret import Start
-from spn.interpret import Variable
+from spn.interpreter import Cond
+from spn.interpreter import Otherwise
+from spn.interpreter import Start
+from spn.interpreter import Variable
 
 Burglary = Variable('B')
 Earthquake = Variable('E')
