@@ -14,6 +14,8 @@ from .spn import SumSPN
 
 from . import transforms
 
+inf = float('inf')
+
 class Variable(transforms.Identity):
     def __rshift__(self, f):
         if isinstance(f, Callable):
@@ -99,7 +101,8 @@ class IfElse(Command):
         # Prepare memo table.
         memo = Memo({}, {})
         # Obtain mixture probabilities.
-        weights = [spn.logprob(event, memo) for event in events]
+        weights = [spn.logprob(event, memo)
+            if event is not None else -inf for event in events]
         # Filter the irrelevant ones.
         indexes = [i for i, w in enumerate(weights) if not isinf_neg(w)]
         assert indexes, 'All conditions probability zero.'
