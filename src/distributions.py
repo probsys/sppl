@@ -17,6 +17,37 @@ class RealDistribution():
     def get_domain(self, **kwargs):
         raise NotImplementedError()
 
+    def __rmul__(self, x):
+        from .sym_util import sympify_number
+        try:
+            x_val = sympify_number(x)
+            if not 0 < x_val < 1:
+                raise ValueError('invalid weight %s' % (str(x),))
+            return RealDistributionMix([self], [x])
+        except TypeError:
+            return NotImplemented
+
+class RealDistributionMix():
+    """Weighted mixture of SPNs that do not yet sum to unity."""
+    def __init__(self, distributions, weights):
+        self.distributions = distributions
+        self.weights = weights
+    def __call__(self, symbol):
+        from math import log
+        from .spn import SumSPN
+        distributions = [d(symbol) for d in self.distributions]
+        weights = [log(w) for w in self.weights]
+        return SumSPN(distributions, weights)
+
+    def __or__(self, x):
+        if not isinstance(x, RealDistributionMix):
+            return NotImplemented
+        weights = self.weights + x.weights
+        cumsum = float(sum(weights))
+        assert 0 < cumsum <= 1
+        distributions = self.distributions + x.distributions
+        return RealDistributionMix(distributions, weights)
+
 # ==============================================================================
 # ContinuousReal
 
