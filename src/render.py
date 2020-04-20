@@ -1,6 +1,8 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+import os
+import tempfile
 import time
 
 from math import exp
@@ -98,18 +100,21 @@ def render_networkx_graph(spn):
         return G
     assert False, 'Unknown SPN type: %s' % (spn,)
 
-def render_graphviz(spn, filename, show=None):
+def render_graphviz(spn, filename=None, ext=None, show=None):
     import networkx as nx
     from graphviz import Source
+    fname = filename
+    if filename is None:
+        f = tempfile.NamedTemporaryFile(delete=False)
+        fname = f.name
     G = render_networkx_graph(spn)
-    tokens = filename.split('.')
-    base = '.'.join(tokens[:-1])
-    ext = tokens[-1]
+    ext = ext or 'png'
     assert ext in ['png', 'pdf'], 'Extension must be .pdf or .png'
-    fname_dot = '%s.dot' % (base,)
+    fname_dot = '%s.dot' % (fname,)
     # nx.set_edge_attributes(G, 'serif', 'fontname')
     # nx.set_node_attributes(G, 'serif', 'fontname')
     nx.nx_agraph.write_dot(G, fname_dot)
     source = Source.from_file(fname_dot, format=ext)
-    source.render(filename=filename, view=show)
+    source.render(filename=fname, view=show)
+    os.unlink(fname)
     return source

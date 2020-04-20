@@ -1,6 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+import os
 import tempfile
 
 import pytest
@@ -28,7 +29,13 @@ def test_render_crash():
     render_nested_lists_concise(model)
     render_nested_lists(model)
     render_networkx_graph(model)
-    with pytest.raises(Exception):
-        render_graphviz(model, 'foo')
-    with tempfile.NamedTemporaryFile(delete=False) as f:
-        render_graphviz(model, '%s.png' % (f.name,))
+    for fname in [None, '/tmp/spn.test.render']:
+        for e in ['pdf', 'png', None]:
+            render_graphviz(model, fname, ext=e)
+            if fname is not None:
+                assert not os.path.exists(fname)
+                for ext in ['dot', e]:
+                    f = '%s.%s' % (fname, ext,)
+                    if e is not None:
+                        os.path.exists(f)
+                        os.unlink(f)
