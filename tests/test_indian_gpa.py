@@ -22,8 +22,11 @@ from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
 from spn.transforms import Identity
 
+Nationality = Identity('Nationality')
+Perfect     = Identity('Perfect')
+GPA         = Identity('GPA')
+
 def model_no_latents():
-    GPA = Identity('GPA')
     return \
         0.5 * ( # American student
             0.99 * (GPA >> uniform(loc=0, scale=4)) | \
@@ -33,24 +36,19 @@ def model_no_latents():
             0.01 * (GPA >> atomic(loc=10)))
 
 def model_exposed():
-    N = Identity('N')
-    P = Identity('P')
-    GPA = Identity('GPA')
-    nationality = N >> {'India': 0.5, 'USA': 0.5}
-    perfect = P >> {'True': 0.01, 'False': 0.99}
     return ExposedSumSPN(
-        spn_weights=nationality,
+        spn_weights=(Nationality >> {'India': 0.5, 'USA': 0.5}),
         children={
             # American student.
             'USA': ExposedSumSPN(
-                spn_weights=perfect,
+                spn_weights=(Perfect >> {'True': 0.01, 'False': 0.99}),
                 children={
                     'False'   : GPA >> uniform(loc=0, scale=4),
                     'True'    : GPA >> atomic(loc=4),
                 }),
             # Indian student.
             'India': ExposedSumSPN(
-                spn_weights=perfect,
+                spn_weights=(Perfect >> {'True': 0.01, 'False': 0.99}),
                 children={
                     'False'   : GPA >> uniform(loc=0, scale=10),
                     'True'    : GPA >> atomic(loc=10),
@@ -58,9 +56,6 @@ def model_exposed():
         )
 
 def model_ifelse_exhuastive():
-    Nationality = Variable('Nationality')
-    Perfect     = Variable('Perfect')
-    GPA         = Variable('GPA')
     return Start \
         & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
         & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
