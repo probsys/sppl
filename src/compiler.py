@@ -95,34 +95,41 @@ class SPML_Visitor(ast.NodeVisitor):
             'unknown sample target %s' % (str_node,)
 
         # Analyze node.value.
-        if isinstance(node.value, ast.Call) and node.value.func.id == 'array':
+        value = node.value
+        assert isinstance(value, ast.expr), \
+            'unknown sample value %s' % (str_node,)
+        # Assigning array
+        if isinstance(value, ast.Call) and value.func.id == 'array':
             assert self.context == ['global']           # must be global
             assert isinstance(target, ast.Name)         # must not be susbcript
             assert node.targets[0] not in self.arrays   # must be fresh
-            assert len(node.value.args) == 1            # must be array(n)
-            assert isinstance(node.value.args[0], ast.Num) # must be num n
-            assert isinstance(node.value.args[0].n, int)   # must be int n
-            assert node.value.args[0].n > 0                # must be pos n
-            self.arrays[target.id] = node.value.args[0].n
-        # Assigning to distribution or transform.
-        elif isinstance(node.value, (ast.Call, ast.Dict, ast.expr)):
-            value_prime = SPML_Transformer().visit(node.value)
+            assert len(value.args) == 1            # must be array(n)
+            assert isinstance(value.args[0], ast.Num) # must be num n
+            assert isinstance(value.args[0].n, int)   # must be int n
+            assert value.args[0].n > 0                # must be pos n
+            self.arrays[target.id] = value.args[0].n
+        # Sample or Transform.
+        else:
+            value_prime = SPML_Transformer().visit(value)
             src_value = unparse(value_prime).replace(os.linesep, '')
             src_targets = unparse(node.targets).replace(os.linesep, '')
             idt = get_indentation(self.indentation)
-            if isinstance(node.value, ast.Dict):
+            # Determine whether value is Sample or Transform.
+            if isinstance(value, ast.Dict):
                 op = 'Sample'
             else:
-                v = SPML_Visitor_Distributions()
-                v.visit(node.value)
-                op = 'Sample' if v.count else 'Transform'
+                visitor = SPML_Visitor_Distributions()
+                visitor.visit(value)
+                if not visitor.distributions:
+                    op = 'Transform'
+                else:
+                    op = 'Sample'
+                    for d in visitor.distributions:
+                        if d not in self.distributions:
+                            self.distributions[d] = None
+            # Write.
             self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
             self.stream.write('\n')
-            if isinstance(node.value, ast.Call):
-                self.distributions[node.value.func.id] = None
-        else:
-            assert False,\
-            'unknown sample value %s' % (str_node,)
 
     def visit_For(self, node):
         assert isinstance(node.target, ast.Name), unparse(node.target)
@@ -229,9 +236,10 @@ class SPML_Transformer(ast.NodeTransformer):
 
 class SPML_Visitor_Distributions(ast.NodeVisitor):
     def __init__(self):
-        self.count = 0
+        self.distributions = set()
     def visit_Name(self, node):
-        self.count += node.id in DISTRIBUTIONS
+        if node.id in DISTRIBUTIONS:
+            self.distributions.add(node.id)
 
 prog = namedtuple('prog', ('imports', 'variables', 'arrays', 'command'))
 class SPML_Compiler():
