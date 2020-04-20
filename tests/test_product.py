@@ -23,8 +23,6 @@ from spn.transforms import ExpNat as Exp
 from spn.transforms import Identity
 from spn.transforms import LogNat as Log
 
-rng = numpy.random.RandomState(1)
-
 def test_product_distribution_normal_gamma_basic():
     X1 = Identity('X1')
     X2 = Identity('X2')
@@ -46,26 +44,26 @@ def test_product_distribution_normal_gamma_basic():
         children[2],)
     assert spn.get_symbols() == frozenset([X1, X2, X3, X4])
 
-    samples = spn.sample(2, rng)
+    samples = spn.sample(2)
     assert len(samples) == 2
     for sample in samples:
         assert len(sample) == 4
         assert all([X in sample for X in (X1, X2, X3, X4)])
 
-    samples = spn.sample_subset((X1, X2), 10, rng)
+    samples = spn.sample_subset((X1, X2), 10)
     assert len(samples) == 10
     for sample in samples:
         assert len(sample) == 2
         assert X1 in sample
         assert X2 in sample
 
-    samples = spn.sample_func(lambda X1, X2, X3: (X1, (X2**2, X3)), 1, rng)
+    samples = spn.sample_func(lambda X1, X2, X3: (X1, (X2**2, X3)), 1)
     assert len(samples) == 1
     assert len(samples[0]) == 2
     assert len(samples[0][1]) == 2
 
     with pytest.raises(ValueError):
-        spn.sample_func(lambda X1, X5: X1 + X4, 1, rng)
+        spn.sample_func(lambda X1, X5: X1 + X4, 1)
 
 def test_product_inclusion_exclusion_basic():
     X = Identity('X')
@@ -154,7 +152,7 @@ def test_product_condition_basic():
     assert isinstance(dXY_or, SumSPN)
     assert all(isinstance(d, ProductSPN) for d in dXY_or.children)
     assert allclose(dXY_or.logprob(X > 0),dXY_or.weights[0])
-    samples = dXY_or.sample(100, rng)
+    samples = dXY_or.sample(100, prng=numpy.random.RandomState(1))
     assert all(event.evaluate(sample) for sample in samples)
 
     # Condition on a disjoint union with one term in second clause.

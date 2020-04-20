@@ -13,8 +13,6 @@ from spn.spn import SumSPN
 from spn.spn import spn_simplify_sum
 from spn.transforms import Identity
 
-rng = numpy.random.RandomState(1)
-
 def test_sum_simplify_nested_sum_1():
     X = Identity('X')
     children = [

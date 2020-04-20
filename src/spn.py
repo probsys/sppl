@@ -30,6 +30,7 @@ from .math_util import logdiffexp
 from .math_util import logflip
 from .math_util import lognorm
 from .math_util import logsumexp
+from .math_util import random
 
 from .sym_util import ContainersFinite
 from .sym_util import EmptySet
@@ -56,11 +57,11 @@ class SPN(object):
     env = None             # Environment mapping symbols to transforms.
     def __init__(self):
         raise NotImplementedError()
-    def sample(self, N, rng):
+    def sample(self, N, prng=None):
         raise NotImplementedError()
-    def sample_subset(self, symbols, N, rng):
+    def sample_subset(self, symbols, N, prng=None):
         raise NotImplementedError()
-    def sample_func(self, func, N, rng):
+    def sample_func(self, func, N, prng=None):
         raise NotImplementedError()
     def transform(self, symbol, expr):
         raise NotImplementedError()
@@ -200,24 +201,24 @@ class SumSPN(BranchSPN):
             raise ValueError('Mixture must have identical symbols:\n%s' % (syms,))
         self.symbols = self.children[0].get_symbols()
 
-    def sample(self, N, rng):
-        f_sample = lambda i, n: self.children[i].sample(n, rng)
-        return self.sample_many(f_sample, N, rng)
+    def sample(self, N, prng=None):
+        f_sample = lambda i, n: self.children[i].sample(n, prng=prng)
+        return self.sample_many(f_sample, N, prng=prng)
 
-    def sample_subset(self, symbols, N, rng):
+    def sample_subset(self, symbols, N, prng=None):
         f_sample = lambda i, n : \
-            self.children[i].sample_subset(symbols, n, rng)
-        return self.sample_many(f_sample, N, rng)
+            self.children[i].sample_subset(symbols, n, prng=prng)
+        return self.sample_many(f_sample, N, prng=prng)
 
-    def sample_func(self, func, N, rng):
-        f_sample = lambda i, n : self.children[i].sample_func(func, n, rng)
-        return self.sample_many(f_sample, N, rng)
+    def sample_func(self, func, N, prng=None):
+        f_sample = lambda i, n : self.children[i].sample_func(func, n, prng=prng)
+        return self.sample_many(f_sample, N, prng=prng)
 
-    def sample_many(self, func, N, rng):
-        selections = logflip(self.weights, self.indexes, N, rng)
+    def sample_many(self, func, N, prng=None):
+        selections = logflip(self.weights, self.indexes, N, prng)
         counts = Counter(selections)
         samples = [func(i, counts[i]) for i in counts]
-        rng.shuffle(samples)
+        random(prng).shuffle(samples)
         return list(chain.from_iterable(samples))
 
     def transform(self, symbol, expr):
@@ -380,11 +381,11 @@ class ProductSPN(BranchSPN):
         self.lookup = {s:i for i, syms in enumerate(symbols) for s in syms}
         self.symbols = frozenset(get_union(symbols))
 
-    def sample(self, N, rng):
-        samples = [spn.sample(N, rng) for spn in self.children]
+    def sample(self, N, prng=None):
+        samples = [spn.sample(N, prng=prng) for spn in self.children]
         return merge_samples(samples)
 
-    def sample_subset(self, symbols, N, rng):
+    def sample_subset(self, symbols, N, prng=None):
         # Partition symbols by lookup.
         index_to_symbols = {}
         for symbol in symbols:
@@ -394,15 +395,15 @@ class ProductSPN(BranchSPN):
             index_to_symbols[key].append(symbol)
         # Obtain the samples.
         samples = [
-            self.children[i].sample_subset(symbols_i, N, rng)
+            self.children[i].sample_subset(symbols_i, N, prng=prng)
             for i, symbols_i in index_to_symbols.items()
         ]
         # Merge the samples.
         return merge_samples(samples)
 
-    def sample_func(self, func, N, rng):
+    def sample_func(self, func, N, prng=None):
         symbols = func_symbols(self, func)
-        samples = self.sample_subset(symbols, N, rng)
+        samples = self.sample_subset(symbols, N, prng=prng)
         return func_evaluate(self, func, samples)
 
     def transform(self, symbol, expr):
@@ -521,11 +522,11 @@ class LeafSPN(SPN):
     symbol = None          # Symbol (Identity) of base random variable
     def get_symbols(self):
         return frozenset(self.env)
-    def sample(self, N, rng):
-        return self.sample_subset(self.get_symbols(), N, rng)
-    def sample_subset(self, symbols, N, rng):
+    def sample(self, N, prng=None):
+        return self.sample_subset(self.get_symbols(), N, prng=prng)
+    def sample_subset(self, symbols, N, prng=None):
         assert all(s in self.get_symbols() for s in symbols)
-        samples = self.sample__(N, rng)
+        samples = self.sample__(N, prng)
         if symbols == {self.symbol}:
             return samples
         simulations = [{}] * N
@@ -537,8 +538,8 @@ class LeafSPN(SPN):
                 if symbol in symbols:
                     simulations[i][symbol] = sample[symbol]
         return simulations
-    def sample_func(self, func, N, rng):
-        samples = self.sample(N, rng)
+    def sample_func(self, func, N, prng=None):
+        samples = self.sample(N, prng=prng)
         return func_evaluate(self, func, samples)
     def logpdf(self, x):
         raise NotImplementedError()
@@ -575,7 +576,7 @@ class LeafSPN(SPN):
             event = event_factor_to_event(event_factor)
             memo.condition[key] = self.condition(event)
         return memo.condition[key]
-    def sample__(self, N, rng):
+    def sample__(self, N, prng):
         raise NotImplementedError()
     def logprob__(self, event):
         raise NotImplementedError()
@@ -613,18 +614,18 @@ class RealLeaf(LeafSPN):
         return (type(self))(self.symbol, self.dist, self.support,
             self.conditioned, env)
 
-    def sample__(self, N, rng):
+    def sample__(self, N, prng):
         if self.conditioned:
             # XXX Method not guaranteed to be numerically stable, see e.g,.
             # https://www.iro.umontreal.ca/~lecuyer/myftp/papers/truncated-normal-book-chapter.pdf
             # Also consider using CDF for left tail and SF for right tail.
             # Example: X ~ N(0,1) can sample X | (X < -10) but not X | (X > 10).
-            u = rng.uniform(size=N)
+            u = random(prng).uniform(size=N)
             u_interval = u*self.Fl + (1-u) * self.Fu
             xs = self.dist.ppf(u_interval)
         else:
             # Simulation by vanilla inversion sampling.
-            xs = self.dist.rvs(size=N, random_state=rng)
+            xs = self.dist.rvs(size=N, random_state=prng)
         # Wrap result in a dictionary.
         return [{self.symbol : x} for x in xs]
 
@@ -830,9 +831,9 @@ class NominalLeaf(LeafSPN):
     def transform(self, symbol, expr):
         raise ValueError('Cannot transform Nominal: %s %s' % (symbol, expr))
 
-    def sample__(self, N, rng):
+    def sample__(self, N, prng):
         # TODO: Replace with FLDR.
-        xs = flip(self.weights, self.outcomes, N, rng)
+        xs = flip(self.weights, self.outcomes, N, prng)
         return [{self.symbol: x} for x in xs]
 
     def logprob__(self, event):

@@ -18,8 +18,6 @@ from spn.spn import SumSPN
 from spn.sym_util import Reals
 from spn.transforms import Identity
 
-rng = numpy.random.RandomState(1)
-
 def test_numeric_distribution_normal():
     X = Identity('X')
     spn = (X >> norm(loc=0, scale=1))
@@ -35,15 +33,15 @@ def test_numeric_distribution_normal():
     assert isinf_neg(spn.logprob(abs(X) < 0))
     assert isinf_neg(spn.logprob(X << {1}))
 
-    spn.sample(100, rng)
-    spn.sample_subset([X], 100, rng)
-    assert spn.sample_subset([], 100, rng) == [{}]*100
-    spn.sample_func(lambda X: X**2, 1, rng)
-    spn.sample_func(lambda X: abs(X)+X**2, 1, rng)
-    spn.sample_func(lambda X: X**2 if X > 0 else X**3, 100, rng)
+    spn.sample(100)
+    spn.sample_subset([X], 100)
+    assert spn.sample_subset([], 100) == [{}]*100
+    spn.sample_func(lambda X: X**2, 1)
+    spn.sample_func(lambda X: abs(X)+X**2, 1)
+    spn.sample_func(lambda X: X**2 if X > 0 else X**3, 100)
 
     spn_condition_a = spn.condition((X < 2) | (X > 10))
-    samples = spn_condition_a.sample(100, rng)
+    samples = spn_condition_a.sample(100)
     assert all(s[X] < 2 for s in samples)
 
     spn_condition_b = spn.condition((X < -10) | (X > 10))
@@ -55,7 +53,7 @@ def test_numeric_distribution_normal():
         spn_condition_c = spn.condition(event)
         assert isinstance(spn_condition_c, ContinuousLeaf)
         assert isinf_neg(spn_condition_c.logprob((-1 < X) < 1))
-        samples = spn_condition_c.sample(100, rng)
+        samples = spn_condition_c.sample(100, prng=numpy.random.RandomState(1))
         assert all(s[X] in event.values for s in samples)
 
     with pytest.raises(ValueError):
@@ -65,7 +63,7 @@ def test_numeric_distribution_normal():
         spn.condition(X << {1})
 
     with pytest.raises(ValueError):
-        spn.sample_func(lambda Z: Z**2, 1, rng)
+        spn.sample_func(lambda Z: Z**2, 1)
 
     x = spn.logprob((X << {1, 2}) | (X < -1))
     assert allclose(x, spn.logprob(X < -1))

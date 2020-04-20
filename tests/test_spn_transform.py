@@ -1,15 +1,12 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-import numpy
 import pytest
 
 from spn.distributions import norm
 from spn.distributions import poisson
 from spn.math_util import allclose
 from spn.transforms import Identity
-
-rng = numpy.random.RandomState(1)
 
 def test_transform_real_leaf_logprob():
     X = Identity('X')
@@ -46,12 +43,12 @@ def test_transform_real_leaf_sample():
     spn = (X >> poisson(loc=-1, mu=1))
     spn = spn.transform(Z, X+1)
     spn = spn.transform(Y, Z-1)
-    samples = spn.sample(100, rng)
+    samples = spn.sample(100)
     assert any(s[X] == -1 for s in samples)
     assert all(0 <= s[Z] for s in samples)
     assert all(s[Y] == s[X] for s in samples)
-    assert all(spn.sample_func(lambda X,Y,Z: X-Y+Z==Z, 100, rng))
-    assert all(set(s) == {X,Y} for s in spn.sample_subset([X, Y], 100, rng))
+    assert all(spn.sample_func(lambda X,Y,Z: X-Y+Z==Z, 100))
+    assert all(set(s) == {X,Y} for s in spn.sample_subset([X, Y], 100))
 
 def test_transform_sum():
     X = Identity('X')

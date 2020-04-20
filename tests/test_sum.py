@@ -24,8 +24,6 @@ from spn.spn import spn_simplify_sum
 from spn.sym_util import NominalSet
 from spn.transforms import Identity
 
-rng = numpy.random.RandomState(1)
-
 def test_sum_normal_gamma():
     X = Identity('X')
     weights = [
@@ -40,17 +38,17 @@ def test_sum_normal_gamma():
         spn.weights[1] + spn.children[1].logprob(X > 0),
     ])
     assert spn.logprob(X < 0) == log(Fraction(2, 3)) + log(Fraction(1, 2))
-    samples = spn.sample(100, rng)
+    samples = spn.sample(100, prng=numpy.random.RandomState(1))
     assert all(s[X] for s in samples)
-    spn.sample_func(lambda X: abs(X**3), 100, rng)
+    spn.sample_func(lambda X: abs(X**3), 100)
     with pytest.raises(ValueError):
-        spn.sample_func(lambda Y: abs(X**3), 100, rng)
+        spn.sample_func(lambda Y: abs(X**3), 100)
 
     spn_condition = spn.condition(X < 0)
     assert isinstance(spn_condition, ContinuousLeaf)
     assert spn_condition.conditioned
     assert spn_condition.logprob(X < 0) == 0
-    samples = spn_condition.sample(100, rng)
+    samples = spn_condition.sample(100)
     assert all(s[X] < 0 for s in samples)
 
     assert spn.logprob(X < 0) == logsumexp([

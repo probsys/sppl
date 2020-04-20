@@ -15,8 +15,6 @@ from spn.spn import DiscreteLeaf
 from spn.spn import SumSPN
 from spn.transforms import Identity
 
-rng = numpy.random.RandomState(1)
-
 def test_poisson():
     X = Identity('X')
     spn = X >> poisson(mu=5)
@@ -40,7 +38,7 @@ def test_poisson():
         spn_condition.logprob(X <= 10),
         spn_condition.logpdf(10))
 
-    samples = spn_condition.sample(100, rng)
+    samples = spn_condition.sample(100)
     assert all(10 <= s[X] for s in samples)
 
     # Unify X = 5 with left interval to make one distribution.
@@ -51,7 +49,7 @@ def test_poisson():
     assert spn_condition.xl == 1
     assert spn_condition.xu == 5
     assert spn_condition.support == sympy.Range(1, 6, 1)
-    samples = spn_condition.sample(100, rng)
+    samples = spn_condition.sample(100, prng=numpy.random.RandomState(1))
     assert all(event.evaluate(s) for s in samples)
 
     # Ignore X = 14/3 as a probability zero condition.

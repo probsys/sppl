@@ -32,7 +32,7 @@ def logflip(logp, array, size, rng):
 
 def flip(p, array, size, rng):
     p = normalize(p)
-    return rng.choice(array, size=size, p=p)
+    return random(rng).choice(array, size=size, p=p)
 
 def normalize(p):
     s = float(sum(p))
@@ -46,3 +46,6 @@ def isinf_pos(x):
 
 def isinf_neg(x):
     return isinf(x) and x < 0
+
+def random(x):
+    return x or numpy.random
