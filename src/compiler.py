@@ -246,11 +246,13 @@ class SPML_Compiler():
         self.prog.imports.write('\n')
         # Write the variables.
         if visitor.variables:
-            self.prog.variables.write('# VARIABLE DECLARATIONS')
-            self.prog.variables.write('\n')
-            for v in visitor.variables:
-                self.prog.variables.write('%s = Variable(\'%s\')' % (v, v,))
+            variables = [v for v in visitor.variables if v not in visitor.arrays]
+            if variables:
+                self.prog.variables.write('# VARIABLE DECLARATIONS')
                 self.prog.variables.write('\n')
+                for v in variables:
+                    self.prog.variables.write('%s = Variable(\'%s\')' % (v, v,))
+                    self.prog.variables.write('\n')
         # Write the arrays.
         if visitor.arrays:
             self.prog.arrays.write('# ARRAY DECLARATIONS')
