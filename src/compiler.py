@@ -258,7 +258,8 @@ class SPML_Compiler():
         # Write the imports.
         self.prog.imports.write("# IMPORT STATEMENTS")
         self.prog.imports.write('\n')
-        for c in ['Cond', 'Repeat', 'Sample', 'Sequence', 'Transform', 'Variable', 'VariableArray']:
+        for c in ['Cond', 'Repeat', 'Sample', 'Sequence', 'Transform',
+                    'Variable', 'VariableArray']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')
         self.prog.imports.write('from spn.distributions import *')
