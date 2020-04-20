@@ -9,7 +9,8 @@ import sympy
 class RealDistribution():
     dist = None
     constructor = None
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        assert not args, 'Only keyword arguments allowed for %s' % (self.dist.name,)
         self.kwargs = kwargs
     def __call__(self, symbol):
         domain = self.get_domain(**self.kwargs)
