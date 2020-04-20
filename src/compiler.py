@@ -141,17 +141,17 @@ class SPML_Visitor(ast.NodeVisitor):
         if len(node.iter.args) == 2:
             n0 = unparse(node.iter.args[0]).strip()
             n1 = unparse(node.iter.args[1]).strip()
-        # Open Repeat.
+        # Open For.
         self.context.append('for')
         idt = get_indentation(self.indentation)
         idx = unparse(node.target).strip()
-        self.stream.write('%sRepeat(%s, %s, lambda %s:' % (idt, n0, n1, idx))
+        self.stream.write('%sFor(%s, %s, lambda %s:' % (idt, n0, n1, idx))
         self.stream.write('\n')
         # Write body.
         self.indentation += 4
         self.generic_visit(ast.Module(node.body))
         self.indentation -= 4
-        # Close repeat.
+        # Close For.
         idt = get_indentation(self.indentation)
         self.stream.write('%s),' % (idt,))
         self.stream.write('\n')
@@ -269,7 +269,7 @@ class SPML_Compiler():
         for d in sorted(visitor.distributions):
             self.prog.imports.write('from spn.distributions import %s' % (d,))
             self.prog.imports.write('\n')
-        for c in ['IfElse', 'Repeat', 'Sample', 'Sequence', 'Transform',
+        for c in ['IfElse', 'For', 'Sample', 'Sequence', 'Transform',
                     'Variable', 'VariableArray']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')

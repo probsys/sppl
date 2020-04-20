@@ -4,9 +4,9 @@
 from math import log
 
 from spn.distributions import bernoulli
+from spn.interpreter import For
 from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
-from spn.interpreter import Repeat
 from spn.interpreter import Sample
 from spn.interpreter import Start
 from spn.interpreter import Variable
@@ -20,7 +20,7 @@ Z = VariableArray('Z', 5)
 def test_simple_model():
     model = (Start
         & Sample(Y, bernoulli(p=0.5))
-        & Repeat(0, 5, lambda i:
+        & For(0, 5, lambda i:
             Sample(X[i], bernoulli(p=1/(i+1)))))
 
     symbols = model.get_symbols()
@@ -42,7 +42,7 @@ def test_complex_model():
     # https://github.com/probcomp/sum-product-dsl/issues/43
     model = (Start
     & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
-    & Repeat(0, 3, lambda i:
+    & For(0, 3, lambda i:
         Sample(Z[i], bernoulli(p=0.1))
         & IfElse(
             Y << {str(i)} | Z[i] << {0},  Sample(X[i], bernoulli(p=1/(i+1))),
@@ -52,9 +52,9 @@ def test_complex_model():
 def test_complex_model_reorder():
     model = (Start
     & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
-    & Repeat(0, 3, lambda i:
+    & For(0, 3, lambda i:
         Sample(Z[i], bernoulli(p=0.1)))
-    & Repeat(0, 3, lambda i:
+    & For(0, 3, lambda i:
         IfElse(
             Y << {str(i)},
                 Sample(X[i], bernoulli(p=1/(i+1))),
@@ -66,7 +66,7 @@ def test_complex_model_reorder():
     assert(allclose(model.prob(Y << {'0'}), 0.2))
 
 def test_repeat_handcode_equivalence():
-    model_repeat = make_model_repeat()
+    model_repeat = make_model_for()
     model_hand = make_model_handcode()
 
     assert allclose(model_repeat.prob(Y << {'0', '1'}), 0.4)
@@ -108,10 +108,10 @@ def test_repeat_handcode_equivalence():
 # ==============================================================================
 # Helper functions.
 
-def make_model_repeat(n=2):
+def make_model_for(n=2):
     return (Start
         & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
-        & Repeat(0, n, lambda i:
+        & For(0, n, lambda i:
             Sample(Z[i], bernoulli(p=.5))
             & IfElse(
                 (Y << {str(i)}) | (Z[i] << {0}),    Sample(X[i], bernoulli(p=.1)),

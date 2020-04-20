@@ -101,7 +101,7 @@ class IfElse(Command):
         # Return the SPN.
         return SumSPN(children, weights) if 1 < len(children) else children[0]
 
-class Repeat(Command):
+class For(Command):
     def __init__(self, n0, n1, f):
         self.n0 = n0
         self.n1 = n1
