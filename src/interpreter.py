@@ -127,4 +127,3 @@ class Sequence(Command):
 
 Start = None
 Otherwise = True
-Cond = IfElse

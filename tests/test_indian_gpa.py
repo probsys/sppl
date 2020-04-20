@@ -14,10 +14,10 @@ import pytest
 from spn.compiler import SPML_Compiler
 from spn.distributions import atomic
 from spn.distributions import uniform
-from spn.interpreter import Cond
+from spn.interpreter import IfElse
+from spn.interpreter import Sample
 from spn.interpreter import Start
 from spn.interpreter import Variable
-from spn.interpreter import Sample
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
 from spn.transforms import Identity
@@ -59,7 +59,7 @@ def model_ifelse_exhuastive():
     return Start \
         & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
         & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
-        & Cond (
+        & IfElse(
             (Nationality << {'India'}) & (Perfect << {'False'}),
                 Sample(GPA, uniform(loc=0, scale=10))
             ,
@@ -79,7 +79,7 @@ def model_ifelse_non_exhuastive():
     return Start \
         & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
         & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
-        & Cond (
+        & IfElse(
             (Nationality << {'India'}) & (Perfect << {'False'}),
                 Sample(GPA, uniform(loc=0, scale=10))
             ,
@@ -99,14 +99,14 @@ def model_ifelse_nested():
     return Start \
         & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
         & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
-        & Cond (
+        & IfElse(
             Nationality << {'India'},
-                Cond (
+                IfElse(
                     Perfect << {'True'},    Sample(GPA, atomic(loc=10)),
                     Perfect << {'False'},   Sample(GPA, uniform(scale=10)),
                 ),
             Nationality << {'USA'},
-                Cond (
+                IfElse(
                     Perfect << {'True'},    Sample(GPA, atomic(loc=4)),
                     Perfect << {'False'},   Sample(GPA, uniform(scale=4)),
                 ))
@@ -117,16 +117,16 @@ def model_perfect_nested():
     GPA         = Variable('GPA')
     return Start \
         & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
-        & Cond (
+        & IfElse(
             Nationality << {'India'},
                 Sample(Perfect, {'True': 0.01, 'False': 0.99}) \
-                & Cond (
+                & IfElse(
                     Perfect << {'True'},    Sample(GPA, atomic(loc=10)),
                     True,                   Sample(GPA, uniform(scale=10)),
                 ),
             Nationality << {'USA'},
                 Sample(Perfect, {'True': 0.01, 'False': 0.99}) \
-                & Cond (
+                & IfElse(
                     Perfect << {'True'},    Sample(GPA, atomic(loc=4)),
                     True,                   Sample(GPA, uniform(scale=4)),
                 ))

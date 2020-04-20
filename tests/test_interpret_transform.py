@@ -5,7 +5,7 @@ from math import log
 
 from spn.distributions import bernoulli
 from spn.distributions import norm
-from spn.interpreter import Cond
+from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
 from spn.interpreter import Sample
 from spn.interpreter import Start
@@ -28,7 +28,7 @@ def test_simple_transform():
 def test_if_else_transform():
     model = (Start
         & Sample(X, norm(loc=0, scale=1))
-        & Cond (
+        & IfElse(
             X > 0,
                 Transform(Z, X**2),
             Otherwise,
@@ -44,7 +44,7 @@ def test_if_else_transform_reverse():
     model = (Start
         & Sample(X, norm(loc=0, scale=1))
         & Sample(Y, bernoulli(p=0.5))
-        & Cond (
+        & IfElse(
             Y << {0},
                 Transform(Z, X**2),
             Otherwise,

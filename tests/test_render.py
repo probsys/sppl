@@ -2,12 +2,9 @@
 # See LICENSE.txt
 
 import os
-import tempfile
-
-import pytest
 
 from spn.distributions import bernoulli
-from spn.interpreter import Cond
+from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
 from spn.interpreter import Sample
 from spn.interpreter import Start
@@ -24,7 +21,7 @@ def test_render_crash():
     model = (Start
         & Sample(Y,     {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
         & Sample(Z,     bernoulli(p=0.1))
-        & Cond (
+        & IfElse(
             Y << {str(0)} | Z << {0},  Sample(X, bernoulli(p=1/(0+1)) ),
             Otherwise,                 Sample(X, bernoulli(p=0.1))))
     render_nested_lists_concise(model)

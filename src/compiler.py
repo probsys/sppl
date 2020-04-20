@@ -161,9 +161,9 @@ class SPML_Visitor(ast.NodeVisitor):
         unrolled = unroll_if(node)
         assert 2 <= len(unrolled), 'if needs elif/else: %s' % (unparse(node))
         idt = get_indentation(self.indentation)
-        # Open Cond.
+        # Open IfElse.
         self.context.append('if')
-        self.stream.write('%sCond(' % (idt,))
+        self.stream.write('%sIfElse(' % (idt,))
         self.stream.write('\n')
         # Write branches.
         self.indentation += 4
@@ -183,7 +183,7 @@ class SPML_Visitor(ast.NodeVisitor):
             if i > 0:
                 self.context.pop()
         self.indentation -= 4
-        # Close Cond.
+        # Close IfElse.
         idt = get_indentation(self.indentation)
         self.stream.write('%s),' % (idt,))
         self.stream.write('\n')
@@ -269,7 +269,7 @@ class SPML_Compiler():
         for d in sorted(visitor.distributions):
             self.prog.imports.write('from spn.distributions import %s' % (d,))
             self.prog.imports.write('\n')
-        for c in ['Cond', 'Repeat', 'Sample', 'Sequence', 'Transform',
+        for c in ['IfElse', 'Repeat', 'Sample', 'Sequence', 'Transform',
                     'Variable', 'VariableArray']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')

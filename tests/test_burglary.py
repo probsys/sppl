@@ -9,7 +9,7 @@ Russel and Norvig, Fig 14.2 pp 512.
 '''
 
 from spn.distributions import bernoulli
-from spn.interpreter import Cond
+from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
 from spn.interpreter import Sample
 from spn.interpreter import Start
@@ -22,18 +22,18 @@ JohnCalls   = Variable('JohnCalls')
 MaryCalls   = Variable('MaryCalls')
 
 model = (Start
-    & Sample(Burglary,   bernoulli(p=0.001))
-    & Sample(Earthquake, bernoulli(p=0.002))
-    & Cond (
+    & Sample (Burglary,   bernoulli(p=0.001))
+    & Sample (Earthquake, bernoulli(p=0.002))
+    & IfElse (
         Burglary << {1},
-            Cond (
+            IfElse (
                 Earthquake << {1},  Sample(Alarm, bernoulli(p=0.95)),
                 Otherwise,          Sample(Alarm, bernoulli(p=0.94))),
         Otherwise,
-            Cond (
+            IfElse (
                 Earthquake << {1},  Sample(Alarm, bernoulli(p=0.29)),
                 Otherwise,          Sample(Alarm, bernoulli(p=0.001))))
-    & Cond (
+    & IfElse (
         Alarm << {1},
             Sample(JohnCalls,   bernoulli(p=0.90))
             & Sample(MaryCalls, bernoulli(p=0.70)),

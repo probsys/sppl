@@ -4,7 +4,7 @@
 from math import log
 
 from spn.distributions import bernoulli
-from spn.interpreter import Cond
+from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
 from spn.interpreter import Repeat
 from spn.interpreter import Sample
@@ -44,7 +44,7 @@ def test_complex_model():
     & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
     & Repeat(0, 3, lambda i:
         Sample(Z[i], bernoulli(p=0.1))
-        & Cond (
+        & IfElse(
             Y << {str(i)} | Z[i] << {0},  Sample(X[i], bernoulli(p=1/(i+1))),
             Otherwise,                    Sample(X[i], bernoulli(p=0.1)))))
     assert allclose(model.prob(Y << {'0'}), 0.2)
@@ -55,7 +55,7 @@ def test_complex_model_reorder():
     & Repeat(0, 3, lambda i:
         Sample(Z[i], bernoulli(p=0.1)))
     & Repeat(0, 3, lambda i:
-        Cond (
+        IfElse(
             Y << {str(i)},
                 Sample(X[i], bernoulli(p=1/(i+1))),
             Z[i] << {0},
@@ -113,7 +113,7 @@ def make_model_repeat(n=2):
         & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
         & Repeat(0, n, lambda i:
             Sample(Z[i], bernoulli(p=.5))
-            & Cond (
+            & IfElse(
                 (Y << {str(i)}) | (Z[i] << {0}),    Sample(X[i], bernoulli(p=.1)),
                 Otherwise,                          Sample(X[i], bernoulli(p=.5)))))
 
@@ -122,21 +122,21 @@ def make_model_handcode():
         & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
         & Sample(Z[0], bernoulli(p=.5))
         & Sample(Z[1], bernoulli(p=.5))
-        & Cond (
+        & IfElse(
             Y << {str(0)},
                 Sample(X[0], bernoulli(p=.1))
-                & Cond(
+                & IfElse(
                     Z[1] << {0},    Sample(X[1], bernoulli(p=.1)),
                     Otherwise,      Sample(X[1], bernoulli(p=.5))),
             Y << {str(1)},
                 Sample(X[1], bernoulli(p=.1))
-                & Cond(
+                & IfElse(
                     Z[0] << {0},    Sample(X[0], bernoulli(p=.1)),
                     Otherwise,      Sample(X[0], bernoulli(p=.5))),
             Otherwise,
-                Cond(
+                IfElse(
                     Z[0] << {0},    Sample(X[0], bernoulli(p=.1)),
                     Otherwise,      Sample(X[0], bernoulli(p=.5)))
-                & Cond(
+                & IfElse(
                     Z[1] << {0},    Sample(X[1], bernoulli(p=.1)),
                     Otherwise,      Sample(X[1], bernoulli(p=.5)))))
