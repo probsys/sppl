@@ -200,12 +200,17 @@ Z = bernoulli(p=0.1)
 
 E = {'1': 0.3, '2': 0.7}
 
+
 for i in range(1,5):
     W[i] = uniform(loc=0, scale=2)
     X[i] = bernoulli(p=0.5)
 
 X[0] ~= gamma(a=1)
 H = (X[0]**2 + 2*X[0] + 3)**(1, 10)
+
+# Here is a comment, with indentation on next line
+    
+
 
 X[5] ~= 0.3*atomic(loc=0) | 0.4*atomic(loc=-1) | 0.3*atomic(loc=3)
 if X[5] == 0:

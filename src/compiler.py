@@ -226,7 +226,9 @@ class SPML_Compiler():
             command=io.StringIO())
         self.compile()
     def preprocess(self):
-        source_prime = self.source.replace('~=', '=')
+        lines = self.source.split(os.linesep)
+        source_prime = os.linesep.join(l for l in lines if l.strip())
+        source_prime = source_prime.replace('~=', '=')
         return source_prime
     def compile(self):
         # Parse and visit.
