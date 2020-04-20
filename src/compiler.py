@@ -226,7 +226,9 @@ class SPML_Compiler():
             command=io.StringIO())
         self.compile()
     def preprocess(self):
-        source_prime = self.source.replace('~=', '=')
+        lines = self.source.split(os.linesep)
+        source_prime = os.linesep.join(l for l in lines if l.strip())
+        source_prime = source_prime.replace('~=', '=')
         return source_prime
     def compile(self):
         # Parse and visit.
@@ -241,6 +243,7 @@ class SPML_Compiler():
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')
         self.prog.imports.write('from spn.distributions import *')
+        self.prog.imports.write('\n')
         # Write the variables.
         if visitor.variables:
             self.prog.variables.write('# VARIABLE DECLARATIONS')
