@@ -4,6 +4,7 @@
 """"Compiler from SPML to Python 3."""
 
 import ast
+import inspect
 import copy
 import io
 import os
@@ -15,6 +16,12 @@ from contextlib import contextmanager
 
 from astunparse import unparse
 
+def __load_spn_distributions():
+    from . import distributions
+    members = inspect.getmembers(distributions,lambda t: isinstance(t, type))
+    return frozenset(m for (m, v) in members if m[0].islower())
+
+DISTRIBUTIONS = __load_spn_distributions()
 get_indentation = lambda i: ' ' * i
 
 @contextmanager
@@ -103,7 +110,13 @@ class SPML_Visitor(ast.NodeVisitor):
             src_value = unparse(value_prime).replace(os.linesep, '')
             src_targets = unparse(node.targets).replace(os.linesep, '')
             idt = get_indentation(self.indentation)
-            self.stream.write('%s%s >> %s,' % (idt, src_targets, src_value))
+            if isinstance(node.value, ast.Dict):
+                op = 'Sample'
+            else:
+                v = SPML_Visitor_Distributions()
+                v.visit(node.value)
+                op = 'Sample' if v.count else 'Transform'
+            self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
             self.stream.write('\n')
             if isinstance(node.value, ast.Call):
                 self.distributions[node.value.func.id] = None
@@ -214,6 +227,12 @@ class SPML_Transformer(ast.NodeTransformer):
                 operand=self.visit_Compare(node_copy))
         return node
 
+class SPML_Visitor_Distributions(ast.NodeVisitor):
+    def __init__(self):
+        self.count = 0
+    def visit_Name(self, node):
+        self.count += node.id in DISTRIBUTIONS
+
 prog = namedtuple('prog', ('imports', 'variables', 'arrays', 'command'))
 class SPML_Compiler():
     def __init__(self, source, modelname='model'):
@@ -239,7 +258,7 @@ class SPML_Compiler():
         # Write the imports.
         self.prog.imports.write("# IMPORT STATEMENTS")
         self.prog.imports.write('\n')
-        for c in ['Cond', 'Repeat', 'Sequence', 'Variable', 'VariableArray']:
+        for c in ['Cond', 'Repeat', 'Sample', 'Sequence', 'Transform', 'Variable', 'VariableArray']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')
         self.prog.imports.write('from spn.distributions import *')

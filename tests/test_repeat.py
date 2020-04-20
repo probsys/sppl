@@ -7,6 +7,7 @@ from spn.distributions import bernoulli
 from spn.interpreter import Cond
 from spn.interpreter import Otherwise
 from spn.interpreter import Repeat
+from spn.interpreter import Sample
 from spn.interpreter import Start
 from spn.interpreter import Variable
 from spn.interpreter import VariableArray
@@ -18,9 +19,9 @@ Z = VariableArray('Z', 5)
 
 def test_simple_model():
     model = (Start
-        & Y >> bernoulli(p=0.5)
+        & Sample(Y, bernoulli(p=0.5))
         & Repeat(0, 5, lambda i:
-            X[i] >> bernoulli(p=1/(i+1))))
+            Sample(X[i], bernoulli(p=1/(i+1)))))
 
     symbols = model.get_symbols()
     assert len(symbols) == 6
@@ -40,27 +41,27 @@ def test_complex_model():
     # Slow for larger number of repetitions
     # https://github.com/probcomp/sum-product-dsl/issues/43
     model = (Start
-    & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
+    & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
     & Repeat(0, 3, lambda i:
-        Z[i] >> bernoulli(p=0.1)
+        Sample(Z[i], bernoulli(p=0.1))
         & Cond (
-            Y << {str(i)} | Z[i] << {0},  X[i] >> bernoulli(p=1/(i+1)),
-            Otherwise,                    X[i] >> bernoulli(p=0.1))))
+            Y << {str(i)} | Z[i] << {0},  Sample(X[i], bernoulli(p=1/(i+1))),
+            Otherwise,                    Sample(X[i], bernoulli(p=0.1)))))
     assert allclose(model.prob(Y << {'0'}), 0.2)
 
 def test_complex_model_reorder():
     model = (Start
-    & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
+    & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
     & Repeat(0, 3, lambda i:
-        Z[i] >> bernoulli(p=0.1))
+        Sample(Z[i], bernoulli(p=0.1)))
     & Repeat(0, 3, lambda i:
         Cond (
             Y << {str(i)},
-                X[i] >> bernoulli(p=1/(i+1)),
+                Sample(X[i], bernoulli(p=1/(i+1))),
             Z[i] << {0},
-                X[i] >> bernoulli(p=1/(i+1)),
+                Sample(X[i], bernoulli(p=1/(i+1))),
             Otherwise,
-                X[i] >> bernoulli(p=0.1)
+                Sample(X[i], bernoulli(p=0.1))
     )))
     assert(allclose(model.prob(Y << {'0'}), 0.2))
 
@@ -109,33 +110,33 @@ def test_repeat_handcode_equivalence():
 
 def make_model_repeat(n=2):
     return (Start
-        & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
+        & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
         & Repeat(0, n, lambda i:
-            Z[i] >> bernoulli(p=.5)
+            Sample(Z[i], bernoulli(p=.5))
             & Cond (
-                (Y << {str(i)}) | (Z[i] << {0}),    X[i] >> bernoulli(p=.1),
-                Otherwise,                          X[i] >> bernoulli(p=.5))))
+                (Y << {str(i)}) | (Z[i] << {0}),    Sample(X[i], bernoulli(p=.1)),
+                Otherwise,                          Sample(X[i], bernoulli(p=.5)))))
 
 def make_model_handcode():
     return (Start
-        & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
-        & Z[0] >> bernoulli(p=.5)
-        & Z[1] >> bernoulli(p=.5)
+        & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+        & Sample(Z[0], bernoulli(p=.5))
+        & Sample(Z[1], bernoulli(p=.5))
         & Cond (
             Y << {str(0)},
-                X[0] >> bernoulli(p=.1)
+                Sample(X[0], bernoulli(p=.1))
                 & Cond(
-                    Z[1] << {0},    X[1] >> bernoulli(p=.1),
-                    Otherwise,      X[1] >> bernoulli(p=.5)),
+                    Z[1] << {0},    Sample(X[1], bernoulli(p=.1)),
+                    Otherwise,      Sample(X[1], bernoulli(p=.5))),
             Y << {str(1)},
-                X[1] >> bernoulli(p=.1)
+                Sample(X[1], bernoulli(p=.1))
                 & Cond(
-                    Z[0] << {0},    X[0] >> bernoulli(p=.1),
-                    Otherwise,      X[0] >> bernoulli(p=.5)),
+                    Z[0] << {0},    Sample(X[0], bernoulli(p=.1)),
+                    Otherwise,      Sample(X[0], bernoulli(p=.5))),
             Otherwise,
                 Cond(
-                    Z[0] << {0},    X[0] >> bernoulli(p=.1),
-                    Otherwise,      X[0] >> bernoulli(p=.5))
+                    Z[0] << {0},    Sample(X[0], bernoulli(p=.1)),
+                    Otherwise,      Sample(X[0], bernoulli(p=.5)))
                 & Cond(
-                    Z[1] << {0},    X[1] >> bernoulli(p=.1),
-                    Otherwise,      X[1] >> bernoulli(p=.5))))
+                    Z[1] << {0},    Sample(X[1], bernoulli(p=.1)),
+                    Otherwise,      Sample(X[1], bernoulli(p=.5)))))
