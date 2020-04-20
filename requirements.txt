@@ -1,3 +1,4 @@
+astunparse==1.6.3
 graphviz==0.13.2
 networkx==2.4
 numpy==1.17.*

@@ -11,6 +11,7 @@ https://arxiv.org/pdf/1806.02027.pdf
 
 import pytest
 
+from spn.compiler import SPML_Compiler
 from spn.distributions import atomic
 from spn.distributions import uniform
 from spn.interpreter import Cond
@@ -134,13 +135,89 @@ def model_perfect_nested():
                     True,   GPA >> uniform(scale=4),
                 ))
 
+def model_ifelse_exhuastive_compiled():
+    compiler = SPML_Compiler('''
+Nationality   ~= {'India': 0.5, 'USA': 0.5}
+Perfect       ~= {'True': 0.01, 'False': 0.99}
+if (Nationality == 'India') & (Perfect == 'False'):
+    GPA ~= uniform(loc=0, scale=10)
+elif (Nationality == 'India') & (Perfect == 'True'):
+    GPA ~= atomic(loc=10)
+elif (Nationality == 'USA') & (Perfect == 'False'):
+    GPA ~= uniform(loc=0, scale=4)
+elif (Nationality == 'USA') & (Perfect == 'True'):
+    GPA ~= atomic(loc=4)
+    ''')
+    namespace = compiler.execute_module()
+    return namespace.model
+
+def model_ifelse_non_exhuastive_compiled():
+    compiler = SPML_Compiler('''
+Nationality   ~= {'India': 0.5, 'USA': 0.5}
+Perfect       ~= {'True': 0.01, 'False': 0.99}
+if (Nationality == 'India') & (Perfect == 'False'):
+    GPA ~= uniform(loc=0, scale=10)
+elif (Nationality == 'India') & (Perfect == 'True'):
+    GPA ~= atomic(loc=10)
+elif (Nationality == 'USA') & (Perfect == 'False'):
+    GPA ~= uniform(loc=0, scale=4)
+else:
+    GPA ~= atomic(loc=4)
+    ''')
+    namespace = compiler.execute_module()
+    return namespace.model
+
+def model_ifelse_nested_compiled():
+    compiler = SPML_Compiler('''
+Nationality   ~= {'India': 0.5, 'USA': 0.5}
+Perfect       ~= {'True': 0.01, 'False': 0.99}
+if (Nationality == 'India'):
+    if (Perfect == 'False'):
+        GPA ~= uniform(loc=0, scale=10)
+    else:
+        GPA ~= atomic(loc=10)
+elif (Nationality == 'USA'):
+    if (Perfect == 'False'):
+        GPA ~= uniform(loc=0, scale=4)
+    elif (Perfect == 'True'):
+        GPA ~= atomic(loc=4)
+    ''')
+    namespace = compiler.execute_module()
+    return namespace.model
+
+def model_perfect_nested_compiled():
+    compiler = SPML_Compiler('''
+Nationality   ~= {'India': 0.5, 'USA': 0.5}
+if (Nationality == 'India'):
+    Perfect       ~= {'True': 0.01, 'False': 0.99}
+    if (Perfect == 'False'):
+        GPA ~= uniform(loc=0, scale=10)
+    else:
+        GPA ~= atomic(loc=10)
+elif (Nationality == 'USA'):
+    Perfect       ~= {'True': 0.01, 'False': 0.99}
+    if (Perfect == 'False'):
+        GPA ~= uniform(loc=0, scale=4)
+    else:
+        GPA ~= atomic(loc=4)
+    ''')
+    namespace = compiler.execute_module()
+    return namespace.model
+
 @pytest.mark.parametrize('get_model', [
+    # Manual
     model_no_latents,
     model_exposed,
+    # Interpreter
     model_ifelse_exhuastive,
     model_ifelse_non_exhuastive,
     model_ifelse_nested,
     model_perfect_nested,
+    # Compiler
+    model_ifelse_exhuastive_compiled,
+    model_ifelse_non_exhuastive_compiled,
+    model_ifelse_nested_compiled,
+    model_perfect_nested_compiled,
 ])
 def test_prior(get_model):
     model = get_model()
