@@ -11,9 +11,9 @@ from distutils.command.sdist import sdist
 from distutils.core import setup
 
 def get_version():
-    # git describe a commit using the most recent tag reachable from it.
-    # Release tags start with v* (XXX what about other tags starting with v?)
-    # and are of the form: `v1.1[.2]` (major.minor[.teeny]).
+    # git describe a commit using the most recent release tag reachable
+    # from it. Release tags start with v, it is an error for other tags to
+    # start with v, and are of the form: v1.1.2[rcN] (major.minor.micro).
     try:
         desc = subprocess.check_output([
             'git', 'describe', '--dirty', '--long', '--match', 'v*',
@@ -25,7 +25,7 @@ def get_version():
                 return version, version
         return '1.0', '1.0'
 
-    # The output `desc` will be of the form v1.1.2-7-gb92bef6[-dirty]:
+    # desc will be of the form v1.1.2-7-gb92bef6[-dirty]:
     # - verpart     v1.1.2
     # - revpart     7
     # - localpart   gb92bef6[-dirty]
