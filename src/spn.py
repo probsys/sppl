@@ -72,24 +72,23 @@ class SPN(object):
         return exp(lp)
     def condition(self, event, memo=None):
         raise NotImplementedError()
-    def mutual_information(self, A, B):
-        # p11 = self.logprob(A & B)
-        # p10 = self.logprob(A & ~B)
-        # p01 = self.logprob(~A & B)
-        # p00 = self.logprob(~A & ~B)
+    def mutual_information(self, A, B, memo=None):
+        if memo is None:
+            memo = Memo({}, {})
         lpA1 = self.logprob(A)
         lpB1 = self.logprob(B)
         lpA0 = logdiffexp(0, lpA1)
         lpB0 = logdiffexp(0, lpB1)
-        lp00 = self.logprob(~A & ~B)
-        lp01 = self.logprob(~A & B)
-        lp10 = self.logprob(A & ~B)
-        lp11 = self.logprob(A & B)
-        m00 = exp(lp00) * (lp00 - (lpA0 + lpB0)) if not isinf_neg(lp00) else 0
-        m01 = exp(lp01) * (lp01 - (lpA0 + lpB1)) if not isinf_neg(lp01) else 0
-        m10 = exp(lp10) * (lp10 - (lpA1 + lpB0)) if not isinf_neg(lp10) else 0
+        lp11 = self.logprob(A & B, memo)
+        lp10 = self.logprob(A & ~B, memo)
+        lp01 = self.logprob(~A & B, memo)
+        # lp00 = self.logprob(~A & ~B, memo)
+        lp00 = logdiffexp(0, logsumexp([lp11, lp10, lp01]))
         m11 = exp(lp11) * (lp11 - (lpA1 + lpB1)) if not isinf_neg(lp11) else 0
-        return m00 + m01 + m10 + m11
+        m10 = exp(lp10) * (lp10 - (lpA1 + lpB0)) if not isinf_neg(lp10) else 0
+        m01 = exp(lp01) * (lp01 - (lpA0 + lpB1)) if not isinf_neg(lp01) else 0
+        m00 = exp(lp00) * (lp00 - (lpA0 + lpB0)) if not isinf_neg(lp00) else 0
+        return m11 + m10 + m01 + m00
 
     def __rmul__number(self, x):
         x_val = sympify_number(x)
