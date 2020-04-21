@@ -16,10 +16,10 @@ def log1mexp(x):
         return numpy.log1p(-numpy.exp(-x))
 
 def logdiffexp(a, b):
-    if b == a:
-        return -float('inf')
     if b < a:
         return a + log1mexp(a - b)
+    if allclose(b, a):
+        return -float('inf')
     raise ValueError('Negative term in logdiffexp.')
 
 def lognorm(array):

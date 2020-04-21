@@ -82,7 +82,8 @@ class SPN(object):
         lp11 = self.logprob(A & B, memo)
         lp10 = self.logprob(A & ~B, memo)
         lp01 = self.logprob(~A & B, memo)
-        lp00 = self.logprob(~A & ~B, memo)
+        # lp00 = self.logprob(~A & ~B, memo)
+        lp00 = logdiffexp(0, logsumexp([lp11, lp10, lp01]))
         m11 = exp(lp11) * (lp11 - (lpA1 + lpB1)) if not isinf_neg(lp11) else 0
         m10 = exp(lp10) * (lp10 - (lpA1 + lpB0)) if not isinf_neg(lp10) else 0
         m01 = exp(lp01) * (lp01 - (lpA0 + lpB1)) if not isinf_neg(lp01) else 0
