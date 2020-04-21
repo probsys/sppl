@@ -12,7 +12,7 @@ environment. It can be installed using:
 
 To install the full suite, which includes a Jupyter interface:
 
-1. Install dependencies listed in [./requirements.sh](requirements.sh)
+1. Install dependencies listed in ./requirements.sh
 2. Run
 
     $ pip install '.[all]'
