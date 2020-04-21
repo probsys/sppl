@@ -62,11 +62,16 @@ PKG_VERSION, FULL_VERSION = get_version()
 VERSION_PY = 'src/version.py'
 
 def write_version_py(path):
-    version = '__version__ = %r\n' % (FULL_VERSION,)
-    print('writing %s' % (path,))
-    with open(path, 'w') as f:
-        f.write(version)
-
+    try:
+        with open(path, 'r') as f:
+            version_old = f.read()
+    except IOError:
+        version_old = None
+    version_new = '__version__ = %r\n' % (FULL_VERSION,)
+    if version_old != version_new:
+        print('writing %s' % (path,))
+        with open(path, 'w') as f:
+            f.write(version_new)
 # Make sure our local build copies the version file.
 class local_build_py(build_py):
     def run(self):
