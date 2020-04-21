@@ -11,6 +11,10 @@ This software is tested on Ubuntu 18.04 and requires a Python 3 environment
 For minimal installation instructions, please see
 [docker/ubuntu1804](docker/ubuntu1804).
 
+To install the requirements for the Jupyter interface, please run
+
+    $ pip install '.[magics]'
+
 ## Tests
 
 Run the following command in the shell:

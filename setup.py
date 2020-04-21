@@ -123,6 +123,12 @@ setup(
         'scipy==1.4.1',
         'sympy==1.4',
     ],
+    extras_require={
+            'magics': [
+                'ipython==7.13.*',
+                'jupyter-core==4.6.*',
+            ]
+        },
     cmdclass={
         'build_py': local_build_py,
         'sdist': local_sdist,
