@@ -51,6 +51,7 @@ class SPML_Visitor(ast.NodeVisitor):
         self.arrays = OrderedDict()
         self.variables = OrderedDict()
         self.distributions = OrderedDict()
+        self.imports = []
         self.context = ['global']
         self.first = True
 
@@ -65,6 +66,13 @@ class SPML_Visitor(ast.NodeVisitor):
                             self.visit(item)
             elif isinstance(value, ast.AST):
                 self.visit(value)
+
+    def visit_Import(self, node):
+        str_node = unparse(node).replace(os.linesep, '')
+        self.imports.append(str_node)
+    def visit_ImportFrom(self, node):
+        str_node = unparse(node).replace(os.linesep, '')
+        self.imports.append(str_node)
 
     def visit_Assign(self, node):
         str_node = unparse(node)
@@ -266,6 +274,9 @@ class SPML_Compiler():
         # Write the imports.
         self.prog.imports.write("# IMPORT STATEMENTS")
         self.prog.imports.write('\n')
+        for i in visitor.imports:
+            self.prog.imports.write(i)
+            self.prog.imports.write('\n')
         for d in sorted(visitor.distributions):
             self.prog.imports.write('from spn.distributions import %s' % (d,))
             self.prog.imports.write('\n')
