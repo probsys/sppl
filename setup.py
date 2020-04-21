@@ -62,11 +62,16 @@ PKG_VERSION, FULL_VERSION = get_version()
 VERSION_PY = 'src/version.py'
 
 def write_version_py(path):
-    version = '__version__ = %r\n' % (FULL_VERSION,)
-    print('writing %s' % (path,))
-    with open(path, 'w') as f:
-        f.write(version)
-
+    try:
+        with open(path, 'r') as f:
+            version_old = f.read()
+    except IOError:
+        version_old = None
+    version_new = '__version__ = %r\n' % (FULL_VERSION,)
+    if version_old != version_new:
+        print('writing %s' % (path,))
+        with open(path, 'w') as f:
+            f.write(version_new)
 # Make sure our local build copies the version file.
 class local_build_py(build_py):
     def run(self):
@@ -90,6 +95,28 @@ class local_sdist(sdist):
             f.write('%s\n' % (PKG_VERSION,))
         os.rename(version_file + '.tmp', version_file)
 
+# Specify the requirements.
+requirements = {
+    'src' : [
+        'astunparse==1.6.3',
+        'numpy==1.17.*',
+        'scipy==1.4.1',
+        'sympy==1.4',
+    ],
+    'magics' : [
+        'graphviz==0.13.2',
+        'ipython==7.13.*',
+        'jupyter-core==4.6.*',
+        'networkx==2.4',
+        'pygraphviz==1.5',
+    ],
+    'tests' : [
+        'pytest-timeout==1.3.3',
+        'pytest==5.2.2',
+    ]
+}
+requirements['all'] = [r for v in requirements.values() for r in v]
+
 setup(
     name='spn',
     version=PKG_VERSION,
@@ -106,23 +133,20 @@ setup(
     ],
     packages=[
         'spn',
+        'spn.magics',
         'spn.tests',
     ],
     package_dir={
         'spn': 'src',
+        'spn.magics': 'magics',
         'spn.tests': 'tests',
     },
-    install_requires=[
-        'astunparse==1.6.3',
-        'graphviz==0.13.2',
-        'networkx==2.4',
-        'numpy==1.17.*',
-        'pygraphviz==1.5',
-        'pytest-timeout==1.3.3',
-        'pytest==5.2.2',
-        'scipy==1.4.1',
-        'sympy==1.4',
-    ],
+    install_requires=requirements['src'],
+    extras_require={
+        'magics' : requirements['magics'],
+        'tests'  : requirements['tests'],
+        'all'    : requirements['all'],
+    },
     cmdclass={
         'build_py': local_build_py,
         'sdist': local_sdist,

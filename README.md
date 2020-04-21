@@ -1,15 +1,19 @@
 Probabilistic Programming with Sum-Product Networks
 ===================================================
 
-## Installation
+## Minimal Installation
 
-This software is tested on Ubuntu 18.04 and requires a Python 3 environment
+This software is tested on Ubuntu 18.04 and requires a Python 3
+environment. It can be installed using:
 
-1. Install the requirements in `requirements.sh` (from apt).
-2. Run `pip install .` (use a Python 3 virtual environment).
+    $ `pip install .[tests]`
 
-For minimal installation instructions, please see
-[docker/ubuntu1804](docker/ubuntu1804).
+## Full Installation
+
+To install the full suite, which includes a Jupyter interface:
+
+1. Install dependencies listed in [./requirements.sh](requirements.sh)
+2. Run `pip install .[all]`.
 
 ## Tests
 
