@@ -15,21 +15,29 @@ from spn.spn import ProductSPN
 from spn.spn import RealLeaf
 from spn.spn import SumSPN
 
+gensym = lambda: 'r%s' % (str(time.time()).replace('.', ''),)
+
 def render_networkx_graph(spn):
     if isinstance(spn, NominalLeaf):
         G = nx.DiGraph()
-        root = str(time.time())
+        root = gensym()
         G.add_node(root, label='%s\n%s' % (spn.symbol.token, 'Nominal'))
         return G
     if isinstance(spn, RealLeaf):
         G = nx.DiGraph()
-        root = str(time.time())
+        root = gensym()
         G.add_node(root, label='%s\n%s' % (spn.symbol.token, spn.dist.dist.name))
+        if len(spn.env) > 1:
+            for k, v in spn.env.items():
+                if v != spn.symbol:
+                    roott = gensym()
+                    G.add_node(roott, label=str(v))
+                    G.add_edge(root, roott, label=' %s' % (str(k),), style='dashed')
         return G
     if isinstance(spn, SumSPN):
         G = nx.DiGraph()
-        root = str(time.time())
-        G.add_node(root, label='+')
+        root = gensym()
+        G.add_node(root, label='\N{PLUS SIGN}')
         # Add nodes and edges from children.
         G_children = [render_networkx_graph(c) for c in spn.children]
         for i, x in enumerate(G_children):
@@ -40,8 +48,8 @@ def render_networkx_graph(spn):
         return G
     if isinstance(spn, ProductSPN):
         G = nx.DiGraph()
-        root = str(time.time())
-        G.add_node(root, label='*')
+        root = gensym()
+        G.add_node(root, label='\N{MULTIPLICATION SIGN}')
         # Add nodes and edges from children.
         G_children = [render_networkx_graph(c) for c in spn.children]
         for x in G_children:
