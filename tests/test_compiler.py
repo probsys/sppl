@@ -235,3 +235,16 @@ else:
     assert model.prob(namespace.X[5] << {3}) == 0.3
     assert model.prob(namespace.E << {'1'}) == 0.3
     assert model.prob(namespace.E << {'2'}) == 0.7
+
+def test_imports():
+    source = '''
+Y ~= bernoulli(p=.5)
+X = array(5)
+for i in range(5):
+    X[i] ~= Fraction(1,2) * Y
+'''
+    compiler = SPML_Compiler(source)
+    with pytest.raises(NameError):
+        compiler.execute_module()
+    compiler = SPML_Compiler('from fractions import Fraction\n%s' % (source,))
+    compiler.execute_module()

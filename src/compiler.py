@@ -51,6 +51,7 @@ class SPML_Visitor(ast.NodeVisitor):
         self.arrays = OrderedDict()
         self.variables = OrderedDict()
         self.distributions = OrderedDict()
+        self.imports = []
         self.context = ['global']
         self.first = True
 
@@ -65,6 +66,13 @@ class SPML_Visitor(ast.NodeVisitor):
                             self.visit(item)
             elif isinstance(value, ast.AST):
                 self.visit(value)
+
+    def visit_Import(self, node):
+        str_node = unparse(node).replace(os.linesep, '')
+        self.imports.append(str_node)
+    def visit_ImportFrom(self, node):
+        str_node = unparse(node).replace(os.linesep, '')
+        self.imports.append(str_node)
 
     def visit_Assign(self, node):
         str_node = unparse(node)
@@ -101,9 +109,9 @@ class SPML_Visitor(ast.NodeVisitor):
         # Assigning array
         if isinstance(value, ast.Call) and value.func.id == 'array':
             assert self.context == ['global']           # must be global
-            assert isinstance(target, ast.Name)         # must not be susbcript
+            assert isinstance(target, ast.Name)         # must not be subscript
             assert node.targets[0] not in self.arrays   # must be fresh
-            assert len(value.args) == 1            # must be array(n)
+            assert len(value.args) == 1                 # must be array(n)
             assert isinstance(value.args[0], ast.Num) # must be num n
             assert isinstance(value.args[0].n, int)   # must be int n
             assert value.args[0].n > 0                # must be pos n
@@ -266,6 +274,9 @@ class SPML_Compiler():
         # Write the imports.
         self.prog.imports.write("# IMPORT STATEMENTS")
         self.prog.imports.write('\n')
+        for i in visitor.imports:
+            self.prog.imports.write(i)
+            self.prog.imports.write('\n')
         for d in sorted(visitor.distributions):
             self.prog.imports.write('from spn.distributions import %s' % (d,))
             self.prog.imports.write('\n')
