@@ -4,6 +4,7 @@
 """"Compiler from SPML to Python 3."""
 
 import ast
+import inspect
 import copy
 import io
 import os
@@ -15,6 +16,12 @@ from contextlib import contextmanager
 
 from astunparse import unparse
 
+def __load_spn_distributions():
+    from . import distributions
+    members = inspect.getmembers(distributions,lambda t: isinstance(t, type))
+    return frozenset(m for (m, v) in members if m[0].islower())
+
+DISTRIBUTIONS = __load_spn_distributions()
 get_indentation = lambda i: ' ' * i
 
 @contextmanager
@@ -88,28 +95,41 @@ class SPML_Visitor(ast.NodeVisitor):
             'unknown sample target %s' % (str_node,)
 
         # Analyze node.value.
-        if isinstance(node.value, ast.Call) and node.value.func.id == 'array':
+        value = node.value
+        assert isinstance(value, ast.expr), \
+            'unknown sample value %s' % (str_node,)
+        # Assigning array
+        if isinstance(value, ast.Call) and value.func.id == 'array':
             assert self.context == ['global']           # must be global
             assert isinstance(target, ast.Name)         # must not be susbcript
             assert node.targets[0] not in self.arrays   # must be fresh
-            assert len(node.value.args) == 1            # must be array(n)
-            assert isinstance(node.value.args[0], ast.Num) # must be num n
-            assert isinstance(node.value.args[0].n, int)   # must be int n
-            assert node.value.args[0].n > 0                # must be pos n
-            self.arrays[target.id] = node.value.args[0].n
-        # Assigning to distribution or transform.
-        elif isinstance(node.value, (ast.Call, ast.Dict, ast.expr)):
-            value_prime = SPML_Transformer().visit(node.value)
+            assert len(value.args) == 1            # must be array(n)
+            assert isinstance(value.args[0], ast.Num) # must be num n
+            assert isinstance(value.args[0].n, int)   # must be int n
+            assert value.args[0].n > 0                # must be pos n
+            self.arrays[target.id] = value.args[0].n
+        # Sample or Transform.
+        else:
+            value_prime = SPML_Transformer().visit(value)
             src_value = unparse(value_prime).replace(os.linesep, '')
             src_targets = unparse(node.targets).replace(os.linesep, '')
             idt = get_indentation(self.indentation)
-            self.stream.write('%s%s >> %s,' % (idt, src_targets, src_value))
+            # Determine whether value is Sample or Transform.
+            if isinstance(value, ast.Dict):
+                op = 'Sample'
+            else:
+                visitor = SPML_Visitor_Distributions()
+                visitor.visit(value)
+                if not visitor.distributions:
+                    op = 'Transform'
+                else:
+                    op = 'Sample'
+                    for d in visitor.distributions:
+                        if d not in self.distributions:
+                            self.distributions[d] = None
+            # Write.
+            self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
             self.stream.write('\n')
-            if isinstance(node.value, ast.Call):
-                self.distributions[node.value.func.id] = None
-        else:
-            assert False,\
-            'unknown sample value %s' % (str_node,)
 
     def visit_For(self, node):
         assert isinstance(node.target, ast.Name), unparse(node.target)
@@ -121,17 +141,17 @@ class SPML_Visitor(ast.NodeVisitor):
         if len(node.iter.args) == 2:
             n0 = unparse(node.iter.args[0]).strip()
             n1 = unparse(node.iter.args[1]).strip()
-        # Open Repeat.
+        # Open For.
         self.context.append('for')
         idt = get_indentation(self.indentation)
         idx = unparse(node.target).strip()
-        self.stream.write('%sRepeat(%s, %s, lambda %s:' % (idt, n0, n1, idx))
+        self.stream.write('%sFor(%s, %s, lambda %s:' % (idt, n0, n1, idx))
         self.stream.write('\n')
         # Write body.
         self.indentation += 4
         self.generic_visit(ast.Module(node.body))
         self.indentation -= 4
-        # Close repeat.
+        # Close For.
         idt = get_indentation(self.indentation)
         self.stream.write('%s),' % (idt,))
         self.stream.write('\n')
@@ -141,9 +161,9 @@ class SPML_Visitor(ast.NodeVisitor):
         unrolled = unroll_if(node)
         assert 2 <= len(unrolled), 'if needs elif/else: %s' % (unparse(node))
         idt = get_indentation(self.indentation)
-        # Open Cond.
+        # Open IfElse.
         self.context.append('if')
-        self.stream.write('%sCond(' % (idt,))
+        self.stream.write('%sIfElse(' % (idt,))
         self.stream.write('\n')
         # Write branches.
         self.indentation += 4
@@ -163,7 +183,7 @@ class SPML_Visitor(ast.NodeVisitor):
             if i > 0:
                 self.context.pop()
         self.indentation -= 4
-        # Close Cond.
+        # Close IfElse.
         idt = get_indentation(self.indentation)
         self.stream.write('%s),' % (idt,))
         self.stream.write('\n')
@@ -214,6 +234,13 @@ class SPML_Transformer(ast.NodeTransformer):
                 operand=self.visit_Compare(node_copy))
         return node
 
+class SPML_Visitor_Distributions(ast.NodeVisitor):
+    def __init__(self):
+        self.distributions = set()
+    def visit_Name(self, node):
+        if node.id in DISTRIBUTIONS:
+            self.distributions.add(node.id)
+
 prog = namedtuple('prog', ('imports', 'variables', 'arrays', 'command'))
 class SPML_Compiler():
     def __init__(self, source, modelname='model'):
@@ -239,18 +266,22 @@ class SPML_Compiler():
         # Write the imports.
         self.prog.imports.write("# IMPORT STATEMENTS")
         self.prog.imports.write('\n')
-        for c in ['Cond', 'Repeat', 'Sequence', 'Variable', 'VariableArray']:
+        for d in sorted(visitor.distributions):
+            self.prog.imports.write('from spn.distributions import %s' % (d,))
+            self.prog.imports.write('\n')
+        for c in ['IfElse', 'For', 'Sample', 'Sequence', 'Transform',
+                    'Variable', 'VariableArray']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')
-        self.prog.imports.write('from spn.distributions import *')
-        self.prog.imports.write('\n')
         # Write the variables.
         if visitor.variables:
-            self.prog.variables.write('# VARIABLE DECLARATIONS')
-            self.prog.variables.write('\n')
-            for v in visitor.variables:
-                self.prog.variables.write('%s = Variable(\'%s\')' % (v, v,))
+            variables = [v for v in visitor.variables if v not in visitor.arrays]
+            if variables:
+                self.prog.variables.write('# VARIABLE DECLARATIONS')
                 self.prog.variables.write('\n')
+                for v in variables:
+                    self.prog.variables.write('%s = Variable(\'%s\')' % (v, v,))
+                    self.prog.variables.write('\n')
         # Write the arrays.
         if visitor.arrays:
             self.prog.arrays.write('# ARRAY DECLARATIONS')

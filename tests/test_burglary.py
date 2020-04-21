@@ -9,36 +9,37 @@ Russel and Norvig, Fig 14.2 pp 512.
 '''
 
 from spn.distributions import bernoulli
-from spn.interpreter import Cond
+from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
+from spn.interpreter import Sample
 from spn.interpreter import Start
 from spn.interpreter import Variable
 
-Burglary = Variable('B')
-Earthquake = Variable('E')
-Alarm = Variable('A')
-JohnCalls = Variable('JC')
-MaryCalls = Variable('MC')
+Burglary    = Variable('Burglary')
+Earthquake  = Variable('Earthquake')
+Alarm       = Variable('Alarm')
+JohnCalls   = Variable('JohnCalls')
+MaryCalls   = Variable('MaryCalls')
 
 model = (Start
-    & Burglary >> bernoulli(p=0.001)
-    & Earthquake >> bernoulli(p=0.002)
-    & Cond (
+    & Sample (Burglary,   bernoulli(p=0.001))
+    & Sample (Earthquake, bernoulli(p=0.002))
+    & IfElse (
         Burglary << {1},
-            Cond (
-                Earthquake << {1},  Alarm >> bernoulli(p=0.95),
-                Otherwise,          Alarm >> bernoulli(p=0.94)),
+            IfElse (
+                Earthquake << {1},  Sample(Alarm, bernoulli(p=0.95)),
+                Otherwise,          Sample(Alarm, bernoulli(p=0.94))),
         Otherwise,
-            Cond (
-                Earthquake << {1},  Alarm >> bernoulli(p=0.29),
-                Otherwise,          Alarm >> bernoulli(p=0.001)))
-    & Cond (
+            IfElse (
+                Earthquake << {1},  Sample(Alarm, bernoulli(p=0.29)),
+                Otherwise,          Sample(Alarm, bernoulli(p=0.001))))
+    & IfElse (
         Alarm << {1},
-            JohnCalls >> bernoulli(p=0.90)
-            & MaryCalls >> bernoulli(p=0.70),
+            Sample(JohnCalls,   bernoulli(p=0.90))
+            & Sample(MaryCalls, bernoulli(p=0.70)),
         Otherwise,
-            JohnCalls >> bernoulli(p=0.05)
-            & MaryCalls >> bernoulli(p=0.01),
+            Sample(JohnCalls,   bernoulli(p=0.05))
+            & Sample(MaryCalls, bernoulli(p=0.01)),
         ))
 
 def test_marginal_probability():

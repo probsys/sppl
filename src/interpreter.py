@@ -1,7 +1,6 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from collections import Callable
 from functools import reduce
 
 from .dnf import dnf_normalize
@@ -16,23 +15,7 @@ from . import transforms
 
 inf = float('inf')
 
-class Variable(transforms.Identity):
-    def __rshift__(self, f):
-        if isinstance(f, Callable):
-            symbol = transforms.Identity(self.token)
-            return Sample(symbol, f)
-        if isinstance(f, dict):
-            symbol = transforms.Identity(self.token)
-            return Sample(symbol, f)
-        if isinstance(f, transforms.Transform):
-            symbol = transforms.Identity(self.token)
-            return Transform(symbol, f)
-        return NotImplemented
-    def __hash__(self):
-        symbol = transforms.Identity(self.token)
-        x = (symbol.__class__, self.token)
-        return hash(x)
-
+Variable = transforms.Identity
 def VariableArray(token, n):
     return [Variable('%s[%d]' % (token, i,)) for i in range(n)]
 
@@ -118,7 +101,7 @@ class IfElse(Command):
         # Return the SPN.
         return SumSPN(children, weights) if 1 < len(children) else children[0]
 
-class Repeat(Command):
+class For(Command):
     def __init__(self, n0, n1, f):
         self.n0 = n0
         self.n1 = n1
@@ -144,4 +127,3 @@ class Sequence(Command):
 
 Start = None
 Otherwise = True
-Cond = IfElse

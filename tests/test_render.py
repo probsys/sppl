@@ -2,13 +2,11 @@
 # See LICENSE.txt
 
 import os
-import tempfile
-
-import pytest
 
 from spn.distributions import bernoulli
-from spn.interpreter import Cond
+from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
+from spn.interpreter import Sample
 from spn.interpreter import Start
 from spn.interpreter import Variable
 from spn.render import render_graphviz
@@ -21,11 +19,11 @@ def test_render_crash():
     X = Variable('X')
     Z = Variable('Z')
     model = (Start
-        & Y >> {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}
-        & Z >> bernoulli(p=0.1)
-        & Cond (
-            Y << {str(0)} | Z << {0},  X >> bernoulli(p=1/(0+1)),
-            Otherwise,                 X >> bernoulli(p=0.1)))
+        & Sample(Y,     {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
+        & Sample(Z,     bernoulli(p=0.1))
+        & IfElse(
+            Y << {str(0)} | Z << {0},  Sample(X, bernoulli(p=1/(0+1)) ),
+            Otherwise,                 Sample(X, bernoulli(p=0.1))))
     render_nested_lists_concise(model)
     render_nested_lists(model)
     render_networkx_graph(model)

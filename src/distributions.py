@@ -9,7 +9,8 @@ import sympy
 class RealDistribution():
     dist = None
     constructor = None
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
+        assert not args, 'Only keyword arguments allowed for %s' % (self.dist.name,)
         self.kwargs = kwargs
     def __call__(self, symbol):
         domain = self.get_domain(**self.kwargs)
@@ -664,6 +665,10 @@ class yulesimon(DiscreteReal):
     dist = scipy.stats.yulesimon
     def get_domain(self, **kwargs): return IntegersPos
 
-def atomic(**kwargs):
+class atomic(randint):
     """An atomic discrete random variable."""
-    return randint(low=kwargs['loc'], high=kwargs['loc']+1)
+    def __init__(self, *args, **kwargs):
+        loc = kwargs.pop('loc')
+        kwargs['low'] = loc
+        kwargs['high'] = loc + 1
+        super().__init__(*args, **kwargs)

@@ -14,15 +14,19 @@ import pytest
 from spn.compiler import SPML_Compiler
 from spn.distributions import atomic
 from spn.distributions import uniform
-from spn.interpreter import Cond
+from spn.interpreter import IfElse
+from spn.interpreter import Sample
 from spn.interpreter import Start
 from spn.interpreter import Variable
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
 from spn.transforms import Identity
 
+Nationality = Identity('Nationality')
+Perfect     = Identity('Perfect')
+GPA         = Identity('GPA')
+
 def model_no_latents():
-    GPA = Identity('GPA')
     return \
         0.5 * ( # American student
             0.99 * (GPA >> uniform(loc=0, scale=4)) | \
@@ -32,24 +36,19 @@ def model_no_latents():
             0.01 * (GPA >> atomic(loc=10)))
 
 def model_exposed():
-    N = Identity('N')
-    P = Identity('P')
-    GPA = Identity('GPA')
-    nationality = N >> {'India': 0.5, 'USA': 0.5}
-    perfect = P >> {'True': 0.01, 'False': 0.99}
     return ExposedSumSPN(
-        spn_weights=nationality,
+        spn_weights=(Nationality >> {'India': 0.5, 'USA': 0.5}),
         children={
             # American student.
             'USA': ExposedSumSPN(
-                spn_weights=perfect,
+                spn_weights=(Perfect >> {'True': 0.01, 'False': 0.99}),
                 children={
                     'False'   : GPA >> uniform(loc=0, scale=4),
                     'True'    : GPA >> atomic(loc=4),
                 }),
             # Indian student.
             'India': ExposedSumSPN(
-                spn_weights=perfect,
+                spn_weights=(Perfect >> {'True': 0.01, 'False': 0.99}),
                 children={
                     'False'   : GPA >> uniform(loc=0, scale=10),
                     'True'    : GPA >> atomic(loc=10),
@@ -57,62 +56,59 @@ def model_exposed():
         )
 
 def model_ifelse_exhuastive():
-    Nationality = Variable('Nationality')
-    Perfect     = Variable('Perfect')
-    GPA         = Variable('GPA')
     return Start \
-        & Nationality   >> {'India': 0.5, 'USA': 0.5} \
-        & Perfect       >> {'True': 0.01, 'False': 0.99} \
-        & Cond (
+        & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
+        & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
+        & IfElse(
             (Nationality << {'India'}) & (Perfect << {'False'}),
-                GPA >> uniform(loc=0, scale=10)
+                Sample(GPA, uniform(loc=0, scale=10))
             ,
             (Nationality << {'India'}) & (Perfect << {'True'}),
-                GPA >> atomic(loc=10)
+                Sample(GPA, atomic(loc=10))
             ,
             (Nationality << {'USA'}) & (Perfect << {'False'}),
-                GPA >> uniform(loc=0, scale=4)
+                Sample(GPA, uniform(loc=0, scale=4))
             ,
             (Nationality << {'USA'}) & (Perfect << {'True'}),
-                GPA >> atomic(loc=4))
+                Sample(GPA, atomic(loc=4)))
 
 def model_ifelse_non_exhuastive():
     Nationality = Variable('Nationality')
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
     return Start \
-        & Nationality   >> {'India': 0.5, 'USA': 0.5} \
-        & Perfect       >> {'True': 0.01, 'False': 0.99} \
-        & Cond (
+        & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
+        & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
+        & IfElse(
             (Nationality << {'India'}) & (Perfect << {'False'}),
-                GPA >> uniform(loc=0, scale=10)
+                Sample(GPA, uniform(loc=0, scale=10))
             ,
             (Nationality << {'India'}) & (Perfect << {'True'}),
-                GPA >> atomic(loc=10)
+                Sample(GPA, atomic(loc=10))
             ,
             (Nationality << {'USA'}) & (Perfect << {'False'}),
-                GPA >> uniform(loc=0, scale=4)
+                Sample(GPA, uniform(loc=0, scale=4))
             ,
             True,
-                GPA >> atomic(loc=4))
+                Sample(GPA, atomic(loc=4)))
 
 def model_ifelse_nested():
     Nationality = Variable('Nationality')
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
     return Start \
-        & Nationality   >> {'India': 0.5, 'USA': 0.5} \
-        & Perfect       >> {'True': 0.01, 'False': 0.99} \
-        & Cond (
+        & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
+        & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
+        & IfElse(
             Nationality << {'India'},
-                Cond (
-                    Perfect << {'True'},    GPA >> atomic(loc=10),
-                    Perfect << {'False'},   GPA >> uniform(scale=10),
+                IfElse(
+                    Perfect << {'True'},    Sample(GPA, atomic(loc=10)),
+                    Perfect << {'False'},   Sample(GPA, uniform(scale=10)),
                 ),
             Nationality << {'USA'},
-                Cond (
-                    Perfect << {'True'},    GPA >> atomic(loc=4),
-                    Perfect << {'False'},   GPA >> uniform(scale=4),
+                IfElse(
+                    Perfect << {'True'},    Sample(GPA, atomic(loc=4)),
+                    Perfect << {'False'},   Sample(GPA, uniform(scale=4)),
                 ))
 
 def model_perfect_nested():
@@ -120,19 +116,19 @@ def model_perfect_nested():
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
     return Start \
-        & Nationality   >> {'India': 0.5, 'USA': 0.5} \
-        & Cond (
+        & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
+        & IfElse(
             Nationality << {'India'},
-                Perfect >> {'True': 0.01, 'False': 0.99} \
-                & Cond (
-                    Perfect << {'True'},    GPA >> atomic(loc=10),
-                    True,   GPA >> uniform(scale=10),
+                Sample(Perfect, {'True': 0.01, 'False': 0.99}) \
+                & IfElse(
+                    Perfect << {'True'},    Sample(GPA, atomic(loc=10)),
+                    True,                   Sample(GPA, uniform(scale=10)),
                 ),
             Nationality << {'USA'},
-                Perfect >> {'True': 0.01, 'False': 0.99} \
-                & Cond (
-                    Perfect << {'True'},    GPA >> atomic(loc=4),
-                    True,   GPA >> uniform(scale=4),
+                Sample(Perfect, {'True': 0.01, 'False': 0.99}) \
+                & IfElse(
+                    Perfect << {'True'},    Sample(GPA, atomic(loc=4)),
+                    True,                   Sample(GPA, uniform(scale=4)),
                 ))
 
 def model_ifelse_exhuastive_compiled():
