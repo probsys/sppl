@@ -32,6 +32,7 @@ def get_version():
     match = re.match(r'^v([^-]*)-([0-9]+)-(.*)$', desc.decode('utf-8'))
     assert match is not None
     verpart, revpart, localpart = match.groups()
+
     # Create a post version.
     if revpart > '0' or 'dirty' in localpart:
         # Local part may be g0123abcd or g0123abcd-dirty.
@@ -49,8 +50,8 @@ def get_version():
     else:
         pkg_version = full_version
 
-    # Sanity-check the result.  XXX Consider checking the full PEP 386
-    # and PEP 440 regular expressions here?
+    # Sanity-check the versions.
+    # Consider checking the full PEP 386/440 regular expressions here.
     assert '-' not in full_version, '%r' % (full_version,)
     assert '-' not in pkg_version, '%r' % (pkg_version,)
     assert '+' not in pkg_version, '%r' % (pkg_version,)
@@ -61,26 +62,20 @@ PKG_VERSION, FULL_VERSION = get_version()
 VERSION_PY = 'src/version.py'
 
 def write_version_py(path):
-    try:
-        with open(path, 'rb') as f:
-            version_old = f.read()
-    except IOError:
-        version_old = None
-    version_new = '__version__ = %r\n' % (FULL_VERSION,)
-    if version_old != version_new:
-        print('writing %s' % (path,))
-        with open(path, 'w') as f:
-            f.write(version_new)
+    version = '__version__ = %r\n' % (FULL_VERSION,)
+    print('writing %s' % (path,))
+    with open(path, 'w') as f:
+        f.write(version)
 
+# Make sure our local build copies the version file.
 class local_build_py(build_py):
     def run(self):
         write_version_py(VERSION_PY)
         build_py.run(self)
 
-# Make sure the VERSION file in the sdist is exactly specified, even
-# if it is a development version, so that we do not need to run git to
-# discover it -- which won't work because there's no .git directory in
-# the sdist.
+# Make sure the VERSION file in the sdist is exactly specified, even if it
+# is a development version, so that we do not need to run git to discover
+# it, which will not work because there is no .git directory in the sdist.
 class local_sdist(sdist):
     def make_release_tree(self, base_dir, files):
         sdist.make_release_tree(self, base_dir, files)
