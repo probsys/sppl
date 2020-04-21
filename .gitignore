@@ -8,3 +8,4 @@ clean.sh
 dist/
 egg-info
 htmlcov/
+MANIFEST
