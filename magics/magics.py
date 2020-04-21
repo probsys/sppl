@@ -7,6 +7,7 @@ from IPython.core.magic import Magics
 from IPython.core.magic import cell_magic
 from IPython.core.magic import line_magic
 from IPython.core.magic import magics_class
+from IPython.core.magic import needs_local_scope
 
 from spn.compiler import SPML_Compiler
 
@@ -39,9 +40,15 @@ class SPML_Magics(Magics):
         assert line in self.programs, 'unknown program %s' % (line,)
         print(self.programs[line].compiler.render_module())
 
+    @needs_local_scope
     @line_magic
-    def spml_to_graph(self, line):
-        spn = self.spml_get_spn(line)
+    def spml_to_graph(self, line, local_ns):
+        if line in self.programs:
+            spn = self.spml_get_spn(line)
+        elif line in local_ns:
+            spn = local_ns[line]
+        else:
+            assert False, 'unknown program %s' % (line,)
         return render_graphviz(spn)
 
     @line_magic
