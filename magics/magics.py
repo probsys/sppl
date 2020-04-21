@@ -8,13 +8,14 @@ from IPython.core.magic import cell_magic
 from IPython.core.magic import line_magic
 from IPython.core.magic import magics_class
 
-from .compiler import SPML_Compiler
+from spn.compiler import SPML_Compiler
+
 from .render import render_graphviz
 
 Model = namedtuple('Model', ['source', 'compiler', 'namespace'])
 
 @magics_class
-class SPML(Magics):
+class SPML_Magics(Magics):
 
     def __init__(self, shell):
         super().__init__(shell)
@@ -47,7 +48,3 @@ class SPML(Magics):
     def spml_get_namespace(self, line):
         assert line in self.programs, 'unknown program %s' % (line,)
         return self.programs[line].namespace
-
-def load_ipython_extension(ipython):
-    magics = SPML(ipython)
-    ipython.register_magics(magics)

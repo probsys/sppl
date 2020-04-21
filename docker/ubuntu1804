@@ -9,9 +9,14 @@ RUN             python3 -m venv /venv
 ADD             . /sum-product-dsl
 WORKDIR         /sum-product-dsl
 
-                # Build and test.
+                # Build and test the minimal suite.
+RUN             . /venv/bin/activate && pip install '.[tests]'
+RUN             . /venv/bin/activate && ./check.sh tests
+RUN             . /venv/bin/activate && pip uninstall -y spn
+
+                # Build and test the full suite.
 RUN             . /venv/bin/activate && sh requirements.sh
-RUN             . /venv/bin/activate && pip install .
+RUN             . /venv/bin/activate && pip install '.[all]'
 RUN             . /venv/bin/activate && ./check.sh tests
 
                 # Package into source and binaries.
