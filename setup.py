@@ -117,6 +117,17 @@ setup(
         'spn': 'src',
         'spn.tests': 'tests',
     },
+    install_requires=[
+        'astunparse==1.6.3',
+        'graphviz==0.13.2',
+        'networkx==2.4',
+        'numpy==1.17.*',
+        'pygraphviz==1.5',
+        'pytest-timeout==1.3.3',
+        'pytest==5.2.2',
+        'scipy==1.4.1',
+        'sympy==1.4',
+    ],
     cmdclass={
         'build_py': local_build_py,
         'sdist': local_sdist,
