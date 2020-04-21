@@ -12,7 +12,7 @@ from .spn import SumSPN
 
 def render_nested_lists_concise(spn):
     if isinstance(spn, LeafSPN):
-        return [spn.symbol.token]
+        return [(str(k), str(v)) for k, v in spn.env.items()]
     if isinstance(spn, SumSPN):
         return ['+(%d)' % (len(spn.children),),
             # [exp(w) for w in spn.weights],
@@ -27,11 +27,13 @@ def render_nested_lists(spn):
     if isinstance(spn, NominalLeaf):
         return ['NominalLeaf', [
             ['symbol', spn.symbol],
+            ['env', dict(spn.env)],
             ['dist', {str(x): float(w) for x, w in spn.dist.items()}]]
         ]
     if isinstance(spn, RealLeaf):
         return ['RealLeaf', [
             ['symbol', spn.symbol],
+            ['env', dict(spn.env)],
             ['dist', (spn.dist.dist.name, spn.dist.args, spn.dist.kwds)],
             ['support', spn.support],
             ['conditioned', spn.conditioned]]
