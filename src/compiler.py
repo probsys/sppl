@@ -109,9 +109,9 @@ class SPML_Visitor(ast.NodeVisitor):
         # Assigning array
         if isinstance(value, ast.Call) and value.func.id == 'array':
             assert self.context == ['global']           # must be global
-            assert isinstance(target, ast.Name)         # must not be susbcript
+            assert isinstance(target, ast.Name)         # must not be subscript
             assert node.targets[0] not in self.arrays   # must be fresh
-            assert len(value.args) == 1            # must be array(n)
+            assert len(value.args) == 1                 # must be array(n)
             assert isinstance(value.args[0], ast.Num) # must be num n
             assert isinstance(value.args[0].n, int)   # must be int n
             assert value.args[0].n > 0                # must be pos n
