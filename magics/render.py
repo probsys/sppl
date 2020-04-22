@@ -26,12 +26,13 @@ def render_networkx_graph(spn):
     if isinstance(spn, RealLeaf):
         G = nx.DiGraph()
         root = gensym()
-        G.add_node(root, label='%s\n%s' % (spn.symbol.token, spn.dist.dist.name))
+        kwds = '\n%s' % (tuple(spn.dist.kwds.values()),) if spn.dist.kwds else ''
+        G.add_node(root, label='%s\n%s%s' % (spn.symbol.token, spn.dist.dist.name, kwds))
         if len(spn.env) > 1:
             for k, v in spn.env.items():
                 if v != spn.symbol:
                     roott = gensym()
-                    G.add_node(roott, label=str(v))
+                    G.add_node(roott, label=str(v), style='filled')
                     G.add_edge(root, roott, label=' %s' % (str(k),), style='dashed')
         return G
     if isinstance(spn, SumSPN):
