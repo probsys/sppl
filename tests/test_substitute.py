@@ -5,19 +5,6 @@ import pytest
 from spn.transforms import Identity
 from spn.transforms import Logarithm
 
-# from spn.transforms import Radical
-# from spn.transforms import Exp
-# from spn.transforms import Abs
-# from spn.transforms import Reciprocal
-# from spn.transforms import Poly
-# from spn.transforms import Piecewise
-
-# from spn.transforms import EventInterval
-# from spn.transforms import EventFiniteReal
-# from spn.transforms import EventFiniteNominal
-# from spn.transforms import EventOr
-# from spn.transforms import EventAnd
-
 X = Identity('X')
 Z = Identity('Z')
 Y = Identity('Y')
@@ -25,14 +12,14 @@ Y = Identity('Y')
 b = (1, 10)
 cases = [
     # Basic cases.
-    [X                             , {}       , X],
-    [1/X                           , {}       , 1/X],
-    [X**2+X                        , {}       , X**2+X],
-    [X                             , {}       , X],
-    [X                             , {Z:X}    , X],
-    [Z                             , {Z:2**X} , 2**X],
-    [((Z+1)**b)                    , {Z:1/X}  , (1/X+1)**b],
-    [((2**Z+1)**b)                 , {Z:X+1}  , (2**(X+1)+1)**b],
+    [X                                   , {}       , X],
+    [1/X                                 , {}       , 1/X],
+    [X**2+X                              , {}       , X**2+X],
+    [X                                   , {}       , X],
+    [X                                   , {Z:X}    , X],
+    [Z                                   , {Z:2**X} , 2**X],
+    [((Z+1)**b)                          , {Z:1/X}  , (1/X+1)**b],
+    [((2**Z+1)**b)                       , {Z:X+1}  , (2**(X+1)+1)**b],
     [((2**Logarithm(Z, 2)+1)**b)         , {Z:X+1}  , (2**Logarithm((X+1), 2)+1)**b] ,
     [((2**abs(Logarithm(Z, 2))+1)**b)    , {Z:X+1}  , (2**abs(Logarithm((X+1), 2))+1)**b],
     [((2**abs(Logarithm(1/Z, 2))+1)**b)  , {Z:X+1}  , (2**abs(Logarithm(1/(X+1), 2))+1)**b],
