@@ -123,7 +123,7 @@ class SPML_Visitor(ast.NodeVisitor):
             src_targets = unparse(node.targets).replace(os.linesep, '')
             idt = get_indentation(self.indentation)
             # Determine whether value is Sample or Transform.
-            if isinstance(value, ast.Dict):
+            if isinstance(value, (ast.Dict, ast.DictComp)):
                 op = 'Sample'
             else:
                 visitor = SPML_Visitor_Distributions()

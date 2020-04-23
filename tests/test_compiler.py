@@ -239,6 +239,7 @@ else:
 def test_imports():
     source = '''
 Y ~= bernoulli(p=.5)
+Z ~= {str(i): Fraction(1, 5) for i in range(5)}
 X = array(5)
 for i in range(5):
     X[i] ~= Fraction(1,2) * Y
@@ -247,4 +248,6 @@ for i in range(5):
     with pytest.raises(NameError):
         compiler.execute_module()
     compiler = SPML_Compiler('from fractions import Fraction\n%s' % (source,))
-    compiler.execute_module()
+    namespace = compiler.execute_module()
+    for i in range(5):
+        assert namespace.model.prob(namespace.Z << {str(i)}) == 0.2
