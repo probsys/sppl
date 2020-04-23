@@ -17,7 +17,7 @@ from spn.sym_util import NominalSet
 from spn.sym_util import Reals
 from spn.sym_util import UniversalSet
 from spn.sym_util import sympy_solver
-from spn.transforms import ExpNat
+from spn.transforms import Exp
 from spn.transforms import Identity
 from spn.transforms import Logarithm
 from spn.transforms import Log
@@ -192,7 +192,7 @@ def test_solver_10():
     # Sympy hangs for some reason; cannot test.
     # expr = exp(sqrt(log(X))) > -5
 
-    event = ExpNat(Sqrt(Log(Y))) > -5
+    event = Exp(Sqrt(Log(Y))) > -5
     answer = event.solve()
     assert answer == solution
 
@@ -203,7 +203,7 @@ def test_solver_11_open():
     # Sympy hangs for some reason.
     # expr = exp(sqrt(log(X))) > 6
 
-    event = ExpNat(Sqrt(Log(Y))) > 6
+    event = Exp(Sqrt(Log(Y))) > 6
     answer = event.solve()
     assert answer == solution
 
@@ -214,7 +214,7 @@ def test_solver_11_closed():
     # Sympy hangs for some reason.
     # expr = exp(sqrt(log(X))) > 6
 
-    event = ExpNat(Sqrt(Log(Y))) >= 6
+    event = Exp(Sqrt(Log(Y))) >= 6
     answer = event.solve()
     assert answer == solution
 
@@ -558,9 +558,9 @@ def test_solver_finite_injective():
     solution = {2, 4, -10, sqrt3}
     event = Y << {2, 4, -10, sqrt3}
     assert event.solve() == solution
-    # ExpNat.
+    # Exp.
     solution = {sympy.log(10), sympy.log(3), sympy.log(sqrt3)}
-    event = ExpNat(Y) << {10, 3, sqrt3}
+    event = Exp(Y) << {10, 3, sqrt3}
     assert event.solve() == solution
     # Exp2.
     solution = {sympy.log(10, 2), 4, sympy.log(sqrt3, 2)}

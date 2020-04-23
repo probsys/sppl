@@ -8,7 +8,7 @@ from spn.dnf import dnf_non_disjoint_clauses
 from spn.dnf import dnf_to_disjoint_union
 
 from spn.transforms import EventOr
-from spn.transforms import ExpNat
+from spn.transforms import Exp
 from spn.transforms import Identity
 from spn.transforms import Log
 from spn.transforms import Sqrt
@@ -80,7 +80,7 @@ def test_to_dnf_invert():
     assert event.to_dnf() == (~A & B & ~C) | D
 
 def test_dnf_factor():
-    E00 = ExpNat(X0) > 0
+    E00 = Exp(X0) > 0
     E01 = X0 < 10
     E10 = X1 < 10
     E20 = (X2**2 - X2*3) < 0
@@ -153,7 +153,7 @@ def test_dnf_factor():
     assert event_factor[3][X5] == E50
 
 def test_dnf_factor_1():
-    A = ExpNat(X0) > 0
+    A = Exp(X0) > 0
     B = X0 < 10
     C = X1 < 10
     D = X2 < 0
@@ -177,7 +177,7 @@ def test_dnf_factor_2():
     assert event_factor[0][2] == C
 
 def test_dnf_factor_3():
-    A = (ExpNat(X0) > 0)
+    A = (Exp(X0) > 0)
     B = X0 < 10
     C = X1 < 10
     D = X4 > 0

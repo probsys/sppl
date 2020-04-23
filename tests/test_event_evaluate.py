@@ -3,7 +3,7 @@
 
 import pytest
 
-from spn.transforms import ExpNat as exp
+from spn.transforms import Exp as exp
 from spn.transforms import Identity
 from spn.transforms import Log as log
 

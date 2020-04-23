@@ -10,7 +10,7 @@ from sympy import Rational as Rat
 from sympy import oo
 
 from spn.transforms import Abs
-from spn.transforms import ExpNat
+from spn.transforms import Exp
 from spn.transforms import Identity
 from spn.transforms import Log
 from spn.transforms import Piecewise
@@ -107,14 +107,14 @@ def test_parse_6():
     assert expr == event
 
     # (exp(x)**2 - 2*exp(x)) > 10
-    expr = (ExpNat(X)**2 - 2*ExpNat(X)) > 10
-    event = EventInterval(Poly(ExpNat(X), [0, -2, 1]), Interval.open(10, oo))
+    expr = (Exp(X)**2 - 2*Exp(X)) > 10
+    event = EventInterval(Poly(Exp(X), [0, -2, 1]), Interval.open(10, oo))
     assert expr == event
 
 def test_parse_7():
     # Illegal expression, cannot express in our custom DSL.
     with pytest.raises(ValueError):
-        (X**2 - 2*X + ExpNat(X)) > 10
+        (X**2 - 2*X + Exp(X)) > 10
 
 def test_parse_8():
     Z = Identity('Z')
@@ -136,7 +136,7 @@ def test_parse_9_open():
 
 def test_parse_10():
     # exp(sqrt(log(x))) > -5
-    expr = ExpNat(Sqrt(Log(Y)))
+    expr = Exp(Sqrt(Log(Y)))
     event = EventInterval(expr, Interval.open(-5, oo))
     assert (expr > -5) == event
 
@@ -306,9 +306,9 @@ def test_parse_27_piecewise_many():
 
 def test_errors():
     with pytest.raises(ValueError):
-        1 + Log(X) - ExpNat(X)
+        1 + Log(X) - Exp(X)
     with pytest.raises(TypeError):
-        Log(X) ** ExpNat(X)
+        Log(X) ** Exp(X)
     with pytest.raises(ValueError):
         Abs(X) ** sympy.sqrt(10)
     with pytest.raises(ValueError):
