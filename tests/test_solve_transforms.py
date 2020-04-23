@@ -20,7 +20,7 @@ from spn.sym_util import sympy_solver
 from spn.transforms import ExpNat
 from spn.transforms import Identity
 from spn.transforms import Logarithm
-from spn.transforms import LogNat
+from spn.transforms import Log
 from spn.transforms import Sqrt
 
 X = sympy.symbols('X')
@@ -34,7 +34,7 @@ def test_solver_1_open():
     answer = sympy_solver(expr)
     assert answer == solution
 
-    event = LogNat(Y) > 2
+    event = Log(Y) > 2
     answer = event.solve()
     assert answer == solution
 
@@ -46,7 +46,7 @@ def test_solver_1_closed():
     answer = sympy_solver(expr)
     assert answer == solution
 
-    event = LogNat(Y) >= 2
+    event = Log(Y) >= 2
     answer = event.solve()
     assert answer == solution
 
@@ -58,7 +58,7 @@ def test_solver_2_open():
     answer = sympy_solver(expr)
     assert answer == solution
 
-    event = (LogNat(Y) > 2) & (Y < sympy.exp(2))
+    event = (Log(Y) > 2) & (Y < sympy.exp(2))
     answer = event.solve()
     assert answer == solution
 
@@ -70,7 +70,7 @@ def test_solver_2_closed():
     answer = sympy_solver(expr)
     assert answer == solution
 
-    event = (LogNat(Y) >= 2) & (Y <= sympy.exp(2))
+    event = (Log(Y) >= 2) & (Y <= sympy.exp(2))
     answer = event.solve()
     assert answer == solution
 
@@ -166,7 +166,7 @@ def test_solver_9_open():
     #       Z < Z_high iff log(X) < Z_high iff X < exp(Z_high)
     # sympy_solver(expr) = [exp(Z_low), exp(Z_high)]
     # For F invertible, can thus solve Poly(coeffs, F) > 0 using this method.
-    event = 2*(LogNat(Y))**3 - LogNat(Y) - 5 > 0
+    event = 2*(Log(Y))**3 - Log(Y) - 5 > 0
     answer = event.solve()
     assert answer == solution
 
@@ -181,7 +181,7 @@ def test_solver_9_closed():
     with pytest.raises(ValueError):
         assert sympy_solver(expr) == solution
 
-    event = 2*(LogNat(Y))**3 - LogNat(Y) - 5 >= 0
+    event = 2*(Log(Y))**3 - Log(Y) - 5 >= 0
     answer = event.solve()
     assert answer == solution
 
@@ -192,7 +192,7 @@ def test_solver_10():
     # Sympy hangs for some reason; cannot test.
     # expr = exp(sqrt(log(X))) > -5
 
-    event = ExpNat(Sqrt(LogNat(Y))) > -5
+    event = ExpNat(Sqrt(Log(Y))) > -5
     answer = event.solve()
     assert answer == solution
 
@@ -203,7 +203,7 @@ def test_solver_11_open():
     # Sympy hangs for some reason.
     # expr = exp(sqrt(log(X))) > 6
 
-    event = ExpNat(Sqrt(LogNat(Y))) > 6
+    event = ExpNat(Sqrt(Log(Y))) > 6
     answer = event.solve()
     assert answer == solution
 
@@ -214,7 +214,7 @@ def test_solver_11_closed():
     # Sympy hangs for some reason.
     # expr = exp(sqrt(log(X))) > 6
 
-    event = ExpNat(Sqrt(LogNat(Y))) >= 6
+    event = ExpNat(Sqrt(Log(Y))) >= 6
     answer = event.solve()
     assert answer == solution
 
@@ -340,7 +340,7 @@ def test_solver_20():
     answer = sympy_solver(expr)
     assert answer == solution
 
-    event = LogNat(Y**2 - 3) < 5
+    event = Log(Y**2 - 3) < 5
     answer = event.solve()
     assert answer == solution
 
@@ -361,7 +361,7 @@ def test_solver_21__ci_():
         expr = (1 < term) & (term < 5)
         answer = sympy_solver(expr)
 
-    expr = LogNat(Y**3 - 3*Y + 3)
+    expr = Log(Y**3 - 3*Y + 3)
     event = ((1 <= expr) & (expr < 5))
     answer = event.solve()
     assert isinstance(answer, Union)
@@ -566,9 +566,9 @@ def test_solver_finite_injective():
     solution = {sympy.log(10, 2), 4, sympy.log(sqrt3, 2)}
     event = (2**Y) << {10, 16, sqrt3}
     assert event.solve() == solution
-    # LogNat.
+    # Log.
     solution = {sympy.exp(10), sympy.exp(-3), sympy.exp(sqrt3)}
-    event = LogNat(Y) << {10, -3, sqrt3}
+    event = Log(Y) << {10, -3, sqrt3}
     assert event.solve() == solution
     # Log2
     solution = {sympy.Pow(2, 10), sympy.Pow(2, -3), sympy.Pow(2, sqrt3)}
@@ -618,7 +618,7 @@ def test_solver_finite_non_injective():
     assert event.solve() == solution
     # Log in Reals (yields positive reals).
     solution = Interval.open(0, oo)
-    event = ~((LogNat(Y))**3 << set([]))
+    event = ~((Log(Y))**3 << set([]))
     assert event.solve() == solution
 
 def test_solver_finite_symbolic():

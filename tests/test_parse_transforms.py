@@ -12,7 +12,7 @@ from sympy import oo
 from spn.transforms import Abs
 from spn.transforms import ExpNat
 from spn.transforms import Identity
-from spn.transforms import LogNat
+from spn.transforms import Log
 from spn.transforms import Piecewise
 from spn.transforms import Poly
 from spn.transforms import Pow
@@ -39,30 +39,30 @@ Y = X
 
 def test_parse_1_open():
     # log(x) > 2
-    expr = LogNat(X) > 2
-    event = EventInterval(LogNat(Y), Interval(2, oo, left_open=True))
+    expr = Log(X) > 2
+    event = EventInterval(Log(Y), Interval(2, oo, left_open=True))
     assert expr == event
 
 def test_parse_1_closed():
     # log(x) >= 2
-    expr = LogNat(X) >= 2
-    event = EventInterval(LogNat(Y), Interval(2, oo))
+    expr = Log(X) >= 2
+    event = EventInterval(Log(Y), Interval(2, oo))
     assert expr == event
 
 def test_parse_2_open():
     # log(x) < 2 & (x < exp(2))
-    expr = (LogNat(X) > 2) & (X < sympy.exp(2))
+    expr = (Log(X) > 2) & (X < sympy.exp(2))
     event = EventAnd([
-        EventInterval(LogNat(Y), Interval.open(2, oo)),
+        EventInterval(Log(Y), Interval.open(2, oo)),
         EventInterval(Y, Interval.open(-oo, sympy.exp(2)))
     ])
     assert expr == event
 
 def test_parse_2_closed():
     # (log(x) <= 2) & (x >= exp(2))
-    expr = (LogNat(X) >= 2) & (X <= sympy.exp(2))
+    expr = (Log(X) >= 2) & (X <= sympy.exp(2))
     event = EventAnd([
-        EventInterval(LogNat(Y), Interval(2, oo)),
+        EventInterval(Log(Y), Interval(2, oo)),
         EventInterval(Y, Interval(-oo, sympy.exp(2)))
     ])
     assert expr == event
@@ -123,8 +123,8 @@ def test_parse_8():
 
 def test_parse_9_open():
     # 2(log(x))**3 - log(x) -5 > 0
-    expr = 2*(LogNat(X))**3 - LogNat(X) - 5
-    expr_prime = Poly(LogNat(Y), [-5, -1, 0, 2])
+    expr = 2*(Log(X))**3 - Log(X) - 5
+    expr_prime = Poly(Log(Y), [-5, -1, 0, 2])
     assert expr == expr_prime
 
     event = EventInterval(expr, Interval.open(0, oo))
@@ -132,11 +132,11 @@ def test_parse_9_open():
 
     # Cannot add polynomials with different subexpressions.
     with pytest.raises(ValueError):
-        (2*LogNat(X))**3 - LogNat(X) - 5
+        (2*Log(X))**3 - Log(X) - 5
 
 def test_parse_10():
     # exp(sqrt(log(x))) > -5
-    expr = ExpNat(Sqrt(LogNat(Y)))
+    expr = ExpNat(Sqrt(Log(Y)))
     event = EventInterval(expr, Interval.open(-5, oo))
     assert (expr > -5) == event
 
@@ -185,7 +185,7 @@ def test_parse_16():
 
 def test_parse_17():
     # https://www.wolframalpha.com/input/?i=Expand%5B%2810%2F7+%2B+X%29+%28-1%2F%285+Sqrt%5B2%5D%29+%2B+X%29+%28-Sqrt%5B5%5D+%2B+X%29%5D
-    for Z in [X, LogNat(X), Abs(1+X**2)]:
+    for Z in [X, Log(X), Abs(1+X**2)]:
         expr = (Z - Rat(1, 10) * sympy.sqrt(2)) \
             * (Z + Rat(10, 7)) \
             * (Z - sympy.sqrt(5))
@@ -238,8 +238,8 @@ def test_parse_19():
 
 def test_parse_20():
     # log(x**2 - 3) < 5
-    expr = LogNat(X**2 - 3)
-    expr_prime = LogNat(Poly(Y, [-3, 0, 1]))
+    expr = Log(X**2 - 3)
+    expr_prime = Log(Poly(Y, [-3, 0, 1]))
     event = EventInterval(expr_prime, Interval.open(-oo, 5))
     assert (expr < 5) == event
 
@@ -247,8 +247,8 @@ def test_parse_21__ci_():
     # 1 <= log(x**3 - 3*x + 3) < 5
     # Can only be solved by numerical approximation of roots.
     # https://www.wolframalpha.com/input/?i=1+%3C%3D+log%28x**3+-+3x+%2B+3%29+%3C+5
-    expr = LogNat(X**3 - 3*X + 3)
-    expr_prime = LogNat(Poly(Y, [3, -3, 0, 1]))
+    expr = Log(X**3 - 3*X + 3)
+    expr_prime = Log(Poly(Y, [3, -3, 0, 1]))
     assert expr == expr_prime
     assert ((1 <= expr) & (expr < 5)) \
         == EventInterval(expr, Interval.Ropen(1, 5))
@@ -306,15 +306,15 @@ def test_parse_27_piecewise_many():
 
 def test_errors():
     with pytest.raises(ValueError):
-        1 + LogNat(X) - ExpNat(X)
+        1 + Log(X) - ExpNat(X)
     with pytest.raises(TypeError):
-        LogNat(X) ** ExpNat(X)
+        Log(X) ** ExpNat(X)
     with pytest.raises(ValueError):
         Abs(X) ** sympy.sqrt(10)
     with pytest.raises(ValueError):
-        LogNat(X) * X
+        Log(X) * X
     with pytest.raises(ValueError):
-        (2*LogNat(X)) - Rat(1, 10) * Abs(X)
+        (2*Log(X)) - Rat(1, 10) * Abs(X)
     with pytest.raises(ValueError):
         X**(1.71)
     with pytest.raises(ValueError):

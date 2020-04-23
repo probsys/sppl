@@ -5,7 +5,7 @@ import pytest
 
 from spn.transforms import ExpNat as exp
 from spn.transforms import Identity
-from spn.transforms import LogNat as log
+from spn.transforms import Log as log
 
 X = Identity('X')
 Y = Identity('Y')

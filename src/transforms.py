@@ -1214,7 +1214,7 @@ class EventAnd(EventCompound):
 # Some useful constructors.
 def ExpNat(subexpr):
     return Exp(subexpr, sympy.exp(1))
-def LogNat(subexpr):
+def Log(subexpr):
     return Logarithm(subexpr, sympy.exp(1))
 def Sqrt(subexpr):
     return Radical(subexpr, 2)
