@@ -270,7 +270,7 @@ class Transform(object):
         x_val = sympify_number(x)
         if x_val <= 0:
             raise ValueError('Base must be positive, not %s' % (x,))
-        return Exp(self, x_val)
+        return Exponential(self, x_val)
     def __rpow__(self, x):
         try:
             return self.__rpow__number(x)
@@ -446,7 +446,7 @@ class Radical(Injective):
         x = (self.__class__, self.subexpr, self.degree)
         return hash(x)
 
-class Exp(Injective):
+class Exponential(Injective):
     def __init__(self, subexpr, base):
         assert base > 0
         self.subexpr = make_subexpr(subexpr, self)
@@ -459,7 +459,7 @@ class Exp(Injective):
         if not expr_in_env(self, env):
             return self
         subexpr_prime = self.subexpr.subs(env)
-        return Exp(subexpr_prime, self.base)
+        return Exponential(subexpr_prime, self.base)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -471,11 +471,11 @@ class Exp(Injective):
             return EmptySet
         return {sympy.log(y, self.base) if y > 0 else -oo}
     def __eq__(self, x):
-        return isinstance(x, Exp) \
+        return isinstance(x, Exponential) \
             and self.subexpr == x.subexpr \
             and self.base == x.base
     def __repr__(self):
-        return 'Exp(base=%s, %s)' \
+        return 'Exponential(base=%s, %s)' \
             % (repr(self.base), repr(self.subexpr))
     def __str__(self):
         if self.base == sympy.E:
@@ -1213,7 +1213,7 @@ class EventAnd(EventCompound):
 
 # Some useful constructors.
 def ExpNat(subexpr):
-    return Exp(subexpr, sympy.exp(1))
+    return Exponential(subexpr, sympy.exp(1))
 def Log(subexpr):
     return Logarithm(subexpr, sympy.exp(1))
 def Sqrt(subexpr):
