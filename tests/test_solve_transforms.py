@@ -19,7 +19,7 @@ from spn.sym_util import UniversalSet
 from spn.sym_util import sympy_solver
 from spn.transforms import ExpNat
 from spn.transforms import Identity
-from spn.transforms import Log
+from spn.transforms import Logarithm
 from spn.transforms import LogNat
 from spn.transforms import Sqrt
 
@@ -572,7 +572,7 @@ def test_solver_finite_injective():
     assert event.solve() == solution
     # Log2
     solution = {sympy.Pow(2, 10), sympy.Pow(2, -3), sympy.Pow(2, sqrt3)}
-    event = Log(Y, 2) << {10, -3, sqrt3}
+    event = Logarithm(Y, 2) << {10, -3, sqrt3}
     assert event.solve() == solution
     # Radical.
     solution = {7**4, 12**4, sqrt3**4}

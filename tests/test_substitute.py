@@ -3,7 +3,7 @@
 
 import pytest
 from spn.transforms import Identity
-from spn.transforms import Log
+from spn.transforms import Logarithm
 
 # from spn.transforms import Radical
 # from spn.transforms import Exp
@@ -33,9 +33,9 @@ cases = [
     [Z                             , {Z:2**X} , 2**X],
     [((Z+1)**b)                    , {Z:1/X}  , (1/X+1)**b],
     [((2**Z+1)**b)                 , {Z:X+1}  , (2**(X+1)+1)**b],
-    [((2**Log(Z, 2)+1)**b)         , {Z:X+1}  , (2**Log((X+1), 2)+1)**b] ,
-    [((2**abs(Log(Z, 2))+1)**b)    , {Z:X+1}  , (2**abs(Log((X+1), 2))+1)**b],
-    [((2**abs(Log(1/Z, 2))+1)**b)  , {Z:X+1}  , (2**abs(Log(1/(X+1), 2))+1)**b],
+    [((2**Logarithm(Z, 2)+1)**b)         , {Z:X+1}  , (2**Logarithm((X+1), 2)+1)**b] ,
+    [((2**abs(Logarithm(Z, 2))+1)**b)    , {Z:X+1}  , (2**abs(Logarithm((X+1), 2))+1)**b],
+    [((2**abs(Logarithm(1/Z, 2))+1)**b)  , {Z:X+1}  , (2**abs(Logarithm(1/(X+1), 2))+1)**b],
     # Compound cases.
     [(Z > 1)*(1/Z) + (Z < 1)*Z**b
         , {Z:X+1}

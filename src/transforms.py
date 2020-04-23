@@ -485,7 +485,7 @@ class Exp(Injective):
         x = (self.__class__, self.subexpr, self.base)
         return hash(x)
 
-class Log(Injective):
+class Logarithm(Injective):
     def __init__(self, subexpr, base):
         assert base > 1
         self.subexpr = make_subexpr(subexpr, self)
@@ -498,7 +498,7 @@ class Log(Injective):
         if not expr_in_env(self, env):
             return self
         subexpr_prime = self.subexpr.subs(env)
-        return Log(subexpr_prime, self.base)
+        return Logarithm(subexpr_prime, self.base)
     def evaluate(self, assignment):
         x = self.subexpr.evaluate(assignment)
         return self.ffwd(x)
@@ -510,11 +510,11 @@ class Log(Injective):
             return EmptySet
         return {sympy.Pow(self.base, y)}
     def __eq__(self, x):
-        return isinstance(x, Log) \
+        return isinstance(x, Logarithm) \
             and self.subexpr == x.subexpr \
             and self.base == x.base
     def __repr__(self):
-        return 'Log(base=%s, %s)' \
+        return 'Logarithm(base=%s, %s)' \
             % (repr(self.base), repr(self.subexpr))
     def __str__(self):
         if self.base == sympy.E:
@@ -1215,7 +1215,7 @@ class EventAnd(EventCompound):
 def ExpNat(subexpr):
     return Exp(subexpr, sympy.exp(1))
 def LogNat(subexpr):
-    return Log(subexpr, sympy.exp(1))
+    return Logarithm(subexpr, sympy.exp(1))
 def Sqrt(subexpr):
     return Radical(subexpr, 2)
 def Pow(subexpr, n):
