@@ -3,9 +3,9 @@
 
 import pytest
 
-from spn.transforms import ExpNat as exp
+from spn.transforms import Exp
 from spn.transforms import Identity
-from spn.transforms import LogNat as log
+from spn.transforms import Log
 
 X = Identity('X')
 Y = Identity('Y')
@@ -68,9 +68,9 @@ def test_event_compound():
     assert event.evaluate({X: list(x_eq_500)[1], Y: 5})
 
 def test_event_solve_multi():
-    event = (exp(abs(3*X**2)) > 1) | (log(Y) < 0.5)
+    event = (Exp(abs(3*X**2)) > 1) | (Log(Y) < 0.5)
     with pytest.raises(ValueError):
         event.solve()
-    event = (exp(abs(3*X**2)) > 1) & (log(Y) < 0.5)
+    event = (Exp(abs(3*X**2)) > 1) & (Log(Y) < 0.5)
     with pytest.raises(ValueError):
         event.solve()

@@ -8,9 +8,9 @@ from spn.dnf import dnf_non_disjoint_clauses
 from spn.dnf import dnf_to_disjoint_union
 
 from spn.transforms import EventOr
-from spn.transforms import ExpNat
+from spn.transforms import Exp
 from spn.transforms import Identity
-from spn.transforms import LogNat
+from spn.transforms import Log
 from spn.transforms import Sqrt
 
 (X0, X1, X2, X3, X4, X5) = [Identity("X%d" % (i,)) for i in range(6)]
@@ -80,7 +80,7 @@ def test_to_dnf_invert():
     assert event.to_dnf() == (~A & B & ~C) | D
 
 def test_dnf_factor():
-    E00 = ExpNat(X0) > 0
+    E00 = Exp(X0) > 0
     E01 = X0 < 10
     E10 = X1 < 10
     E20 = (X2**2 - X2*3) < 0
@@ -88,7 +88,7 @@ def test_dnf_factor():
     E31 = (Sqrt(2*X3)) < 0
     E40 = X4 > 0
     E41 = X4 << [1, 5]
-    E50 = 10*LogNat(X5) + 9 > 5
+    E50 = 10*Log(X5) + 9 > 5
 
     event = (E00)
     event_dnf = event.to_dnf()
@@ -153,7 +153,7 @@ def test_dnf_factor():
     assert event_factor[3][X5] == E50
 
 def test_dnf_factor_1():
-    A = ExpNat(X0) > 0
+    A = Exp(X0) > 0
     B = X0 < 10
     C = X1 < 10
     D = X2 < 0
@@ -177,12 +177,12 @@ def test_dnf_factor_2():
     assert event_factor[0][2] == C
 
 def test_dnf_factor_3():
-    A = (ExpNat(X0) > 0)
+    A = (Exp(X0) > 0)
     B = X0 < 10
     C = X1 < 10
     D = X4 > 0
     E = (X2**2 - 3*X2) << (0, 10, 100)
-    F = (10*LogNat(X5) + 9) > 5
+    F = (10*Log(X5) + 9) > 5
     G = X4 < 4
 
     event = (A & B & C & ~D) | (E & F & G)

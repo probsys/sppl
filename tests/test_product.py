@@ -19,9 +19,9 @@ from spn.math_util import logsumexp
 from spn.spn import LeafSPN
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
-from spn.transforms import ExpNat as Exp
+from spn.transforms import Exp as Exp
 from spn.transforms import Identity
-from spn.transforms import LogNat as Log
+from spn.transforms import Log
 
 def test_product_distribution_normal_gamma_basic():
     X1 = Identity('X1')
