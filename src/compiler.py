@@ -124,14 +124,14 @@ class SPML_Visitor(ast.NodeVisitor):
         self.arrays[target.id] = node.value.args[0].n
 
     def visit_Assign_expr(self, node):
-        value_prime = SPML_Transformer().visit(node.value)
+        value_prime = SPML_Transformer_Compare().visit(node.value)
         src_value = unparse(value_prime).replace(os.linesep, '')
         src_targets = unparse(node.targets).replace(os.linesep, '')
         idt = get_indentation(self.indentation)
         # Determine whether value is Sample or Transform.
         op = 'Sample'
         if not isinstance(node.value, (ast.Dict, ast.DictComp)):
-            visitor = SPML_Visitor_Distributions()
+            visitor = SPML_Visitor_Name()
             visitor.visit(node.value)
             op = 'Sample' if visitor.distributions else 'Transform'
             for d in visitor.distributions:
@@ -179,7 +179,7 @@ class SPML_Visitor(ast.NodeVisitor):
         self.indentation += 4
         for i, (test, body) in enumerate(unrolled):
             # Write the test.
-            test_prime = SPML_Transformer().visit(test)
+            test_prime = SPML_Transformer_Compare().visit(test)
             src_test = unparse(test_prime).strip()
             idt = get_indentation(self.indentation)
             self.stream.write('%s%s,' % (idt, src_test))
@@ -215,7 +215,7 @@ def unroll_if(node, current=None):
     # Recursive case, next statement is elif
     return unroll_if(node.orelse[0], current)
 
-class SPML_Transformer(ast.NodeTransformer):
+class SPML_Transformer_Compare(ast.NodeTransformer):
     def visit_Compare(self, node):
         # TODO: Implement or/and.
         if len(node.ops) > 1:
@@ -244,7 +244,7 @@ class SPML_Transformer(ast.NodeTransformer):
                 operand=self.visit_Compare(node_copy))
         return node
 
-class SPML_Visitor_Distributions(ast.NodeVisitor):
+class SPML_Visitor_Name(ast.NodeVisitor):
     def __init__(self):
         self.distributions = set()
     def visit_Name(self, node):
