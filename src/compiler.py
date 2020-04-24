@@ -108,36 +108,42 @@ class SPML_Visitor(ast.NodeVisitor):
             'unknown sample value %s' % (str_node,)
         # Assigning array
         if isinstance(value, ast.Call) and value.func.id == 'array':
-            assert self.context == ['global']           # must be global
-            assert isinstance(target, ast.Name)         # must not be subscript
-            assert node.targets[0] not in self.arrays   # must be fresh
-            assert len(value.args) == 1                 # must be array(n)
-            assert isinstance(value.args[0], ast.Num) # must be num n
-            assert isinstance(value.args[0].n, int)   # must be int n
-            assert value.args[0].n > 0                # must be pos n
-            self.arrays[target.id] = value.args[0].n
+            return self.visit_Assign_array(node)
         # Sample or Transform.
+        return self.visit_Assign_expr(node)
+
+    def visit_Assign_array(self, node):
+        target = node.targets[0]
+        assert self.context == ['global']               # must be global
+        assert isinstance(target, ast.Name)             # must not be subscript
+        assert node.targets[0] not in self.arrays       # must be fresh
+        assert len(node.value.args) == 1                # must be array(n)
+        assert isinstance(node.value.args[0], ast.Num)  # must be num n
+        assert isinstance(node.value.args[0].n, int)    # must be int n
+        assert node.value.args[0].n > 0                 # must be pos n
+        self.arrays[target.id] = node.value.args[0].n
+
+    def visit_Assign_expr(self, node):
+        value_prime = SPML_Transformer().visit(node.value)
+        src_value = unparse(value_prime).replace(os.linesep, '')
+        src_targets = unparse(node.targets).replace(os.linesep, '')
+        idt = get_indentation(self.indentation)
+        # Determine whether value is Sample or Transform.
+        if isinstance(node.value, (ast.Dict, ast.DictComp)):
+            op = 'Sample'
         else:
-            value_prime = SPML_Transformer().visit(value)
-            src_value = unparse(value_prime).replace(os.linesep, '')
-            src_targets = unparse(node.targets).replace(os.linesep, '')
-            idt = get_indentation(self.indentation)
-            # Determine whether value is Sample or Transform.
-            if isinstance(value, (ast.Dict, ast.DictComp)):
-                op = 'Sample'
+            visitor = SPML_Visitor_Distributions()
+            visitor.visit(node.value)
+            if not visitor.distributions:
+                op = 'Transform'
             else:
-                visitor = SPML_Visitor_Distributions()
-                visitor.visit(value)
-                if not visitor.distributions:
-                    op = 'Transform'
-                else:
-                    op = 'Sample'
-                    for d in visitor.distributions:
-                        if d not in self.distributions:
-                            self.distributions[d] = None
-            # Write.
-            self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
-            self.stream.write('\n')
+                op = 'Sample'
+                for d in visitor.distributions:
+                    if d not in self.distributions:
+                        self.distributions[d] = None
+        # Write.
+        self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
+        self.stream.write('\n')
 
     def visit_For(self, node):
         assert isinstance(node.target, ast.Name), unparse(node.target)
