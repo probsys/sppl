@@ -129,18 +129,14 @@ class SPML_Visitor(ast.NodeVisitor):
         src_targets = unparse(node.targets).replace(os.linesep, '')
         idt = get_indentation(self.indentation)
         # Determine whether value is Sample or Transform.
-        if isinstance(node.value, (ast.Dict, ast.DictComp)):
-            op = 'Sample'
-        else:
+        op = 'Sample'
+        if not isinstance(node.value, (ast.Dict, ast.DictComp)):
             visitor = SPML_Visitor_Distributions()
             visitor.visit(node.value)
-            if not visitor.distributions:
-                op = 'Transform'
-            else:
-                op = 'Sample'
-                for d in visitor.distributions:
-                    if d not in self.distributions:
-                        self.distributions[d] = None
+            op = 'Sample' if visitor.distributions else 'Transform'
+            for d in visitor.distributions:
+                if d not in self.distributions:
+                    self.distributions[d] = None
         # Write.
         self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
         self.stream.write('\n')
