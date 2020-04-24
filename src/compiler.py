@@ -77,6 +77,11 @@ class SPML_Visitor(ast.NodeVisitor):
     def visit_Assign(self, node):
         str_node = unparse(node)
 
+        # Convert IfExp to an If?
+        if isinstance(node.value, ast.IfExp):
+            node_prime = unroll_ifexp(node.targets, node.value)
+            return self.visit(node_prime)
+
         # Analyze node.target.
         assert len(node.targets) == 1
         target = node.targets[0]
@@ -212,6 +217,15 @@ def unroll_if(node, current=None):
         return current
     # Recursive case, next statement is elif
     return unroll_if(node.orelse[0], current)
+
+def unroll_ifexp(target, node):
+    assert isinstance(node, ast.IfExp)
+    expr = ast.If(node.test, ast.Assign(target, node.body), None)
+    if isinstance(node.orelse, ast.IfExp):
+        expr.orelse = [unroll_ifexp(target, node.orelse)]
+    else:
+        expr.orelse = [ast.Assign(target, node.orelse)]
+    return expr
 
 class SPML_Transformer_Compare(ast.NodeTransformer):
     def visit_Compare(self, node):
