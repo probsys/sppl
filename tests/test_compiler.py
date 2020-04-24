@@ -251,3 +251,19 @@ for i in range(5):
     namespace = compiler.execute_module()
     for i in range(5):
         assert namespace.model.prob(namespace.Z << {str(i)}) == 0.2
+
+def test_ifexp():
+    source = '''
+from fractions import Fraction
+Y ~= {str(i): Fraction(1, 4) for i in range(4)}
+Z ~= (
+    atomic(loc=0)    if (Y in {'0', '1'}) else
+    atomic(loc=4)    if (Y == '2') else
+    atomic(loc=6))
+'''
+    compiler = SPML_Compiler(source)
+    assert 'IfElse' in compiler.render_module()
+    namespace = compiler.execute_module()
+    assert namespace.model.prob(namespace.Z << {0}) == 0.5
+    assert namespace.model.prob(namespace.Z << {4}) == 0.25
+    assert namespace.model.prob(namespace.Z << {6}) == 0.25

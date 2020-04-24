@@ -77,6 +77,11 @@ class SPML_Visitor(ast.NodeVisitor):
     def visit_Assign(self, node):
         str_node = unparse(node)
 
+        # Convert IfExp to an If?
+        if isinstance(node.value, ast.IfExp):
+            node_prime = unroll_ifexp(node.targets, node.value)
+            return self.visit(node_prime)
+
         # Analyze node.target.
         assert len(node.targets) == 1
         target = node.targets[0]
@@ -108,36 +113,38 @@ class SPML_Visitor(ast.NodeVisitor):
             'unknown sample value %s' % (str_node,)
         # Assigning array
         if isinstance(value, ast.Call) and value.func.id == 'array':
-            assert self.context == ['global']           # must be global
-            assert isinstance(target, ast.Name)         # must not be subscript
-            assert node.targets[0] not in self.arrays   # must be fresh
-            assert len(value.args) == 1                 # must be array(n)
-            assert isinstance(value.args[0], ast.Num) # must be num n
-            assert isinstance(value.args[0].n, int)   # must be int n
-            assert value.args[0].n > 0                # must be pos n
-            self.arrays[target.id] = value.args[0].n
+            return self.visit_Assign_array(node)
         # Sample or Transform.
-        else:
-            value_prime = SPML_Transformer().visit(value)
-            src_value = unparse(value_prime).replace(os.linesep, '')
-            src_targets = unparse(node.targets).replace(os.linesep, '')
-            idt = get_indentation(self.indentation)
-            # Determine whether value is Sample or Transform.
-            if isinstance(value, (ast.Dict, ast.DictComp)):
-                op = 'Sample'
-            else:
-                visitor = SPML_Visitor_Distributions()
-                visitor.visit(value)
-                if not visitor.distributions:
-                    op = 'Transform'
-                else:
-                    op = 'Sample'
-                    for d in visitor.distributions:
-                        if d not in self.distributions:
-                            self.distributions[d] = None
-            # Write.
-            self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
-            self.stream.write('\n')
+        return self.visit_Assign_expr(node)
+
+    def visit_Assign_array(self, node):
+        target = node.targets[0]
+        assert self.context == ['global']               # must be global
+        assert isinstance(target, ast.Name)             # must not be subscript
+        assert node.targets[0] not in self.arrays       # must be fresh
+        assert len(node.value.args) == 1                # must be array(n)
+        assert isinstance(node.value.args[0], ast.Num)  # must be num n
+        assert isinstance(node.value.args[0].n, int)    # must be int n
+        assert node.value.args[0].n > 0                 # must be pos n
+        self.arrays[target.id] = node.value.args[0].n
+
+    def visit_Assign_expr(self, node):
+        value_prime = SPML_Transformer_Compare().visit(node.value)
+        src_value = unparse(value_prime).replace(os.linesep, '')
+        src_targets = unparse(node.targets).replace(os.linesep, '')
+        idt = get_indentation(self.indentation)
+        # Determine whether value is Sample or Transform.
+        op = 'Sample'
+        if not isinstance(node.value, (ast.Dict, ast.DictComp)):
+            visitor = SPML_Visitor_Name()
+            visitor.visit(node.value)
+            op = 'Sample' if visitor.distributions else 'Transform'
+            for d in visitor.distributions:
+                if d not in self.distributions:
+                    self.distributions[d] = None
+        # Write.
+        self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
+        self.stream.write('\n')
 
     def visit_For(self, node):
         assert isinstance(node.target, ast.Name), unparse(node.target)
@@ -177,7 +184,7 @@ class SPML_Visitor(ast.NodeVisitor):
         self.indentation += 4
         for i, (test, body) in enumerate(unrolled):
             # Write the test.
-            test_prime = SPML_Transformer().visit(test)
+            test_prime = SPML_Transformer_Compare().visit(test)
             src_test = unparse(test_prime).strip()
             idt = get_indentation(self.indentation)
             self.stream.write('%s%s,' % (idt, src_test))
@@ -200,9 +207,7 @@ class SPML_Visitor(ast.NodeVisitor):
 def unroll_if(node, current=None):
     current = [] if current is None else current
     assert isinstance(node, ast.If)
-    test = node.test
-    body = node.body
-    current.append((test, body))
+    current.append((node.test, node.body))
     # Base case, terminating at elif.
     if not node.orelse:
         return current
@@ -213,7 +218,16 @@ def unroll_if(node, current=None):
     # Recursive case, next statement is elif
     return unroll_if(node.orelse[0], current)
 
-class SPML_Transformer(ast.NodeTransformer):
+def unroll_ifexp(target, node):
+    assert isinstance(node, ast.IfExp)
+    expr = ast.If(node.test, ast.Assign(target, node.body), None)
+    if isinstance(node.orelse, ast.IfExp):
+        expr.orelse = [unroll_ifexp(target, node.orelse)]
+    else:
+        expr.orelse = [ast.Assign(target, node.orelse)]
+    return expr
+
+class SPML_Transformer_Compare(ast.NodeTransformer):
     def visit_Compare(self, node):
         # TODO: Implement or/and.
         if len(node.ops) > 1:
@@ -242,7 +256,7 @@ class SPML_Transformer(ast.NodeTransformer):
                 operand=self.visit_Compare(node_copy))
         return node
 
-class SPML_Visitor_Distributions(ast.NodeVisitor):
+class SPML_Visitor_Name(ast.NodeVisitor):
     def __init__(self):
         self.distributions = set()
     def visit_Name(self, node):
