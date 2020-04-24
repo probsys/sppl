@@ -1,6 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+from itertools import chain
 from functools import reduce
 
 from .dnf import dnf_normalize
@@ -111,6 +112,18 @@ class For(Command):
         commands = [self.f(i) for i in range(self.n0, self.n1)]
         sequence = Sequence(*commands)
         return sequence.interpret(spn)
+
+class Switch(Command):
+    def __init__(self, symbol, values, f):
+        self.symbol = symbol
+        self.f = f
+        self.values = values
+    def interpret(self, spn=None):
+        conditions = [self.symbol << {v} for v in self.values]
+        subcommands = [self.f(v) for v in self.values]
+        branches = chain(*zip(conditions, subcommands))
+        ifelse = IfElse(*branches)
+        return ifelse.interpret(spn)
 
 class Sequence(Command):
     def __init__(self, *commands):
