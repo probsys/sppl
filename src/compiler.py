@@ -202,9 +202,7 @@ class SPML_Visitor(ast.NodeVisitor):
 def unroll_if(node, current=None):
     current = [] if current is None else current
     assert isinstance(node, ast.If)
-    test = node.test
-    body = node.body
-    current.append((test, body))
+    current.append((node.test, node.body))
     # Base case, terminating at elif.
     if not node.orelse:
         return current
