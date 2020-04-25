@@ -3,11 +3,13 @@
 
 from math import log
 
+import pytest
+
 from numpy import linspace
 
 from spn.distributions import bernoulli
-from spn.distributions import randint
 from spn.distributions import beta
+from spn.distributions import randint
 from spn.interpreter import IfElse
 from spn.interpreter import Sample
 from spn.interpreter import Start
@@ -67,3 +69,17 @@ def test_simple_model_lte():
                 model.logprob((il < Y) <= ih) + log(ih)
                 for il, ih in zip(grid[:-1], grid[1:])
             ]))
+
+def test_error_eq():
+    with pytest.raises(AssertionError):
+        model = (Start
+        & Sample(Y, randint(low=0, high=4))
+        & Switch(Y, 'eq', range(0, 3), lambda i:
+            Sample(X, bernoulli(p=1/(i+1)))))
+
+def test_error_lte():
+    with pytest.raises(AssertionError):
+        model_switch = (Start
+            & Sample(Y, beta(a=2, b=3))
+            & Switch(Y, 'lte', linspace(0, .5, 5), lambda i:
+                Sample(X, bernoulli(p=i))))
