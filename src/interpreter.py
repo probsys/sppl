@@ -92,11 +92,12 @@ class IfElse(Command):
         # Obtain conditioned SPNs.
         weights_conditioned = [weights[i] for i in indexes]
         spns_conditioned = [spn.condition(events[i], memo) for i in indexes]
+        subcommands_conditioned = [subcommands[i] for i in indexes]
         assert allclose(logsumexp(weights_conditioned), 0)
         # Make the children.
         children = [
             subcommand.interpret(S)
-            for S, subcommand in zip(spns_conditioned, subcommands)
+            for S, subcommand in zip(spns_conditioned, subcommands_conditioned)
         ]
         # Return the SPN.
         return SumSPN(children, weights_conditioned) if 1 < len(children) else children[0]
