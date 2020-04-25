@@ -99,7 +99,7 @@ class IfElse(Command):
             for S, subcommand in zip(spns_conditioned, subcommands)
         ]
         # Return the SPN.
-        return SumSPN(children, weights) if 1 < len(children) else children[0]
+        return SumSPN(children, weights_conditioned) if 1 < len(children) else children[0]
 
 class For(Command):
     def __init__(self, n0, n1, f):

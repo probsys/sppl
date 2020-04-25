@@ -180,6 +180,7 @@ class SumSPN(BranchSPN):
     """Weighted mixture of SPNs."""
 
     def __init__(self, children, weights):
+        assert len(children) == len(weights)
         self.children = tuple(chain.from_iterable([
             spn.children
                 if isinstance(spn, type(self)) else [spn]
