@@ -3,8 +3,11 @@
 
 from math import log
 
+from numpy import linspace
+
 from spn.distributions import bernoulli
 from spn.distributions import randint
+from spn.distributions import beta
 from spn.interpreter import IfElse
 from spn.interpreter import Sample
 from spn.interpreter import Start
@@ -16,10 +19,10 @@ from spn.math_util import logsumexp
 Y = Variable('Y')
 X = Variable('X')
 
-def test_simple_model():
+def test_simple_model_eq():
     model_switch = (Start
         & Sample(Y, randint(low=0, high=4))
-        & Switch(Y, range(0, 4), lambda i:
+        & Switch(Y, 'eq', range(0, 4), lambda i:
             Sample(X, bernoulli(p=1/(i+1)))))
 
     model_ifelse = (Start
@@ -37,3 +40,30 @@ def test_simple_model():
         assert allclose(
             model.logprob(X << {1}),
             logsumexp([-log(4) - log(i+1) for i in range(4)]))
+
+def test_simple_model_lte():
+    model_switch = (Start
+        & Sample(Y, beta(a=2, b=3))
+        & Switch(Y, 'lte', linspace(0, 1, 5), lambda i:
+            Sample(X, bernoulli(p=i))))
+
+    model_ifelse = (Start
+        & Sample(Y, beta(a=2, b=3))
+        & IfElse (
+            Y <= 0, Sample(X, bernoulli(p=0)),
+            Y <= 0.25, Sample(X, bernoulli(p=.25)),
+            Y <= 0.50, Sample(X, bernoulli(p=.50)),
+            Y <= 0.75, Sample(X, bernoulli(p=.75)),
+            Y <= 1, Sample(X, bernoulli(p=1)),
+        ))
+
+    grid = [float(x) for x in linspace(0, 1, 5)]
+    for model in [model_switch, model_ifelse]:
+        symbols = model.get_symbols()
+        assert symbols == {X, Y}
+        assert allclose(
+            model.logprob(X << {1}),
+            logsumexp([
+                model.logprob((il < Y) <= ih) + log(ih)
+                for il, ih in zip(grid[:-1], grid[1:])
+            ]))

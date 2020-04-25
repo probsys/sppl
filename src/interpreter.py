@@ -114,12 +114,17 @@ class For(Command):
         return sequence.interpret(spn)
 
 class Switch(Command):
-    def __init__(self, symbol, values, f):
+    def __init__(self, symbol, mode, values, f):
         self.symbol = symbol
+        self.mode = mode
         self.f = f
         self.values = values
     def interpret(self, spn=None):
-        conditions = [self.symbol << {v} for v in self.values]
+        assert self.mode in ['eq', 'lt', 'lte']
+        conditions = \
+            [self.symbol << {v} for v in self.values] if self.mode=='eq' else \
+            [self.symbol < v for v in self.values]    if self.mode=='lt' else \
+            [self.symbol <= v for v in self.values]
         subcommands = [self.f(v) for v in self.values]
         branches = chain(*zip(conditions, subcommands))
         ifelse = IfElse(*branches)
