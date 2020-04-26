@@ -12,7 +12,7 @@ from spn.distributions import bernoulli
 from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
 from spn.interpreter import Sample
-from spn.interpreter import Start
+from spn.interpreter import Sequence
 from spn.interpreter import Variable
 
 Burglary    = Variable('Burglary')
@@ -21,26 +21,27 @@ Alarm       = Variable('Alarm')
 JohnCalls   = Variable('JohnCalls')
 MaryCalls   = Variable('MaryCalls')
 
-model = (Start
-    & Sample (Burglary,   bernoulli(p=0.001))
-    & Sample (Earthquake, bernoulli(p=0.002))
-    & IfElse (
+program = Sequence(
+    Sample(Burglary,   bernoulli(p=0.001)),
+    Sample(Earthquake, bernoulli(p=0.002)),
+    IfElse(
         Burglary << {1},
-            IfElse (
+            IfElse(
                 Earthquake << {1},  Sample(Alarm, bernoulli(p=0.95)),
                 Otherwise,          Sample(Alarm, bernoulli(p=0.94))),
         Otherwise,
-            IfElse (
+            IfElse(
                 Earthquake << {1},  Sample(Alarm, bernoulli(p=0.29)),
-                Otherwise,          Sample(Alarm, bernoulli(p=0.001))))
-    & IfElse (
-        Alarm << {1},
-            Sample(JohnCalls,   bernoulli(p=0.90))
-            & Sample(MaryCalls, bernoulli(p=0.70)),
-        Otherwise,
-            Sample(JohnCalls,   bernoulli(p=0.05))
-            & Sample(MaryCalls, bernoulli(p=0.01)),
+                Otherwise,          Sample(Alarm, bernoulli(p=0.001)))),
+    IfElse(
+        Alarm << {1}, Sequence(
+            Sample(JohnCalls, bernoulli(p=0.90)),
+            Sample(MaryCalls, bernoulli(p=0.70))),
+        Otherwise, Sequence(
+                Sample(JohnCalls, bernoulli(p=0.05)),
+                Sample(MaryCalls, bernoulli(p=0.01))),
         ))
+model = program.interpret()
 
 def test_marginal_probability():
     # Query on pp. 514.

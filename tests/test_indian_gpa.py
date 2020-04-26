@@ -16,7 +16,7 @@ from spn.distributions import atomic
 from spn.distributions import uniform
 from spn.interpreter import IfElse
 from spn.interpreter import Sample
-from spn.interpreter import Start
+from spn.interpreter import Sequence
 from spn.interpreter import Variable
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
@@ -56,10 +56,10 @@ def model_exposed():
         )
 
 def model_ifelse_exhuastive():
-    return Start \
-        & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
-        & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
-        & IfElse(
+    command = Sequence(
+        Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
+        Sample(Perfect,     {'True': 0.01, 'False': 0.99}),
+        IfElse(
             (Nationality << {'India'}) & (Perfect << {'False'}),
                 Sample(GPA, uniform(loc=0, scale=10))
             ,
@@ -70,16 +70,17 @@ def model_ifelse_exhuastive():
                 Sample(GPA, uniform(loc=0, scale=4))
             ,
             (Nationality << {'USA'}) & (Perfect << {'True'}),
-                Sample(GPA, atomic(loc=4)))
+                Sample(GPA, atomic(loc=4))))
+    return command.interpret()
 
 def model_ifelse_non_exhuastive():
     Nationality = Variable('Nationality')
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
-    return Start \
-        & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
-        & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
-        & IfElse(
+    command = Sequence(
+        Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
+        Sample(Perfect,     {'True': 0.01, 'False': 0.99}),
+        IfElse(
             (Nationality << {'India'}) & (Perfect << {'False'}),
                 Sample(GPA, uniform(loc=0, scale=10))
             ,
@@ -90,16 +91,17 @@ def model_ifelse_non_exhuastive():
                 Sample(GPA, uniform(loc=0, scale=4))
             ,
             True,
-                Sample(GPA, atomic(loc=4)))
+                Sample(GPA, atomic(loc=4))))
+    return command.interpret()
 
 def model_ifelse_nested():
     Nationality = Variable('Nationality')
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
-    return Start \
-        & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
-        & Sample(Perfect,     {'True': 0.01, 'False': 0.99}) \
-        & IfElse(
+    command = Sequence(
+        Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
+        Sample(Perfect,     {'True': 0.01, 'False': 0.99}),
+        IfElse(
             Nationality << {'India'},
                 IfElse(
                     Perfect << {'True'},    Sample(GPA, atomic(loc=10)),
@@ -109,27 +111,29 @@ def model_ifelse_nested():
                 IfElse(
                     Perfect << {'True'},    Sample(GPA, atomic(loc=4)),
                     Perfect << {'False'},   Sample(GPA, uniform(scale=4)),
-                ))
+                )))
+    return command.interpret()
 
 def model_perfect_nested():
     Nationality = Variable('Nationality')
     Perfect     = Variable('Perfect')
     GPA         = Variable('GPA')
-    return Start \
-        & Sample(Nationality, {'India': 0.5, 'USA': 0.5}) \
-        & IfElse(
-            Nationality << {'India'},
-                Sample(Perfect, {'True': 0.01, 'False': 0.99}) \
-                & IfElse(
-                    Perfect << {'True'},    Sample(GPA, atomic(loc=10)),
-                    True,                   Sample(GPA, uniform(scale=10)),
-                ),
-            Nationality << {'USA'},
-                Sample(Perfect, {'True': 0.01, 'False': 0.99}) \
-                & IfElse(
+    command = Sequence(
+        Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
+        IfElse(
+            Nationality << {'India'}, Sequence(
+                    Sample(Perfect, {'True': 0.01, 'False': 0.99}),
+                    IfElse(
+                        Perfect << {'True'},    Sample(GPA, atomic(loc=10)),
+                        True,                   Sample(GPA, uniform(scale=10))
+                    )),
+            Nationality << {'USA'}, Sequence(
+                Sample(Perfect, {'True': 0.01, 'False': 0.99}),
+                IfElse(
                     Perfect << {'True'},    Sample(GPA, atomic(loc=4)),
                     True,                   Sample(GPA, uniform(scale=4)),
-                ))
+                ))))
+    return command.interpret()
 
 def model_ifelse_exhuastive_compiled():
     compiler = SPML_Compiler('''
