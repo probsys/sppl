@@ -41,7 +41,7 @@ from .sym_util import sympify_number
 # ==============================================================================
 # Transform base class.
 
-class Transform(object):
+class Transform():
     subexpr = None
     symbols = None
 

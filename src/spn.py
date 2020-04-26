@@ -53,7 +53,7 @@ inf = float('inf')
 # ==============================================================================
 # SPN (base class).
 
-class SPN(object):
+class SPN():
     env = None             # Environment mapping symbols to transforms.
     def __init__(self):
         raise NotImplementedError()
