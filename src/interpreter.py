@@ -9,7 +9,6 @@ from .math_util import allclose
 from .math_util import isinf_neg
 from .math_util import logsumexp
 from .spn import Memo
-from .spn import SPN
 from .spn import SumSPN
 
 from . import transforms
@@ -23,19 +22,6 @@ def VariableArray(token, n):
 class Command():
     def interpret(self, spn):
         raise NotImplementedError()
-    def __and__(self, x):
-        if isinstance(x, Sequence):
-            commands = (self,) + x.commands
-            return Sequence(*commands)
-        if isinstance(x, Command):
-            return Sequence(self, x)
-        return NotImplemented
-    def __rand__(self, x):
-        if x is Start:
-            return self.interpret(x)
-        if isinstance(x, SPN):
-            return self.interpret(x)
-        return NotImplemented
 
 class Skip(Command):
     def __init__(self):
@@ -135,14 +121,5 @@ class Sequence(Command):
         self.commands = commands
     def interpret(self, spn=None):
         return reduce(lambda S, c: c.interpret(S), self.commands, spn)
-    def __and__(self, x):
-        if isinstance(x, Sequence):
-            commands = self.commands + x.commands
-            return Sequence(commands)
-        if isinstance(x, Command):
-            commands = self.commands + (x,)
-            return Sequence(*commands)
-        return NotImplemented
 
-Start = None
 Otherwise = True

@@ -19,7 +19,7 @@ from spn.math_util import logsumexp
 from spn.spn import LeafSPN
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
-from spn.transforms import Exp as Exp
+from spn.transforms import Exp
 from spn.transforms import Identity
 from spn.transforms import Log
 

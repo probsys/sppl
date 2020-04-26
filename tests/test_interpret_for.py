@@ -8,7 +8,7 @@ from spn.interpreter import For
 from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
 from spn.interpreter import Sample
-from spn.interpreter import Start
+from spn.interpreter import Sequence
 from spn.interpreter import Variable
 from spn.interpreter import VariableArray
 from spn.math_util import allclose
@@ -18,10 +18,11 @@ X = VariableArray('X', 5)
 Z = VariableArray('Z', 5)
 
 def test_simple_model():
-    model = (Start
-        & Sample(Y, bernoulli(p=0.5))
-        & For(0, 5, lambda i:
+    command = Sequence(
+        Sample(Y, bernoulli(p=0.5)),
+        For(0, 5, lambda i:
             Sample(X[i], bernoulli(p=1/(i+1)))))
+    model = command.interpret()
 
     symbols = model.get_symbols()
     assert len(symbols) == 6
@@ -40,29 +41,27 @@ def test_simple_model():
 def test_complex_model():
     # Slow for larger number of repetitions
     # https://github.com/probcomp/sum-product-dsl/issues/43
-    model = (Start
-    & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
-    & For(0, 3, lambda i:
-        Sample(Z[i], bernoulli(p=0.1))
-        & IfElse(
-            Y << {str(i)} | Z[i] << {0},  Sample(X[i], bernoulli(p=1/(i+1))),
-            Otherwise,                    Sample(X[i], bernoulli(p=0.1)))))
+    command = Sequence(
+        Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
+        For(0, 3, lambda i: Sequence(
+            Sample(Z[i], bernoulli(p=0.1)),
+            IfElse(
+                Y << {str(i)} | Z[i] << {0}, Sample(X[i], bernoulli(p=1/(i+1))),
+                Otherwise,                   Sample(X[i], bernoulli(p=0.1))))))
+    model = command.interpret()
     assert allclose(model.prob(Y << {'0'}), 0.2)
 
 def test_complex_model_reorder():
-    model = (Start
-    & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
-    & For(0, 3, lambda i:
-        Sample(Z[i], bernoulli(p=0.1)))
-    & For(0, 3, lambda i:
-        IfElse(
-            Y << {str(i)},
-                Sample(X[i], bernoulli(p=1/(i+1))),
-            Z[i] << {0},
-                Sample(X[i], bernoulli(p=1/(i+1))),
-            Otherwise,
-                Sample(X[i], bernoulli(p=0.1))
-    )))
+    command = Sequence(
+        Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
+        For(0, 3, lambda i:
+            Sample(Z[i], bernoulli(p=0.1))),
+        For(0, 3, lambda i:
+            IfElse(
+                Y << {str(i)}, Sample(X[i], bernoulli(p=1/(i+1))),
+                Z[i] << {0},   Sample(X[i], bernoulli(p=1/(i+1))),
+                Otherwise,     Sample(X[i], bernoulli(p=0.1)))))
+    model = command.interpret()
     assert(allclose(model.prob(Y << {'0'}), 0.2))
 
 def test_repeat_handcode_equivalence():
@@ -109,34 +108,36 @@ def test_repeat_handcode_equivalence():
 # Helper functions.
 
 def make_model_for(n=2):
-    return (Start
-        & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
-        & For(0, n, lambda i:
-            Sample(Z[i], bernoulli(p=.5))
-            & IfElse(
-                (Y << {str(i)}) | (Z[i] << {0}),    Sample(X[i], bernoulli(p=.1)),
-                Otherwise,                          Sample(X[i], bernoulli(p=.5)))))
+    command = Sequence(
+        Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
+        For(0, n, lambda i: Sequence(
+            Sample(Z[i], bernoulli(p=.5)),
+            IfElse(
+                (Y << {str(i)}) | (Z[i] << {0}), Sample(X[i], bernoulli(p=.1)),
+                Otherwise,                       Sample(X[i], bernoulli(p=.5))))))
+    return command.interpret()
 
 def make_model_handcode():
-    return (Start
-        & Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})
-        & Sample(Z[0], bernoulli(p=.5))
-        & Sample(Z[1], bernoulli(p=.5))
-        & IfElse(
-            Y << {str(0)},
-                Sample(X[0], bernoulli(p=.1))
-                & IfElse(
+    command = Sequence(
+        Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
+        Sample(Z[0], bernoulli(p=.5)),
+        Sample(Z[1], bernoulli(p=.5)),
+        IfElse(
+            Y << {str(0)}, Sequence(
+                Sample(X[0], bernoulli(p=.1)),
+                IfElse(
                     Z[1] << {0},    Sample(X[1], bernoulli(p=.1)),
-                    Otherwise,      Sample(X[1], bernoulli(p=.5))),
-            Y << {str(1)},
-                Sample(X[1], bernoulli(p=.1))
-                & IfElse(
-                    Z[0] << {0},    Sample(X[0], bernoulli(p=.1)),
-                    Otherwise,      Sample(X[0], bernoulli(p=.5))),
-            Otherwise,
+                    Otherwise,      Sample(X[1], bernoulli(p=.5)))),
+            Y << {str(1)}, Sequence(
+                Sample(X[1], bernoulli(p=.1)),
                 IfElse(
                     Z[0] << {0},    Sample(X[0], bernoulli(p=.1)),
-                    Otherwise,      Sample(X[0], bernoulli(p=.5)))
-                & IfElse(
+                    Otherwise,      Sample(X[0], bernoulli(p=.5)))),
+            Otherwise, Sequence(
+                IfElse(
+                    Z[0] << {0},    Sample(X[0], bernoulli(p=.1)),
+                    Otherwise,      Sample(X[0], bernoulli(p=.5))),
+                IfElse(
                     Z[1] << {0},    Sample(X[1], bernoulli(p=.1)),
-                    Otherwise,      Sample(X[1], bernoulli(p=.5)))))
+                    Otherwise,      Sample(X[1], bernoulli(p=.5))))))
+    return command.interpret()

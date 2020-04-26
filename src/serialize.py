@@ -1,11 +1,11 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from sympy import *
-
 from fractions import Fraction
 
 import scipy.stats
+
+from sympy import *
 
 from .spn import ContinuousLeaf
 from .spn import DiscreteLeaf

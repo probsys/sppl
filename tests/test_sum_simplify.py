@@ -3,8 +3,6 @@
 
 from math import log
 
-import numpy
-
 from spn.distributions import gamma
 from spn.distributions import norm
 from spn.math_util import allclose
