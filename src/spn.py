@@ -351,8 +351,8 @@ def spn_simplify_sum_product_helper(state, children_b, w_b):
     elif len(overlap) == len(children_a):
         children_simplified = children_a
     else:
-        dup_b = set([p[1] for p in overlap])
-        dup_a = set([p[0] for p in overlap])
+        dup_b = set(p[1] for p in overlap)
+        dup_a = set(p[0] for p in overlap)
         uniq_children_b = [c for j, c in enumerate(children_b) if j not in dup_b]
         uniq_children_a = [c for i, c in enumerate(children_a) if i not in dup_a]
         dup_children = [c for i, c in enumerate(children_a) if i in dup_a]

@@ -20,7 +20,6 @@ from spn.spn import ExposedSumSPN
 from spn.spn import NominalLeaf
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
-from spn.spn import spn_simplify_sum
 from spn.sym_util import NominalSet
 from spn.transforms import Identity
 

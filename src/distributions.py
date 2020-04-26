@@ -199,7 +199,7 @@ class frechet_r(ContinuousReal):
 class frechet_l(ContinuousReal):
     """A Frechet left (or Weibull maximum) continuous random variable."""
     dist = scipy.stats.frechet_l
-    def get_domain(self, **kwargs): return sympy.RealsNeg
+    def get_domain(self, **kwargs): return RealsNeg
 
 class genlogistic(ContinuousReal):
     """A generalized logistic continuous random variable."""

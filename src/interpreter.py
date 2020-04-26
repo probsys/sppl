@@ -9,7 +9,6 @@ from .math_util import allclose
 from .math_util import isinf_neg
 from .math_util import logsumexp
 from .spn import Memo
-from .spn import SPN
 from .spn import SumSPN
 
 from . import transforms
