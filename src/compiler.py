@@ -8,6 +8,7 @@ import inspect
 import copy
 import io
 import os
+import re
 
 from types import SimpleNamespace
 from collections import namedtuple
@@ -147,6 +148,41 @@ class SPML_Visitor(ast.NodeVisitor):
         self.stream.write('\n')
 
     def visit_For(self, node):
+        assert isinstance(node.iter, ast.Call)
+        if node.iter.func.id == 'range':
+            return self.visit_For_vanilla(node)
+        if node.iter.func.id == 'switch':
+            return self.visit_For_switch(node)
+        assert False, unparse(node)
+
+    def visit_For_switch(self, node):
+        assert isinstance(node.target, ast.Name), unparse(node.target)
+        assert node.iter.func.id == 'switch', unparse(node.iter)
+        assert len(node.iter.args) == 3, unparse(node.iter)
+        assert isinstance(node.iter.args[0], (ast.Name, ast.Subscript))
+        assert isinstance(node.iter.args[1], ast.Str)
+        # Open Switch.
+        self.context.append('switch')
+        modes = {'in ': 'eq', '<': 'lt', '<=': 'lte'}
+        idt = get_indentation(self.indentation)
+        symbol = unparse(node.iter.args[0]).strip()
+        mode = modes[node.iter.args[1].s].strip()
+        values = unparse(node.iter.args[2]).strip()
+        idx = unparse(node.target).strip()
+        self.stream.write('%sSwitch(%s, \'%s\', %s, lambda %s:'
+            % (idt, symbol, mode, values, idx))
+        self.stream.write('\n')
+        # Write the body.
+        self.indentation += 4
+        self.generic_visit(ast.Module(node.body))
+        self.indentation -= 4
+        # Close Switch
+        idt = get_indentation(self.indentation)
+        self.stream.write('%s),' % (idt,))
+        self.stream.write('\n')
+        self.context.pop()
+
+    def visit_For_vanilla(self, node):
         assert isinstance(node.target, ast.Name), unparse(node.target)
         assert node.iter.func.id == 'range', unparse(node.iter)
         assert len(node.iter.args) in [1, 2], unparse(node.iter)
@@ -278,6 +314,10 @@ class SPML_Compiler():
         lines = self.source.split(os.linesep)
         source_prime = os.linesep.join(l for l in lines if l.strip())
         source_prime = source_prime.replace('~=', '=')
+        source_prime = re.sub(
+            r'^(\s*)switch\s*\((.+)\)\s*cases\s*\(([^<=]+)\s*(<=|<|in\s)\s*(.+)\s*\)\s*:',
+            r"\1for \3 in switch(\2, '\4', \5):",
+            source_prime, flags=re.MULTILINE)
         return source_prime
     def compile(self):
         # Parse and visit.
@@ -294,7 +334,7 @@ class SPML_Compiler():
         for d in sorted(visitor.distributions):
             self.prog.imports.write('from spn.distributions import %s' % (d,))
             self.prog.imports.write('\n')
-        for c in ['IfElse', 'For', 'Sample', 'Sequence', 'Transform',
+        for c in ['IfElse', 'For', 'Sample', 'Sequence', 'Switch', 'Transform',
                     'Variable', 'VariableArray']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')
