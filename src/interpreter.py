@@ -15,9 +15,9 @@ from . import transforms
 
 inf = float('inf')
 
-Variable = transforms.Id
-def VariableArray(token, n):
-    return [Variable('%s[%d]' % (token, i,)) for i in range(n)]
+Id = transforms.Id
+def IdArray(token, n):
+    return [Id('%s[%d]' % (token, i,)) for i in range(n)]
 
 class Command():
     def interpret(self, spn):

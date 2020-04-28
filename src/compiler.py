@@ -335,7 +335,7 @@ class SPML_Compiler():
             self.prog.imports.write('from spn.distributions import %s' % (d,))
             self.prog.imports.write('\n')
         for c in ['IfElse', 'For', 'Sample', 'Sequence', 'Switch', 'Transform',
-                    'Variable', 'VariableArray']:
+                    'Id', 'IdArray']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')
         # Write the variables.
@@ -345,14 +345,14 @@ class SPML_Compiler():
                 self.prog.variables.write('# VARIABLE DECLARATIONS')
                 self.prog.variables.write('\n')
                 for v in variables:
-                    self.prog.variables.write('%s = Variable(\'%s\')' % (v, v,))
+                    self.prog.variables.write('%s = Id(\'%s\')' % (v, v,))
                     self.prog.variables.write('\n')
         # Write the arrays.
         if visitor.arrays:
             self.prog.arrays.write('# ARRAY DECLARATIONS')
             self.prog.arrays.write('\n')
             for v, n in visitor.arrays.items():
-                self.prog.arrays.write('%s = VariableArray(\'%s\', %d)' % (v, v, n,))
+                self.prog.arrays.write('%s = IdArray(\'%s\', %d)' % (v, v, n,))
                 self.prog.arrays.write('\n')
         # Write the command.
         self.prog.command.write('# MODEL DEFINITION')

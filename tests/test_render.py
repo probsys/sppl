@@ -11,14 +11,14 @@ from spn.interpreter import Otherwise
 from spn.interpreter import Sample
 from spn.interpreter import Sequence
 from spn.interpreter import Transform
-from spn.interpreter import Variable
+from spn.interpreter import Id
 from spn.render import render_nested_lists
 from spn.render import render_nested_lists_concise
 
 def get_model():
-    Y = Variable('Y')
-    X = Variable('X')
-    Z = Variable('Z')
+    Y = Id('Y')
+    X = Id('X')
+    Z = Id('Z')
     command = Sequence(
         Sample(Y,     {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
         Sample(Z,     bernoulli(p=0.1)),

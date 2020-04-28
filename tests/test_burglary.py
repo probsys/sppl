@@ -13,13 +13,13 @@ from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
 from spn.interpreter import Sample
 from spn.interpreter import Sequence
-from spn.interpreter import Variable
+from spn.interpreter import Id
 
-Burglary    = Variable('Burglary')
-Earthquake  = Variable('Earthquake')
-Alarm       = Variable('Alarm')
-JohnCalls   = Variable('JohnCalls')
-MaryCalls   = Variable('MaryCalls')
+Burglary    = Id('Burglary')
+Earthquake  = Id('Earthquake')
+Alarm       = Id('Alarm')
+JohnCalls   = Id('JohnCalls')
+MaryCalls   = Id('MaryCalls')
 
 program = Sequence(
     Sample(Burglary,   bernoulli(p=0.001)),

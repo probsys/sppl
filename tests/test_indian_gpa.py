@@ -17,7 +17,7 @@ from spn.distributions import uniform
 from spn.interpreter import IfElse
 from spn.interpreter import Sample
 from spn.interpreter import Sequence
-from spn.interpreter import Variable
+from spn.interpreter import Id
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
 from spn.transforms import Id
@@ -74,9 +74,9 @@ def model_ifelse_exhuastive():
     return command.interpret()
 
 def model_ifelse_non_exhuastive():
-    Nationality = Variable('Nationality')
-    Perfect     = Variable('Perfect')
-    GPA         = Variable('GPA')
+    Nationality = Id('Nationality')
+    Perfect     = Id('Perfect')
+    GPA         = Id('GPA')
     command = Sequence(
         Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
         Sample(Perfect,     {'True': 0.01, 'False': 0.99}),
@@ -95,9 +95,9 @@ def model_ifelse_non_exhuastive():
     return command.interpret()
 
 def model_ifelse_nested():
-    Nationality = Variable('Nationality')
-    Perfect     = Variable('Perfect')
-    GPA         = Variable('GPA')
+    Nationality = Id('Nationality')
+    Perfect     = Id('Perfect')
+    GPA         = Id('GPA')
     command = Sequence(
         Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
         Sample(Perfect,     {'True': 0.01, 'False': 0.99}),
@@ -115,9 +115,9 @@ def model_ifelse_nested():
     return command.interpret()
 
 def model_perfect_nested():
-    Nationality = Variable('Nationality')
-    Perfect     = Variable('Perfect')
-    GPA         = Variable('GPA')
+    Nationality = Id('Nationality')
+    Perfect     = Id('Perfect')
+    GPA         = Id('GPA')
     command = Sequence(
         Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
         IfElse(

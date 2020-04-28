@@ -14,12 +14,12 @@ from spn.interpreter import IfElse
 from spn.interpreter import Sample
 from spn.interpreter import Sequence
 from spn.interpreter import Switch
-from spn.interpreter import Variable
+from spn.interpreter import Id
 from spn.math_util import allclose
 from spn.math_util import logsumexp
 
-Y = Variable('Y')
-X = Variable('X')
+Y = Id('Y')
+X = Id('X')
 
 def test_simple_model_eq():
     command_switch = Sequence(

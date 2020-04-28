@@ -9,13 +9,13 @@ from spn.interpreter import IfElse
 from spn.interpreter import Otherwise
 from spn.interpreter import Sample
 from spn.interpreter import Sequence
-from spn.interpreter import Variable
-from spn.interpreter import VariableArray
+from spn.interpreter import Id
+from spn.interpreter import IdArray
 from spn.math_util import allclose
 
-Y = Variable('Y')
-X = VariableArray('X', 5)
-Z = VariableArray('Z', 5)
+Y = Id('Y')
+X = IdArray('X', 5)
+Z = IdArray('Z', 5)
 
 def test_simple_model():
     command = Sequence(

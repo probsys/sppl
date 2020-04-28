@@ -7,11 +7,11 @@ from spn.interpreter import IfElse
 from spn.interpreter import Sample
 from spn.interpreter import Sequence
 from spn.interpreter import Transform
-from spn.interpreter import Variable
+from spn.interpreter import Id
 from spn.math_util import allclose
 
-Y = Variable('Y')
-X = Variable('X')
+Y = Id('Y')
+X = Id('X')
 
 def test_ifelse_zero_conditions():
     command = Sequence(

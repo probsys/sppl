@@ -16,15 +16,15 @@ from spn.interpreter import Sample
 from spn.interpreter import Sequence
 from spn.interpreter import Switch
 from spn.interpreter import Transform
-from spn.interpreter import Variable
-from spn.interpreter import VariableArray
+from spn.interpreter import Id
+from spn.interpreter import IdArray
 
-simAll   = Variable('simAll')
-sim      = VariableArray('sim', 5)
-p1       = VariableArray('p1', 5)
-p2       = VariableArray('p2', 5)
-clickA   = VariableArray('clickA', 5)
-clickB   = VariableArray('clickB', 5)
+simAll   = Id('simAll')
+sim      = IdArray('sim', 5)
+p1       = IdArray('p1', 5)
+p2       = IdArray('p2', 5)
+clickA   = IdArray('clickA', 5)
+clickB   = IdArray('clickB', 5)
 
 ns = 5
 nd = ns - 1

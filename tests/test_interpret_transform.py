@@ -10,12 +10,12 @@ from spn.interpreter import Otherwise
 from spn.interpreter import Sample
 from spn.interpreter import Sequence
 from spn.interpreter import Transform
-from spn.interpreter import Variable
+from spn.interpreter import Id
 from spn.math_util import allclose
 
-X = Variable('X')
-Y = Variable('Y')
-Z = Variable('Z')
+X = Id('X')
+Y = Id('Y')
+Z = Id('Z')
 
 def test_simple_transform():
     command = Sequence(
