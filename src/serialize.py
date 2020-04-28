@@ -13,7 +13,7 @@ from .spn import NominalLeaf
 from .spn import ProductSPN
 from .spn import SumSPN
 
-from .transforms import Identity
+from .transforms import Id
 
 def scipy_dist_from_json(dist):
     constructor = getattr(scipy.stats, dist['name'])
@@ -28,18 +28,18 @@ def scipy_dist_to_json(dist):
 
 def spn_from_json(metadata):
     if metadata['class'] == 'NominalLeaf':
-        symbol = Identity(metadata['symbol'])
+        symbol = Id(metadata['symbol'])
         dist = {x: Fraction(w[0], w[1]) for x, w in metadata['dist']}
         return NominalLeaf(symbol, dist)
     if metadata['class'] == 'ContinuousLeaf':
-        symbol = Identity(metadata['symbol'])
+        symbol = Id(metadata['symbol'])
         dist = scipy_dist_from_json(metadata['dist'])
         # from sympy import *
         support = eval(metadata['support'])
         conditioned = metadata['conditioned']
         return ContinuousLeaf(symbol, dist, support, conditioned)
     if metadata['class'] == 'DiscreteLeaf':
-        symbol = Identity(metadata['symbol'])
+        symbol = Id(metadata['symbol'])
         dist = scipy_dist_from_json(metadata['dist'])
         # from sympy import *
         support = eval(metadata['support'])

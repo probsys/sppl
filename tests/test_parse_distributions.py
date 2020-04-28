@@ -13,9 +13,9 @@ from spn.math_util import allclose
 from spn.spn import ContinuousLeaf
 from spn.spn import DiscreteLeaf
 from spn.spn import SumSPN
-from spn.transforms import Identity
+from spn.transforms import Id
 
-X = Identity('X')
+X = Id('X')
 
 def test_simple_parse():
     assert isinstance(.3*bernoulli(p=.1), RealDistributionMix)

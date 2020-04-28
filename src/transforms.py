@@ -1212,6 +1212,7 @@ class EventAnd(EventCompound):
 # Utilities.
 
 # Some useful constructors.
+Id = Identity
 def Exp(subexpr):
     return Exponential(subexpr, sympy.exp(1))
 def Log(subexpr):

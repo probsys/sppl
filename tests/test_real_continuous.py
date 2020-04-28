@@ -16,10 +16,10 @@ from spn.math_util import logdiffexp
 from spn.spn import ContinuousLeaf
 from spn.spn import SumSPN
 from spn.sym_util import Reals
-from spn.transforms import Identity
+from spn.transforms import Id
 
 def test_numeric_distribution_normal():
-    X = Identity('X')
+    X = Id('X')
     spn = (X >> norm(loc=0, scale=1))
 
     assert allclose(spn.logprob(X > 0), -log(2))
@@ -69,10 +69,10 @@ def test_numeric_distribution_normal():
     assert allclose(x, spn.logprob(X < -1))
 
     with pytest.raises(AssertionError):
-        spn.logprob(Identity('Y') << {1, 2})
+        spn.logprob(Id('Y') << {1, 2})
 
 def test_numeric_distribution_gamma():
-    X = Identity('X')
+    X = Id('X')
 
     spn = (X >> gamma(a=1, scale=1))
     with pytest.raises(ValueError):

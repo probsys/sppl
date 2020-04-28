@@ -20,11 +20,11 @@ from spn.interpreter import Sequence
 from spn.interpreter import Variable
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
-from spn.transforms import Identity
+from spn.transforms import Id
 
-Nationality = Identity('Nationality')
-Perfect     = Identity('Perfect')
-GPA         = Identity('GPA')
+Nationality = Id('Nationality')
+Perfect     = Id('Perfect')
+GPA         = Id('GPA')
 
 def model_no_latents():
     return \
@@ -221,7 +221,7 @@ elif (Nationality == 'USA'):
 ])
 def test_prior(get_model):
     model = get_model()
-    GPA = Identity('GPA')
+    GPA = Id('GPA')
     assert allclose(model.prob(GPA << {10}), 0.5*0.01)
     assert allclose(model.prob(GPA << {4}), 0.5*0.01)
     assert allclose(model.prob(GPA << {5}), 0)
@@ -247,7 +247,7 @@ def test_prior(get_model):
 
 def test_condition():
     model = model_no_latents()
-    GPA = Identity('GPA')
+    GPA = Id('GPA')
     model_condition = model.condition(GPA << {4} | GPA << {10})
     assert len(model_condition.children) == 2
     assert model_condition.children[0].support == {4}

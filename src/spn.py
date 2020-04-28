@@ -46,7 +46,7 @@ from .sym_util import sympify_number
 from .transforms import EventBasic
 from .transforms import EventCompound
 from .transforms import EventOr
-from .transforms import Identity
+from .transforms import Id
 
 inf = float('inf')
 
@@ -519,7 +519,7 @@ def spn_list_to_product(children):
 # Basic Distribution base class.
 
 class LeafSPN(SPN):
-    symbol = None          # Symbol (Identity) of base random variable
+    symbol = None          # Symbol (Id) of base random variable
     def get_symbols(self):
         return frozenset(self.env)
     def sample(self, N, prng=None):
@@ -590,7 +590,7 @@ class RealLeaf(LeafSPN):
     """Base class for distribution with a cumulative distribution function."""
 
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
-        assert isinstance(symbol, Identity)
+        assert isinstance(symbol, Id)
         self.symbol = symbol
         self.dist = dist
         self.support = support
@@ -811,7 +811,7 @@ class NominalLeaf(LeafSPN):
     """Atomic distribution, no cumulative distribution function."""
 
     def __init__(self, symbol, dist):
-        assert isinstance(symbol, Identity)
+        assert isinstance(symbol, Id)
         assert all(isinstance(x, str) for x in dist)
         self.symbol = symbol
         self.dist = {NominalValue(x): Fraction(w) for x, w in dist.items()}
@@ -906,7 +906,7 @@ def get_intersection_safe(a, b):
 
 def is_event_transformed(event):
     if isinstance(event, EventBasic):
-        return not isinstance(event.subexpr, Identity)
+        return not isinstance(event.subexpr, Id)
     if isinstance(event, EventCompound):
         return any(map(is_event_transformed, event.subexprs))
     assert False, 'Unknown event: %s' % (event,)
@@ -918,7 +918,7 @@ def func_evaluate(spn, func, samples):
 
 def func_symbols(spn, func):
     symbols = spn.get_symbols()
-    args = [Identity(a) for a in getfullargspec(func).args]
+    args = [Id(a) for a in getfullargspec(func).args]
     unknown = [a for a in args if a not in symbols]
     if unknown:
         raise ValueError('Unknown function arguments "%s" (allowed %s)'

@@ -21,10 +21,10 @@ from spn.spn import NominalLeaf
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 from spn.sym_util import NominalSet
-from spn.transforms import Identity
+from spn.transforms import Id
 
 def test_sum_normal_gamma():
-    X = Identity('X')
+    X = Id('X')
     weights = [
         log(Fraction(2, 3)),
         log(Fraction(1, 3))
@@ -56,8 +56,8 @@ def test_sum_normal_gamma():
     ])
 
 def test_sum_normal_gamma_exposed():
-    X = Identity('X')
-    W = Identity('W')
+    X = Id('X')
+    W = Id('W')
     weights = (W >> {
         '0': Fraction(2,3),
         '1': Fraction(1,3),
@@ -99,7 +99,7 @@ def test_sum_normal_gamma_exposed():
     assert spn_condition.logprob(X < 5) == spn.children[1].logprob(X < 5)
 
 def test_sum_normal_nominal():
-    X = Identity('X')
+    X = Id('X')
     children = [
         X >> norm(loc=0, scale=1),
         X >> {'low': Fraction(3, 10), 'high': Fraction(7, 10)},

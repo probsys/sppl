@@ -20,14 +20,14 @@ from spn.spn import LeafSPN
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 from spn.transforms import Exp
-from spn.transforms import Identity
+from spn.transforms import Id
 from spn.transforms import Log
 
 def test_product_distribution_normal_gamma_basic():
-    X1 = Identity('X1')
-    X2 = Identity('X2')
-    X3 = Identity('X3')
-    X4 = Identity('X4')
+    X1 = Id('X1')
+    X2 = Id('X2')
+    X3 = Id('X3')
+    X4 = Id('X4')
     children = [
         ProductSPN([
             X1 >> norm(loc=0, scale=1),
@@ -66,8 +66,8 @@ def test_product_distribution_normal_gamma_basic():
         spn.sample_func(lambda X1, X5: X1 + X4, 1)
 
 def test_product_inclusion_exclusion_basic():
-    X = Identity('X')
-    Y = Identity('Y')
+    X = Id('X')
+    Y = Id('Y')
     spn = ProductSPN([X >> norm(loc=0, scale=1), Y >> gamma(a=1)])
 
     a = spn.logprob(X > 0.1)
@@ -109,8 +109,8 @@ def test_product_inclusion_exclusion_basic():
     assert allclose(spn.logprob(~event), 0)
 
 def test_product_condition_basic():
-    X = Identity('X')
-    Y = Identity('Y')
+    X = Id('X')
+    Y = Id('Y')
     spn = ProductSPN([X >> norm(loc=0, scale=1), Y >> gamma(a=1)])
 
     # Condition on (X > 0) and ((X > 0) | (Y < 0))
@@ -119,10 +119,10 @@ def test_product_condition_basic():
     for event in [(X > 0), (X  > 0) | (Y < 0)]:
         dX = spn.condition(event)
         assert isinstance(dX, ProductSPN)
-        assert dX.children[0].symbol == Identity('X')
+        assert dX.children[0].symbol == Id('X')
         assert dX.children[0].conditioned
         assert dX.children[0].support == sympy.Interval.open(0, sympy.oo)
-        assert dX.children[1].symbol == Identity('Y')
+        assert dX.children[1].symbol == Id('Y')
         assert not dX.children[1].conditioned
         assert dX.children[1].Fl == 0
         assert dX.children[1].Fu == 1
@@ -130,19 +130,19 @@ def test_product_condition_basic():
     # Condition on (Y < 0.5)
     dY = spn.condition(Y < 0.5)
     assert isinstance(dY, ProductSPN)
-    assert dY.children[0].symbol == Identity('X')
+    assert dY.children[0].symbol == Id('X')
     assert not dY.children[0].conditioned
-    assert dY.children[1].symbol == Identity('Y')
+    assert dY.children[1].symbol == Id('Y')
     assert dY.children[1].conditioned
     assert dY.children[1].support == sympy.Interval.Ropen(0, 0.5)
 
     # Condition on (X > 0) & (Y < 0.5)
     dXY_and = spn.condition((X > 0) & (Y < 0.5))
     assert isinstance(dXY_and, ProductSPN)
-    assert dXY_and.children[0].symbol == Identity('X')
+    assert dXY_and.children[0].symbol == Id('X')
     assert dXY_and.children[0].conditioned
     assert dXY_and.children[0].support == sympy.Interval.open(0, sympy.oo)
-    assert dXY_and.children[1].symbol == Identity('Y')
+    assert dXY_and.children[1].symbol == Id('Y')
     assert dXY_and.children[1].conditioned
     assert dXY_and.children[1].support == sympy.Interval.Ropen(0, 0.5)
 
@@ -159,34 +159,34 @@ def test_product_condition_basic():
     dXY_disjoint_one = spn.condition((X > 0) & (Y < 0.5) | (X <= 0))
     assert isinstance(dXY_disjoint_one, SumSPN)
     component_0 = dXY_disjoint_one.children[0]
-    assert component_0.children[0].symbol == Identity('X')
+    assert component_0.children[0].symbol == Id('X')
     assert component_0.children[0].conditioned
     assert component_0.children[0].support == sympy.Interval.open(0, sympy.oo)
-    assert component_0.children[1].symbol == Identity('Y')
+    assert component_0.children[1].symbol == Id('Y')
     assert component_0.children[1].conditioned
     assert component_0.children[1].support == sympy.Interval.Ropen(0, 0.5)
     component_1 = dXY_disjoint_one.children[1]
-    assert component_1.children[0].symbol == Identity('X')
+    assert component_1.children[0].symbol == Id('X')
     assert component_1.children[0].conditioned
     assert component_1.children[0].support == sympy.Interval(-sympy.oo, 0)
-    assert component_1.children[1].symbol == Identity('Y')
+    assert component_1.children[1].symbol == Id('Y')
     assert not component_1.children[1].conditioned
 
     # Condition on a disjoint union with two terms in each clause
     dXY_disjoint_two = spn.condition((X > 0) & (Y < 0.5) | ((X <= 0) & ~(Y < 3)))
     assert isinstance(dXY_disjoint_two, SumSPN)
     component_0 = dXY_disjoint_two.children[0]
-    assert component_0.children[0].symbol == Identity('X')
+    assert component_0.children[0].symbol == Id('X')
     assert component_0.children[0].conditioned
     assert component_0.children[0].support == sympy.Interval.open(0, sympy.oo)
-    assert component_0.children[1].symbol == Identity('Y')
+    assert component_0.children[1].symbol == Id('Y')
     assert component_0.children[1].conditioned
     assert component_0.children[1].support == sympy.Interval.Ropen(0, 0.5)
     component_1 = dXY_disjoint_two.children[1]
-    assert component_1.children[0].symbol == Identity('X')
+    assert component_1.children[0].symbol == Id('X')
     assert component_1.children[0].conditioned
     assert component_1.children[0].support == sympy.Interval(-sympy.oo, 0)
-    assert component_1.children[1].symbol == Identity('Y')
+    assert component_1.children[1].symbol == Id('Y')
     assert component_1.children[1].conditioned
     assert component_1.children[1].support == sympy.Interval(3, sympy.oo)
 
@@ -195,8 +195,8 @@ def test_product_condition_basic():
     spn.condition((X > 0) & (Y < 0.5) | ((X <= 1) & (Y < 3)))
 
 def test_product_condition_or_probabilithy_zero():
-    X = Identity('X')
-    Y = Identity('Y')
+    X = Id('X')
+    Y = Id('Y')
     spn = ProductSPN([X >> norm(loc=0, scale=1), Y >> gamma(a=1)])
 
     # Condition on event which has probability zero.
@@ -265,9 +265,9 @@ def test_product_condition_or_probabilithy_zero():
     # assert not spn_condition.children[1].children[1].conditioned
 
 def test_product_disjoint_union_numerical():
-    X = Identity('X')
-    Y = Identity('Y')
-    Z = Identity('Z')
+    X = Id('X')
+    Y = Id('Y')
+    Z = Id('Z')
     spn = ProductSPN([
         X >> norm(loc=0, scale=1),
         Y >> norm(loc=0, scale=2),
@@ -286,8 +286,8 @@ def test_product_disjoint_union_numerical():
         assert allclose(logsumexp(logps), spn.logprob(event))
 
 def test_product_disjoint_union_nominal():
-    N = Identity('N')
-    P = Identity('P')
+    N = Id('N')
+    P = Id('P')
 
     nationality = N >> {'India': 0.5, 'USA': 0.5}
     perfect = P >> {'Imperfect': 0.99, 'Perfect': 0.01}
@@ -308,10 +308,10 @@ def test_product_disjoint_union_nominal():
     assert allclose(student.prob(event_3), 0.5*0.99)
     assert allclose(student.prob(event_4), 0.5*0.01)
 
-A = Identity('A')
-B = Identity('B')
-C = Identity('C')
-D = Identity('D')
+A = Id('A')
+B = Id('B')
+C = Id('C')
+D = Id('D')
 spn_abcd \
     = norm(loc=0, scale=1)(A) \
     & norm(loc=0, scale=1)(B) \

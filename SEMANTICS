@@ -32,7 +32,7 @@ Transform Data Type
     | Complement f                          // (by cases)
 
   t ∈ Transform
-    = Identity(x)                           // x               one-to-one
+    = Id(x)                                 // x               one-to-one
     | Reciprocal(t)                         // 1 / t(x)        one-to-one
     | Radical(t, n)                         // ⁿ√t(x)          one-to-one
     | Exponent(t, r)                        // rᵗ⁽ˣ⁾           one-to-one
@@ -100,7 +100,7 @@ y ∈ ArrVar
 z ∈ Vars = x | y[n]
 
   t ∈ Transformations
-    = x                         [Identity]
+    = x                         [Id]
     | 1/t                       [Reciprocal]
     | ⁿ√t                       [Radical]
     | rᵗ                        [Exp]

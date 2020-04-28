@@ -13,10 +13,10 @@ from spn.math_util import logdiffexp
 from spn.math_util import logsumexp
 from spn.spn import DiscreteLeaf
 from spn.spn import SumSPN
-from spn.transforms import Identity
+from spn.transforms import Id
 
 def test_poisson():
-    X = Identity('X')
+    X = Id('X')
     spn = X >> poisson(mu=5)
 
     a = spn.logprob((1 <= X) <= 7)
@@ -77,7 +77,7 @@ def test_poisson():
         spn.condition(((-3 <= X) < 0) | (3*X + 1) << {20})
 
 def test_randint():
-    X = Identity('X')
+    X = Id('X')
     spn = X >> randint(low=0, high=5)
     assert spn.logprob(X < 5) == spn.logprob(X <= 4) == 0
     # i.e., X is not in [0, 3]

@@ -12,13 +12,13 @@ from spn.spn import SumSPN
 
 from spn.distributions import gamma
 from spn.distributions import norm
-from spn.transforms import Identity
+from spn.transforms import Id
 
 from spn.math_util import allclose
 
-X = Identity('X')
-Y = Identity('Y')
-Z = Identity('Z')
+X = Id('X')
+Y = Id('Y')
+Z = Id('Z')
 
 def test_mul_leaf():
     for y in [0.3 * (X >> norm()), (X >> norm()) * 0.3]:

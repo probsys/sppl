@@ -15,7 +15,7 @@ from . import transforms
 
 inf = float('inf')
 
-Variable = transforms.Identity
+Variable = transforms.Id
 def VariableArray(token, n):
     return [Variable('%s[%d]' % (token, i,)) for i in range(n)]
 

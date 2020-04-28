@@ -2,12 +2,12 @@
 # See LICENSE.txt
 
 import pytest
-from spn.transforms import Identity
+from spn.transforms import Id
 from spn.transforms import Logarithm
 
-X = Identity('X')
-Z = Identity('Z')
-Y = Identity('Y')
+X = Id('X')
+Z = Id('Z')
+Y = Id('Y')
 
 b = (1, 10)
 cases = [
@@ -44,6 +44,6 @@ def test_substitute_transitive(case):
     (expr, env, expr_prime) = case
     if len(env) == 1:
         [(s0, s1)] = env.items()
-        s2 = Identity('s2')
+        s2 = Id('s2')
         env_prime = {s0: s2, s2: s1}
         assert expr.substitute(env_prime) == expr_prime

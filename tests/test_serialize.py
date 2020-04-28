@@ -8,10 +8,10 @@ from spn.distributions import norm
 from spn.distributions import poisson
 from spn.serialize import spn_from_json
 from spn.serialize import spn_to_json
-from spn.transforms import Identity
+from spn.transforms import Id
 
-X = Identity('X')
-Y = Identity('Y')
+X = Id('X')
+Y = Id('Y')
 
 spns = [
     X >> norm(loc=0, scale=1),

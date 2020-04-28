@@ -10,14 +10,14 @@ from spn.distributions import norm
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
 from spn.spn import spn_cache_duplicate_subtrees
-from spn.transforms import Identity
+from spn.transforms import Id
 
 rng = numpy.random.RandomState(1)
 
-W = Identity('W')
-Y = Identity('Y')
-X = [Identity('X[0]'), Identity('X[1]')]
-Z = [Identity('Z[0]'), Identity('Z[1]')]
+W = Id('W')
+Y = Id('Y')
+X = [Id('X[0]'), Id('X[1]')]
+Z = [Id('Z[0]'), Id('Z[1]')]
 
 def test_cache_simple_leaf():
     spn = .5 * (W >> norm(loc=0, scale=1)) | .5 * (W >> norm(loc=0, scale=1))

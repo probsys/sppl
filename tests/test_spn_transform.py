@@ -6,12 +6,12 @@ import pytest
 from spn.distributions import norm
 from spn.distributions import poisson
 from spn.math_util import allclose
-from spn.transforms import Identity
+from spn.transforms import Id
 
 def test_transform_real_leaf_logprob():
-    X = Identity('X')
-    Y = Identity('Y')
-    Z = Identity('Z')
+    X = Id('X')
+    Y = Id('Y')
+    Z = Id('Z')
     spn = (X >> norm(loc=0, scale=1))
 
     with pytest.raises(AssertionError):
@@ -32,14 +32,14 @@ def test_transform_real_leaf_logprob():
         == spn.logprob((2*Z)**(1,3) < 10) \
         == spn.logprob((2*(X**2))**(1,3) < 10) \
 
-    W = Identity('W')
+    W = Id('W')
     spn = spn.transform(W, X > 1)
     assert allclose(spn.logprob(W), spn.logprob(X > 1))
 
 def test_transform_real_leaf_sample():
-    X = Identity('X')
-    Z = Identity('Z')
-    Y = Identity('Y')
+    X = Id('X')
+    Z = Id('Z')
+    Y = Id('Y')
     spn = (X >> poisson(loc=-1, mu=1))
     spn = spn.transform(Z, X+1)
     spn = spn.transform(Y, Z-1)
@@ -51,9 +51,9 @@ def test_transform_real_leaf_sample():
     assert all(set(s) == {X,Y} for s in spn.sample_subset([X, Y], 100))
 
 def test_transform_sum():
-    X = Identity('X')
-    Z = Identity('Z')
-    Y = Identity('Y')
+    X = Id('X')
+    Z = Id('Z')
+    Y = Id('Y')
     spn \
         = 0.3*(X >> norm(loc=0, scale=1)) \
         | 0.7*(X >> {'0': 0.4, '1': 0.6})
@@ -72,11 +72,11 @@ def test_transform_sum():
         == {X:X, Z:X**2, Y:Z/2}
 
 def test_transform_product():
-    X = Identity('X')
-    Y = Identity('Y')
-    W = Identity('W')
-    Z = Identity('Z')
-    V = Identity('V')
+    X = Id('X')
+    Y = Id('Y')
+    W = Id('W')
+    Z = Id('Z')
+    V = Id('V')
     spn \
         = (X >> norm(loc=0, scale=1)) \
         & (Y >> poisson(mu=10))
@@ -90,4 +90,4 @@ def test_transform_product():
         spn.logprob(W>1),
         spn.logprob((X**2 - 3*X)**(1,10) > 1))
     with pytest.raises(Exception):
-        spn.tarnsform(Identity('R'), (V>1) | (W < 0))
+        spn.tarnsform(Id('R'), (V>1) | (W < 0))

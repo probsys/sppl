@@ -9,11 +9,11 @@ from spn.dnf import dnf_to_disjoint_union
 
 from spn.transforms import EventOr
 from spn.transforms import Exp
-from spn.transforms import Identity
+from spn.transforms import Id
 from spn.transforms import Log
 from spn.transforms import Sqrt
 
-(X0, X1, X2, X3, X4, X5) = [Identity("X%d" % (i,)) for i in range(6)]
+(X0, X1, X2, X3, X4, X5) = [Id("X%d" % (i,)) for i in range(6)]
 
 events = [
     X0 < 0,
@@ -196,9 +196,9 @@ def test_dnf_factor_3():
     assert event_factor[1][2] == F
 
 def test_dnf_non_disjoint_clauses():
-    X = Identity('X')
-    Y = Identity('Y')
-    Z = Identity('Z')
+    X = Id('X')
+    Y = Id('Y')
+    Z = Id('Z')
 
     event = (X > 0) | (Y < 0)
     overlaps = dnf_non_disjoint_clauses(event)
@@ -225,9 +225,9 @@ def test_dnf_non_disjoint_clauses():
     assert not overlaps
 
 def test_event_to_disjiont_union_numerical():
-    X = Identity('X')
-    Y = Identity('Y')
-    Z = Identity('Z')
+    X = Id('X')
+    Y = Id('Y')
+    Z = Id('Z')
 
     for event  in [
         (X > 0) | (X < 3),
@@ -239,8 +239,8 @@ def test_event_to_disjiont_union_numerical():
         assert not dnf_non_disjoint_clauses(event_dnf)
 
 def test_event_to_disjoint_union_nominal():
-    X = Identity('X')
-    Y = Identity('Y')
+    X = Id('X')
+    Y = Id('Y')
     event = (X << {'1'}) | (X << {'1', '2'})
     assert dnf_to_disjoint_union(event) == X << {'1', '2'}
 

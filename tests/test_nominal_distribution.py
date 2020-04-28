@@ -10,10 +10,10 @@ import pytest
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.sym_util import NominalSet
-from spn.transforms import Identity
+from spn.transforms import Id
 
 def test_nominal_distribution():
-    X = Identity('X')
+    X = Id('X')
     spn = X >> {'a': Fraction(1, 5), 'b': Fraction(1, 5), 'c': Fraction(3, 5)}
     assert allclose(spn.logprob(X << {'a'}), log(Fraction(1, 5)))
     assert allclose(spn.logprob(X << {'b'}), log(Fraction(1, 5)))

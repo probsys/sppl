@@ -4,13 +4,13 @@
 import pytest
 
 from spn.transforms import Exp
-from spn.transforms import Identity
+from spn.transforms import Id
 from spn.transforms import Log
 
-X = Identity('X')
-Y = Identity('Y')
-W = Identity('W')
-Z = Identity('Z')
+X = Id('X')
+Y = Id('Y')
+W = Id('W')
+Z = Id('Z')
 
 def test_event_basic_invertible():
     expr = X**2 + 10*X

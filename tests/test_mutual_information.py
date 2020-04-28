@@ -13,7 +13,7 @@ from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
 from spn.math_util import logsumexp
 from spn.spn import Memo
-from spn.transforms import Identity
+from spn.transforms import Id
 
 prng = numpy.random.RandomState(1)
 
@@ -52,8 +52,8 @@ def check_mi_properties(spn, A, B, memo):
 
 @pytest.mark.parametrize('memo', [Memo({}, {}), None])
 def test_mutual_information_four_clusters(memo):
-    X = Identity('X')
-    Y = Identity('Y')
+    X = Id('X')
+    Y = Id('Y')
     spn \
         = 0.25*(X >> norm(loc=0, scale=0.5) & Y >> norm(loc=0, scale=0.5)) \
         | 0.25*(X >> norm(loc=5, scale=0.5) & Y >> norm(loc=0, scale=0.5)) \

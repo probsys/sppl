@@ -65,7 +65,7 @@ def dnf_factor(event, lookup=None):
     assert False, 'Invalid DNF event: %s' % (event,)
 
 def dnf_normalize(event):
-    # Given an arbitrary event, rewrite in terms of only Identity by
+    # Given an arbitrary event, rewrite in terms of only Id by
     # solving the subexpressions and return the resulting DNF formula,
     # or None if all solutions evaluate to EmptySet.
     event_dnf = event.to_dnf()
