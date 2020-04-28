@@ -6,6 +6,7 @@ from itertools import chain
 from itertools import combinations
 from math import isinf
 
+import numpy
 import sympy
 
 from sympy.core import Atom
@@ -54,6 +55,11 @@ def are_disjoint(sets):
 def are_identical(sets):
     intersection = get_intersection(sets)
     return all(len(s) == len(intersection) for s in sets)
+
+def binspace(start, stop, num=10):
+    values = numpy.linspace(start, stop, num)
+    bins = list(zip(values[:-1], values[1:]))
+    return [sympy.Interval(*b) for b in bins]
 
 def powerset(values, start=0):
     s = list(values)

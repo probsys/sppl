@@ -17,6 +17,7 @@ from spn.interpreter import Switch
 from spn.interpreter import Id
 from spn.math_util import allclose
 from spn.math_util import logsumexp
+from spn.sym_util import binspace
 
 Y = Id('Y')
 X = Id('X')
@@ -24,7 +25,7 @@ X = Id('X')
 def test_simple_model_eq():
     command_switch = Sequence(
         Sample(Y, randint(low=0, high=4)),
-        Switch(Y, 'eq', range(0, 4), lambda i:
+        Switch(Y, range(0, 4), lambda i:
             Sample(X, bernoulli(p=1/(i+1)))))
     model_switch = command_switch.interpret()
 
@@ -48,8 +49,8 @@ def test_simple_model_eq():
 def test_simple_model_lte():
     command_switch = Sequence(
         Sample(Y, beta(a=2, b=3)),
-        Switch(Y, 'lte', linspace(0, 1, 5), lambda i:
-            Sample(X, bernoulli(p=i))))
+        Switch(Y, binspace(0, 1, 5), lambda i:
+            Sample(X, bernoulli(p=i.right))))
     model_switch = command_switch.interpret()
 
     command_ifelse = Sequence(
@@ -74,20 +75,29 @@ def test_simple_model_lte():
                 for il, ih in zip(grid[:-1], grid[1:])
             ]))
 
-def test_error_eq():
+def test_error_range():
     with pytest.raises(AssertionError):
         # Switch cases do not sum to one.
         command = Sequence(
             Sample(Y, randint(low=0, high=4)),
-            Switch(Y, 'eq', range(0, 3), lambda i:
+            Switch(Y, range(0, 3), lambda i:
                 Sample(X, bernoulli(p=1/(i+1)))))
         command.interpret()
 
-def test_error_lte():
+def test_error_linspace():
     with pytest.raises(AssertionError):
         # Switch cases do not sum to one.
         command = Sequence(
             Sample(Y, beta(a=2, b=3)),
-            Switch(Y, 'lte', linspace(0, .5, 5), lambda i:
+            Switch(Y, linspace(0, .5, 5), lambda i:
                 Sample(X, bernoulli(p=i))))
+        command.interpret()
+
+def test_error_binspace():
+    with pytest.raises(AssertionError):
+        # Switch cases do not sum to one.
+        command = Sequence(
+            Sample(Y, beta(a=2, b=3)),
+            Switch(Y, binspace(0, .5, 5), lambda i:
+                Sample(X, bernoulli(p=i.right))))
         command.interpret()

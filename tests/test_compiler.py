@@ -268,27 +268,28 @@ Z ~= (
     assert namespace.model.prob(namespace.Z << {4}) == 0.25
     assert namespace.model.prob(namespace.Z << {6}) == 0.25
 
-def test_switch_in():
+def test_switch_shallow():
     source = '''
 Y ~= {'0': .25, '1': .5, '2': .25}
 
 switch (Y) cases (i in ['0', '1', '2']):
     Z ~= atomic(loc=int(i))
 '''
+
     compiler = SPML_Compiler(source)
     namespace = compiler.execute_module()
     assert namespace.model.prob(namespace.Z << {0}) == .25
     assert namespace.model.prob(namespace.Z << {1}) == .5
     assert namespace.model.prob(namespace.Z << {2}) == .25
 
-def test_switch_lte():
+def test_switch_nested():
     source = '''
 Y ~= randint(low=0, high=4)
 W ~= randint(low=0, high=2)
 
-switch (Y) cases (i <= range(0, 5)):
+switch (Y) cases (i in range(0, 5)):
     Z ~= {str(i): 1}
-    switch (W) cases (i <= range(0, 2)): V ~= atomic(loc=i)
+    switch (W) cases (i in range(0, 2)): V ~= atomic(loc=i)
 '''
     compiler = SPML_Compiler(source)
     namespace = compiler.execute_module()

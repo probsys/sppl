@@ -11,7 +11,7 @@ class RealDistribution():
     constructor = None
     def __init__(self, *args, **kwargs):
         assert not args, 'Only keyword arguments allowed for %s' % (self.dist.name,)
-        self.kwargs = kwargs
+        self.kwargs = {k: float(v) for k, v in kwargs.items()}
     def __call__(self, symbol):
         domain = self.get_domain(**self.kwargs)
         return self.constructor(symbol, self.dist(**self.kwargs), domain)
@@ -583,6 +583,11 @@ from .sym_util import Integers
 from .sym_util import IntegersPos
 from .sym_util import IntegersPos0
 
+def Range(start, stop):
+    assert float(start).is_integer()
+    assert float(stop).is_integer()
+    return sympy.Range(int(start), int(stop))
+
 class DiscreteReal(RealDistribution):
     constructor = DiscreteLeaf
 
@@ -594,17 +599,17 @@ class bernoulli(DiscreteReal):
 class betabinom(DiscreteReal):
     """A beta-binomial discrete random variable."""
     dist = scipy.stats.betabinom
-    def get_domain(self, **kwargs): return sympy.Range(0, kwargs['n']+1)
+    def get_domain(self, **kwargs): return Range(0, kwargs['n']+1)
 
 class binom(DiscreteReal):
     """A binomial discrete random variable."""
     dist = scipy.stats.binom
-    def get_domain(self, **kwargs): return sympy.Range(0, kwargs['n']+1)
+    def get_domain(self, **kwargs): return Range(0, kwargs['n']+1)
 
 class boltzmann(DiscreteReal):
     """A Boltzmann (Truncated Discrete Exponential) random variable."""
     dist = scipy.stats.boltzmann
-    def get_domain(self, **kwargs): return sympy.Range(0, kwargs['N']+1)
+    def get_domain(self, **kwargs): return Range(0, kwargs['N']+1)
 
 class dlaplace(DiscreteReal):
     """A Laplacian discrete random variable."""
@@ -647,7 +652,7 @@ class poisson(DiscreteReal):
 class randint(DiscreteReal):
     """A uniform discrete random variable."""
     dist = scipy.stats.randint
-    def get_domain(self, **kwargs): return sympy.Range(kwargs['low'], kwargs['high'])
+    def get_domain(self, **kwargs): return Range(kwargs['low'], kwargs['high'])
 
 class skellam(DiscreteReal):
     """A Skellam discrete random variable."""

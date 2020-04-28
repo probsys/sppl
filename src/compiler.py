@@ -158,19 +158,16 @@ class SPML_Visitor(ast.NodeVisitor):
     def visit_For_switch(self, node):
         assert isinstance(node.target, ast.Name), unparse(node.target)
         assert node.iter.func.id == 'switch', unparse(node.iter)
-        assert len(node.iter.args) == 3, unparse(node.iter)
+        assert len(node.iter.args) == 2, unparse(node.iter)
         assert isinstance(node.iter.args[0], (ast.Name, ast.Subscript))
-        assert isinstance(node.iter.args[1], ast.Str)
         # Open Switch.
         self.context.append('switch')
-        modes = {'in ': 'eq', '<': 'lt', '<=': 'lte'}
         idt = get_indentation(self.indentation)
         symbol = unparse(node.iter.args[0]).strip()
-        mode = modes[node.iter.args[1].s].strip()
-        values = unparse(node.iter.args[2]).strip()
+        values = unparse(node.iter.args[1]).strip()
         idx = unparse(node.target).strip()
-        self.stream.write('%sSwitch(%s, \'%s\', %s, lambda %s:'
-            % (idt, symbol, mode, values, idx))
+        self.stream.write('%sSwitch(%s, %s, lambda %s:'
+            % (idt, symbol, values, idx))
         self.stream.write('\n')
         # Write the body.
         self.indentation += 4
@@ -315,8 +312,8 @@ class SPML_Compiler():
         source_prime = os.linesep.join(l for l in lines if l.strip())
         source_prime = source_prime.replace('~=', '=')
         source_prime = re.sub(
-            r'^(\s*)switch\s*\((.+)\)\s*cases\s*\(([^<=]+)\s*(<=|<|in\s)\s*(.+)\s*\)\s*:',
-            r"\1for \3 in switch(\2, '\4', \5):",
+            r'^(\s*)switch\s*\((.+)\)\s*cases\s*\((.+)\s*in\s+(.+)\s*\)\s*:',
+            r"\1for \3 in switch(\2, \4):",
             source_prime, flags=re.MULTILINE)
         return source_prime
     def compile(self):
