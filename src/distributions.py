@@ -239,7 +239,6 @@ class gausshyper(ContinuousReal):
     dist = scipy.stats.gausshyper
     def get_domain(self, **kwargs): return UnitInterval
 
-
 class gamma(ContinuousReal):
     """A gamma continuous random variable."""
     dist = scipy.stats.gamma

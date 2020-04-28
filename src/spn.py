@@ -669,20 +669,16 @@ class RealLeaf(LeafSPN):
         interval = event.solve()
         values = get_intersection_safe(self.support, interval)
         weight = self.logprob_values__(values)
-
         # Probability zero event.
         if isinf_neg(weight):
             raise ValueError('Conditioning event "%s" has probability zero'
                 % (str(event)))
-
         # Condition on support.
         if values == self.support:
             return self
-
         # Condition on one set.
         if isinstance(values, (ContainersFinite, Range, Interval)):
             return (type(self))(self.symbol, self.dist, values, True, self.env)
-
         # Condition on union of sets.
         if isinstance(values, Union):
             weights_unorm = [self.logprob_values__(v) for v in values.args]
@@ -698,7 +694,6 @@ class RealLeaf(LeafSPN):
                 for i in indexes
             ]
             return SumSPN(children, weights) if 1 < len(indexes) else children[0]
-
         # Unknown set.
         assert False, 'Unknown set type: %s' % (values,)
 
