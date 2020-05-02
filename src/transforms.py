@@ -667,7 +667,7 @@ class Poly(Transform):
         (lo, ro) = (not ys.left_open, ys.right_open)
         ys_prime_a = solve_poly_inequality(self.symexpr, a, lo, extended=False)
         ys_prime_b = solve_poly_inequality(self.symexpr, b, ro, extended=False)
-        ys_prime = ys_prime_a.complement(ys_prime_b)
+        ys_prime = sympy.Complement(ys_prime_b, ys_prime_a)
         return self.subexpr.invert(ys_prime)
     def __eq__(self, x):
         return isinstance(x, Poly) \
