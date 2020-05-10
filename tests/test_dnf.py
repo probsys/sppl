@@ -248,3 +248,36 @@ def test_event_to_disjoint_union_nominal():
     assert dnf_to_disjoint_union(event) == EventOr([
         (X << {'1'}), ~(Y << {'1'}) & ~(X << {'1'})
     ])
+
+def test_event_to_disjoint_union_five():
+    # This test case can be visualized as follows:
+    # fig, ax = plt.subplots()
+    # ax.add_patch(Rectangle((2, 5), 6, 3, fill=False))
+    # ax.add_patch(Rectangle((3, 7), 1, 4, fill=False))
+    # ax.add_patch(Rectangle((3.5, 2), 2, 7, fill=False))
+    # ax.add_patch(Rectangle((4.5, 1), 2, 5, fill=False))
+    # ax.add_patch(Rectangle((5, 7), 2, 3, fill=False))
+    #
+    # // ((2 < X < 8) & (5 < Y < 8))
+    # // ((3 < X < 4) & (8 <= Y < 11))
+    # // ((3.5 < X < 5.5) & (2 < Y <= 5))
+    # // ((5.5 <= X < 6.5) & (1 < Y <= 5))
+    # // ((4.5 < X < 5.5) & (1 < Y <= 2))
+    # // ((5 < X < 7) & (8 <= Y < 10))
+    #
+    # fig, ax = plt.subplots()
+    # ax.add_patch(Rectangle((2, 5), 6, 3, fill=False))
+    # ax.add_patch(Rectangle((3, 8), 1, 3, fill=False))
+    # ax.add_patch(Rectangle((3.5, 2), 2, 3, fill=False))
+    # ax.add_patch(Rectangle((5.5, 1), 1, 4, fill=False))
+    # ax.add_patch(Rectangle((4.5, 1), 1, 1, fill=False))
+    # ax.add_patch(Rectangle((5, 8), 2, 2, fill=False))
+    X = Id('X')
+    Y = Id('Y')
+    E1 = ((2 < X) < 8) & ((5 < Y) < 8)
+    E2 = ((3 < X) < 4) & ((7 < Y) < 11)
+    E3 = ((3.5 < X) < 5.5) & ((2 < Y) < 7)
+    E4 = ((4.5 < X) < 6.5) & ((1 < Y) < 6)
+    E5 = ((5 < X) < 7) & ((7 < Y) < 10)
+    event = E1 | E2 | E3 | E4 | E5
+    dnf_to_disjoint_union(event)
