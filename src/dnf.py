@@ -96,16 +96,16 @@ def dnf_non_disjoint_clauses(event):
     overlap_dict = {}
     for i, j in combinations(range(n_clauses), 2):
         # Exit if any symbol in i does not intersect a symbol in j.
-        intersections = {
-            symbol: Intersection(solutions[i][symbol], solutions[j][symbol])
-                if (symbol in solutions[j]) else solutions[i][symbol]
+        intersections = (
+            Intersection(solutions[i][symbol], solutions[j][symbol])
+                if (symbol in solutions[j]) else
+                solutions[i][symbol]
             for symbol in solutions[i]
-        }
-        if any(x is EmptySet for x in intersections.values()):
+        )
+        if any(x is EmptySet for x in intersections):
             continue
         # Exit if any symbol in j is EmptySet.
-        if any(solutions[j] is EmptySet
-                for symbol in solutions[j] if symbol not in solutions[i]):
+        if any(solutions[j] is EmptySet for symbol in solutions[j]):
             continue
         # All symbols intersect, so clauses overlap.
         if j not in overlap_dict:
