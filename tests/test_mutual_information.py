@@ -50,7 +50,7 @@ def check_mi_properties(spn, A, B, memo):
     assert allclose(miAB, eA - eAB)
     assert allclose(miAB, eB - eBA)
 
-@pytest.mark.parametrize('memo', [Memo({}, {}), None])
+@pytest.mark.parametrize('memo', [Memo(), None])
 def test_mutual_information_four_clusters(memo):
     X = Id('X')
     Y = Id('Y')
