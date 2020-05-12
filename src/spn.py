@@ -74,7 +74,7 @@ class SPN():
         raise NotImplementedError()
     def mutual_information(self, A, B, memo=None):
         if memo is None:
-            memo = Memo({}, {})
+            memo = Memo()
         lpA1 = self.logprob(A)
         lpB1 = self.logprob(B)
         lpA0 = logdiffexp(0, lpA1)
@@ -136,7 +136,7 @@ class BranchSPN(SPN):
         return self.symbols
     def logprob(self, event, memo=None):
         if memo is None:
-            memo = Memo({}, {})
+            memo = Memo()
         event_dnf = dnf_normalize(event)
         if event_dnf is None:
             return -inf
@@ -144,7 +144,7 @@ class BranchSPN(SPN):
         return self.logprob_factored(event_factor, memo)
     def condition(self, event, memo=None):
         if memo is None:
-            memo = Memo({}, {})
+            memo = Memo()
         event_dnf = dnf_normalize(event)
         if event_dnf is None:
             raise ValueError('Zero probability event: %s' % (event,))
@@ -158,6 +158,15 @@ class BranchSPN(SPN):
         event_disjoint = dnf_to_disjoint_union(event_dnf)
         event_factor = dnf_factor(event_disjoint)
         return self.condition_factored(event_factor, memo)
+    def logpdf(self, event, memo=None):
+        if memo is None:
+            memo = Memo()
+        event_dnf = dnf_normalize(event)
+        if event_dnf is None:
+            return -inf
+        event_factor = dnf_factor(event_dnf)
+        assert len(event_factor) == 1
+        return self.logpdf_factored(event_factor, memo)
     def logprob_factored(self, event_factor, memo):
         key = self.get_memo_key(event_factor)
         if key not in memo.logprob:
@@ -168,9 +177,16 @@ class BranchSPN(SPN):
         if key not in memo.condition:
             memo.condition[key] = self.condition_factored__(event_factor, memo)
         return memo.condition[key]
+    def logpdf_factored(self, event_factor, memo):
+        key = self.get_memo_key(event_factor)
+        if key not in memo.logpdf:
+            memo.logpdf[key] = self.logpdf_factored__(event_factor, memo)
+        return memo.logpdf[key]
     def logprob_factored__(self, event_factor, memo):
         raise NotImplementedError()
     def condition_factored__(self, event_factor, memo):
+        raise NotImplementedError()
+    def logpdf_factored__(self, event_factor, memo):
         raise NotImplementedError()
 
 # ==============================================================================
@@ -237,6 +253,11 @@ class SumSPN(BranchSPN):
         children = [self.children[i].condition_factored(event_factor, memo) for i in indexes]
         weights = lognorm(logps_joint)
         return SumSPN(children, weights) if len(indexes) > 1 else children[0]
+
+    def logpdf_factored__(self, event_factor, memo):
+        # FIXME: Check base measures of children.
+        logps = [spn.logpdf_factored(event_factor, memo) for spn in self.children]
+        return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -505,6 +526,20 @@ class ProductSPN(BranchSPN):
             children.append(spn_condition)
         return children
 
+    def logpdf_factored__(self, event_factor, memo):
+        assert len(event_factor) == 1
+        conjunctions = {}
+        for symbol, event in event_factor[0].items():
+            key = self.lookup[symbol]
+            if key not in conjunctions:
+                conjunctions[key] = dict()
+            if symbol not in conjunctions[key]:
+                conjunctions[key][symbol] = event
+            else:
+                conjunctions[key][symbol] &= event
+        return sum(self.children[k].logpdf_factored((v,), memo)
+            for k, v in conjunctions.items())
+
     def __eq__(self, x):
         return isinstance(x, type(self)) \
             and self.children == x.children
@@ -541,8 +576,6 @@ class LeafSPN(SPN):
     def sample_func(self, func, N, prng=None):
         samples = self.sample(N, prng=prng)
         return func_evaluate(self, func, samples)
-    def logpdf(self, x):
-        raise NotImplementedError()
     def logprob(self, event, memo=None):
         event_subs = event.substitute(self.env)
         assert all(s in self.env for s in event.get_symbols())
@@ -576,11 +609,28 @@ class LeafSPN(SPN):
             event = event_factor_to_event(event_factor)
             memo.condition[key] = self.condition(event)
         return memo.condition[key]
+    def logpdf_factored(self, event_factor, memo):
+        key = self.get_memo_key(event_factor)
+        if key not in memo.logpdf:
+            assert len(event_factor) == 1
+            event = event_factor_to_event(event_factor)
+            memo.logpdf[key] = self.logpdf(event)
+        return memo.logpdf[key]
+    def logpdf(self, event):
+        assert isinstance(event, EventBasic)
+        assert isinstance(event.values, ContainersFinite)
+        assert isinstance(event.subexpr, Id)
+        assert event.subexpr.symbols == {self.symbol}
+        assert len(event.values) == 1
+        x = list(event.values)[0]
+        return self.logpdf__(x)
     def sample__(self, N, prng):
         raise NotImplementedError()
     def logprob__(self, event):
         raise NotImplementedError()
     def condition__(self, event):
+        raise NotImplementedError()
+    def logpdf__(self, x):
         raise NotImplementedError()
 
 # ==============================================================================
@@ -732,12 +782,15 @@ class ContinuousLeaf(RealLeaf):
             self.Fu = 1
             self.logZ = 1
 
-    def logpdf(self, x):
+    def logpdf__(self, x):
+        if isinstance(x, NominalValue):
+            return -float('inf')
+        xf = float(x)
         if not self.conditioned:
-            return self.dist.logpdf(x)
+            return self.dist.logpdf(xf)
         if x not in self.support:
             return -inf
-        return self.dist.logpdf(x) - self.logZ
+        return self.dist.logpdf(xf) - self.logZ
 
     def logprob_finite__(self, values):
         return -inf
@@ -773,15 +826,18 @@ class DiscreteLeaf(RealLeaf):
             self.Fu = 1
             self.logZ = 1
 
-    def logpdf(self, x):
+    def logpdf__(self, x):
+        if isinstance(x, NominalValue):
+            return -float('inf')
+        xf = float(x)
         if not self.conditioned:
-            return self.dist.logpmf(x)
+            return self.dist.logpmf(xf)
         if (x < self.xl) or (self.xu < x):
             return -inf
-        return self.dist.logpmf(x) - self.logZ
+        return self.dist.logpmf(xf) - self.logZ
 
     def logprob_finite__(self, values):
-        logps = [self.logpdf(float(x)) for x in values]
+        logps = [self.logpdf__(float(x)) for x in values]
         return logsumexp(logps)
     def logprob_range__(self, values):
         if values.stop <= values.start:
@@ -817,11 +873,11 @@ class NominalLeaf(LeafSPN):
         self.weights = list(self.dist.values())
         assert allclose(float(sum(self.weights)),  1)
 
-    def logpdf(self, x):
+    def logpdf__(self, x):
         if x not in self.dist:
             return -inf
         w = self.dist[x]
-        return log(w[0]) - log(w[1])
+        return log(w.numerator) - log(w.denominator)
 
     def transform(self, symbol, expr):
         raise ValueError('Cannot transform Nominal: %s %s' % (symbol, expr))
@@ -871,7 +927,11 @@ class NominalLeaf(LeafSPN):
 # ==============================================================================
 # Utilities.
 
-Memo = namedtuple('Memo', ['logprob', 'condition'])
+class Memo():
+    def __init__(self):
+        self.logprob = {}
+        self.condition = {}
+        self.logpdf = {}
 
 def spn_cache_duplicate_subtrees(spn, memo):
     if isinstance(spn, LeafSPN):

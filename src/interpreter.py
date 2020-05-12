@@ -69,7 +69,7 @@ class IfElse(Command):
         # Rewrite events in normalized form.
         events = [dnf_normalize(event) for event in events_unorm]
         # Prepare memo table.
-        memo = Memo({}, {})
+        memo = Memo()
         # Obtain mixture probabilities.
         weights = [spn.logprob(event, memo)
             if event is not None else -inf for event in events]
