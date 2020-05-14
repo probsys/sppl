@@ -93,3 +93,7 @@ def test_numeric_distribution_gamma():
         spn_condition.logprob(X <= 2),
         logdiffexp(spn.logprob(X<=2), spn.logprob(X<=0))
             - spn_condition.logZ)
+
+    # Support on (-3, oo)
+    spn = (X >> gamma(loc=-3, a=1))
+    assert spn.prob((-3 < X) < 0) > 0.95

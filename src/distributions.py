@@ -58,13 +58,18 @@ from .sym_util import RealsNeg
 from .sym_util import RealsPos
 from .sym_util import UnitInterval
 
+def RealsPosLoc(kwargs):
+    if 'loc' in kwargs:
+        return sympy.Interval(kwargs['loc'], sympy.oo)
+    return RealsPos
+
 class ContinuousReal(RealDistribution):
     constructor = ContinuousLeaf
 
 class alpha(ContinuousReal):
     """An alpha continuous random variable."""
     dist = scipy.stats.alpha
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class anglit(ContinuousReal):
     """An anglit continuous random variable."""
@@ -89,7 +94,7 @@ class beta(ContinuousReal):
 class betaprime(ContinuousReal):
     """A beta prime continuous random variable."""
     dist = scipy.stats.betaprime
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class bradford(ContinuousReal):
     """A Bradford continuous random variable."""
@@ -99,12 +104,12 @@ class bradford(ContinuousReal):
 class burr(ContinuousReal):
     """A Burr (Type III) continuous random variable."""
     dist = scipy.stats.burr
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class burr12(ContinuousReal):
     """A Burr (Type XII) continuous random variable."""
     dist = scipy.stats.burr12
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class cauchy(ContinuousReal):
     """A Cauchy continuous random variable."""
@@ -114,12 +119,12 @@ class cauchy(ContinuousReal):
 class chi(ContinuousReal):
     """A chi continuous random variable."""
     dist = scipy.stats.chi
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class chi2(ContinuousReal):
     """A chi-squared continuous random variable."""
     dist = scipy.stats.chi2
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class cosine(ContinuousReal):
     """A cosine continuous random variable."""
@@ -144,12 +149,12 @@ class dweibull(ContinuousReal):
 class erlang(ContinuousReal):
     """An Erlang continuous random variable."""
     dist = scipy.stats.erlang
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class expon(ContinuousReal):
     """An exponential continuous random variable."""
     dist = scipy.stats.expon
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class exponnorm(ContinuousReal):
     """An exponentially modified normal continuous random variable."""
@@ -159,42 +164,42 @@ class exponnorm(ContinuousReal):
 class exponweib(ContinuousReal):
     """An exponentiated Weibull continuous random variable."""
     dist = scipy.stats.exponweib
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class exponpow(ContinuousReal):
     """An exponential power continuous random variable."""
     dist = scipy.stats.exponpow
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class f(ContinuousReal):
     """An F continuous random variable."""
     dist = scipy.stats.f
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class fatiguelife(ContinuousReal):
     """A fatigue-life (Birnbaum-Saunders) continuous random variable."""
     dist = scipy.stats.fatiguelife
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class fisk(ContinuousReal):
     """A Fisk continuous random variable."""
     dist = scipy.stats.fisk
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class foldcauchy(ContinuousReal):
     """A folded Cauchy continuous random variable."""
     dist = scipy.stats.foldcauchy
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class foldnorm(ContinuousReal):
     """A folded normal continuous random variable."""
     dist = scipy.stats.foldnorm
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class frechet_r(ContinuousReal):
     """A Frechet right (or Weibull minimum) continuous random variable."""
     dist = scipy.stats.frechet_r
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class frechet_l(ContinuousReal):
     """A Frechet left (or Weibull maximum) continuous random variable."""
@@ -204,7 +209,7 @@ class frechet_l(ContinuousReal):
 class genlogistic(ContinuousReal):
     """A generalized logistic continuous random variable."""
     dist = scipy.stats.genlogistic
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class gennorm(ContinuousReal):
     """A generalized normal continuous random variable."""
@@ -214,12 +219,12 @@ class gennorm(ContinuousReal):
 class genpareto(ContinuousReal):
     """A generalized Pareto continuous random variable."""
     dist = scipy.stats.genpareto
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class genexpon(ContinuousReal):
     """A generalized exponential continuous random variable."""
     dist = scipy.stats.genexpon
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class genextreme(ContinuousReal):
     """A generalized extreme value continuous random variable."""
@@ -242,12 +247,12 @@ class gausshyper(ContinuousReal):
 class gamma(ContinuousReal):
     """A gamma continuous random variable."""
     dist = scipy.stats.gamma
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class gengamma(ContinuousReal):
     """A generalized gamma continuous random variable."""
     dist = scipy.stats.gengamma
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class genhalflogistic(ContinuousReal):
     """A generalized half-logistic continuous random variable."""
@@ -259,17 +264,17 @@ class genhalflogistic(ContinuousReal):
 class geninvgauss(ContinuousReal):
     """A Generalized Inverse Gaussian continuous random variable."""
     dist = scipy.stats.geninvgauss
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class gilbrat(ContinuousReal):
     """A Gilbrat continuous random variable."""
     dist = scipy.stats.gilbrat
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class gompertz(ContinuousReal):
     """A Gompertz (or truncated Gumbel) continuous random variable."""
     dist = scipy.stats.gompertz
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class gumbel_r(ContinuousReal):
     """A right-skewed Gumbel continuous random variable."""
@@ -279,27 +284,27 @@ class gumbel_r(ContinuousReal):
 class gumbel_l(ContinuousReal):
     """A left-skewed Gumbel continuous random variable."""
     dist = scipy.stats.gumbel_l
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class halfcauchy(ContinuousReal):
     """A Half-Cauchy continuous random variable."""
     dist = scipy.stats.halfcauchy
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class halflogistic(ContinuousReal):
     """A half-logistic continuous random variable."""
     dist = scipy.stats.halflogistic
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class halfnorm(ContinuousReal):
     """A half-normal continuous random variable."""
     dist = scipy.stats.halfnorm
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class halfgennorm(ContinuousReal):
     """The upper half of a generalized normal continuous random variable."""
     dist = scipy.stats.halfgennorm
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class hypsecant(ContinuousReal):
     """A hyperbolic secant continuous random variable."""
@@ -309,17 +314,17 @@ class hypsecant(ContinuousReal):
 class invgamma(ContinuousReal):
     """An inverted gamma continuous random variable."""
     dist = scipy.stats.invgamma
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class invgauss(ContinuousReal):
     """An inverse Gaussian continuous random variable."""
     dist = scipy.stats.invgauss
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class invweibull(ContinuousReal):
     """An inverted Weibull continuous random variable."""
     dist = scipy.stats.invweibull
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class johnsonsb(ContinuousReal):
     """A Johnson SB continuous random variable."""
@@ -339,7 +344,7 @@ class kappa4(ContinuousReal):
 class kappa3(ContinuousReal):
     """Kappa 3 parameter distribution."""
     dist = scipy.stats.kappa3
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class ksone(ContinuousReal):
     """General Kolmogorov-Smirnov one-sided test."""
@@ -359,7 +364,7 @@ class laplace(ContinuousReal):
 class levy(ContinuousReal):
     """A Levy continuous random variable."""
     dist = scipy.stats.levy
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class levy_l(ContinuousReal):
     """A left-skewed Levy continuous random variable."""
@@ -384,12 +389,12 @@ class loggamma(ContinuousReal):
 class loglaplace(ContinuousReal):
     """A log-Laplace continuous random variable."""
     dist = scipy.stats.loglaplace
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class lognorm(ContinuousReal):
     """A lognormal continuous random variable."""
     dist = scipy.stats.lognorm
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class loguniform(ContinuousReal):
     """A loguniform or reciprocal continuous random variable."""
@@ -399,17 +404,17 @@ class loguniform(ContinuousReal):
 class lomax(ContinuousReal):
     """A Lomax (Pareto of the second kind) continuous random variable."""
     dist = scipy.stats.lomax
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class maxwell(ContinuousReal):
     """A Maxwell continuous random variable."""
     dist = scipy.stats.maxwell
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class mielke(ContinuousReal):
     """A Mielke Beta-Kappa / Dagum continuous random variable."""
     dist = scipy.stats.mielke
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class moyal(ContinuousReal):
     """A Moyal continuous random variable."""
@@ -419,17 +424,17 @@ class moyal(ContinuousReal):
 class nakagami(ContinuousReal):
     """A Nakagami continuous random variable."""
     dist = scipy.stats.nakagami
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class ncx2(ContinuousReal):
     """A non-central chi-squared continuous random variable."""
     dist = scipy.stats.ncx2
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class ncf(ContinuousReal):
     """A non-central F distribution continuous random variable."""
     dist = scipy.stats.ncf
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class nct(ContinuousReal):
     """A non-central Student’s t continuous random variable."""
@@ -464,12 +469,12 @@ class powerlaw(ContinuousReal):
 class powerlognorm(ContinuousReal):
     """A power log-normal continuous random variable."""
     dist = scipy.stats.powerlognorm
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class powernorm(ContinuousReal):
     """A power normal continuous random variable."""
     dist = scipy.stats.powernorm
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class rdist(ContinuousReal):
     """An R-distributed (symmetric beta) continuous random variable."""
@@ -479,17 +484,17 @@ class rdist(ContinuousReal):
 class rayleigh(ContinuousReal):
     """A Rayleigh continuous random variable."""
     dist = scipy.stats.rayleigh
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class rice(ContinuousReal):
     """A Rice continuous random variable."""
     dist = scipy.stats.rice
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class recipinvgauss(ContinuousReal):
     """A reciprocal inverse Gaussian continuous random variable."""
     dist = scipy.stats.recipinvgauss
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class semicircular(ContinuousReal):
     """A semicircular continuous random variable."""
@@ -535,7 +540,7 @@ class truncnorm(ContinuousReal):
 class tukeylambda(ContinuousReal):
     """A Tukey-Lamdba continuous random variable."""
     dist = scipy.stats.tukeylambda
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class uniform(ContinuousReal):
     """A uniform continuous random variable."""
@@ -558,12 +563,12 @@ class vonmises_line(ContinuousReal):
 class wald(ContinuousReal):
     """A Wald continuous random variable."""
     dist = scipy.stats.wald
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class weibull_min(ContinuousReal):
     """Weibull minimum continuous random variable."""
     dist = scipy.stats.weibull_min
-    def get_domain(self, **kwargs): return RealsPos
+    def get_domain(self, **kwargs): return RealsPosLoc(kwargs)
 
 class weibull_max(ContinuousReal):
     """Weibull maximum continuous random variable."""
