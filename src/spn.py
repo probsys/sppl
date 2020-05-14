@@ -72,6 +72,11 @@ class SPN():
         return exp(lp)
     def condition(self, event, memo=None):
         raise NotImplementedError()
+    def logpdf(self, event, memo=None):
+        raise NotImplementedError()
+    def pdf(self, event):
+        lp = self.logpdf(event)
+        return exp(lp)
     def mutual_information(self, A, B, memo=None):
         if memo is None:
             memo = Memo()
