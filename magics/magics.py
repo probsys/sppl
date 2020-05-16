@@ -43,13 +43,16 @@ class SPML_Magics(Magics):
     @needs_local_scope
     @line_magic
     def spml_to_graph(self, line, local_ns):
+        tokens = line.strip().split(' ')
+        line = tokens[0]
+        filename = tokens[1] if len(tokens) == 2 else None
         if line in self.programs:
             spn = self.spml_get_spn(line)
         elif line in local_ns:
             spn = local_ns[line]
         else:
             assert False, 'unknown program %s' % (line,)
-        return render_graphviz(spn)
+        return render_graphviz(spn, filename=filename)
 
     @line_magic
     def spml_get_namespace(self, line):
