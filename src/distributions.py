@@ -4,6 +4,15 @@
 import scipy.stats
 import sympy
 
+class NominalDistribution():
+    def __init__(self, dist):
+        self.dist = dict(dist)
+    def __call__(self, symbol):
+        from .spn import NominalLeaf
+        return NominalLeaf(symbol, self.dist)
+
+choice = NominalDistribution
+
 # pylint: disable=not-callable
 # pylint: disable=multiple-statements
 class RealDistribution():
