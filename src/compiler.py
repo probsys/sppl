@@ -47,14 +47,14 @@ def maybe_sequence_block(visitor, value, first=None):
 
 class SPML_Visitor(ast.NodeVisitor):
     def __init__(self, stream=None):
-        self.command = stream or io.StringIO()
+        self.first = True
         self.indentation = 0
+        self.context = ['global']
+        self.command = stream or io.StringIO()
+        self.imports = []
+        self.constants = OrderedDict()
         self.variables = OrderedDict()
         self.distributions = OrderedDict()
-        self.constants = OrderedDict()
-        self.imports = []
-        self.context = ['global']
-        self.first = True
 
     def generic_visit(self, node):
         """Called if no explicit visitor function exists for a node."""
