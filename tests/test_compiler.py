@@ -299,3 +299,28 @@ switch (Y) cases (i in range(0, 5)):
     assert abs(namespace.model.prob(namespace.Z << {'3'}) - .25) < 1e-10
     assert abs(namespace.model.prob(namespace.V << {0}) - .5) < 1e-10
     assert abs(namespace.model.prob(namespace.V << {1}) - .5) < 1e-10
+
+def test_condition_simple():
+    source = '''
+Y ~= norm(loc=0, scale=2)
+condition((0 < Y) < 2)
+Z ~= norm(loc=0, scale=2)
+'''
+    compiler = SPML_Compiler(source)
+    namespace = compiler.execute_module()
+    assert abs(namespace.model.prob((0 < namespace.Y) < 2) - 1) < 1e-10
+
+def test_condition_if():
+    source = '''
+Y ~= norm(loc=0, scale=2)
+if (Y > 1):
+    condition(Y < 1)
+else:
+    condition(Y > -1)
+'''
+    with pytest.raises(Exception):
+        compiler = SPML_Compiler(source)
+        compiler.execute_module()
+    compiler = SPML_Compiler(source.replace('Y > 1', 'Y > 0'))
+    namespace = compiler.execute_module()
+    assert abs(namespace.model.prob((-1 < namespace.Y) < 1) - 1) < 1e-10

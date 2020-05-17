@@ -45,6 +45,13 @@ class Transform(Command):
         assert spn is not None
         return spn.transform(self.symbol, self.expr)
 
+class Condition(Command):
+    def __init__(self, event):
+        self.event = event
+    def interpret(self, spn=None):
+        assert spn is not None
+        return spn.condition(self.event)
+
 class IfElse(Command):
     def __init__(self, *branches):
         assert len(branches) % 2 == 0
