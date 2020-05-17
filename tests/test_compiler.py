@@ -153,7 +153,7 @@ if (X > 0):
 
 def test_transform_in():
     source = '''
-X ~= {'foo': .5, 'bar': .1, 'baz': .4}
+X ~= choice({'foo': .5, 'bar': .1, 'baz': .4})
 Y = X in {'foo', 'baz'}
 '''
     compiler = SPML_Compiler(source)
@@ -163,7 +163,7 @@ Y = X in {'foo', 'baz'}
 
 def test_transform_in_not():
     source = '''
-X ~= {'foo': .5, 'bar': .1, 'baz': .4}
+X ~= choice({'foo': .5, 'bar': .1, 'baz': .4})
 Y = X not in {'foo', 'baz'}
 '''
     compiler = SPML_Compiler(source)
@@ -173,7 +173,7 @@ Y = X not in {'foo', 'baz'}
 
 def test_transform_eq():
     source = '''
-X ~= {'foo': .5, 'bar': .1, 'baz': .4}
+X ~= choice({'foo': .5, 'bar': .1, 'baz': .4})
 Y = X == 'foo'
 '''
     compiler = SPML_Compiler(source)
@@ -183,7 +183,7 @@ Y = X == 'foo'
 
 def test_transform_eq_not():
     source = '''
-X ~= {'foo': .5, 'bar': .1, 'baz': .4}
+X ~= choice({'foo': .5, 'bar': .1, 'baz': .4})
 Y = X != 'foo'
 '''
     compiler = SPML_Compiler(source)
@@ -198,7 +198,7 @@ W = array(10)
 Y = randint(low=1, high=2)
 Z = bernoulli(p=0.1)
 
-E = {'1': 0.3, '2': 0.7}
+E = choice({'1': 0.3, '2': 0.7})
 
 
 for i in range(1,5):
@@ -239,7 +239,7 @@ else:
 def test_imports():
     source = '''
 Y ~= bernoulli(p=.5)
-Z ~= {str(i): Fraction(1, 5) for i in range(5)}
+Z ~= choice({str(i): Fraction(1, 5) for i in range(5)})
 X = array(5)
 for i in range(5):
     X[i] ~= Fraction(1,2) * Y
@@ -255,7 +255,7 @@ for i in range(5):
 def test_ifexp():
     source = '''
 from fractions import Fraction
-Y ~= {str(i): Fraction(1, 4) for i in range(4)}
+Y ~= choice({str(i): Fraction(1, 4) for i in range(4)})
 Z ~= (
     atomic(loc=0)    if (Y in {'0', '1'}) else
     atomic(loc=4)    if (Y == '2') else
@@ -270,7 +270,7 @@ Z ~= (
 
 def test_switch_shallow():
     source = '''
-Y ~= {'0': .25, '1': .5, '2': .25}
+Y ~= choice({'0': .25, '1': .5, '2': .25})
 
 switch (Y) cases (i in ['0', '1', '2']):
     Z ~= atomic(loc=int(i))
@@ -288,7 +288,7 @@ Y ~= randint(low=0, high=4)
 W ~= randint(low=0, high=2)
 
 switch (Y) cases (i in range(0, 5)):
-    Z ~= {str(i): 1}
+    Z ~= choice({str(i): 1})
     switch (W) cases (i in range(0, 2)): V ~= atomic(loc=i)
 '''
     compiler = SPML_Compiler(source)

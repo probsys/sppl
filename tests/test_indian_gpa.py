@@ -13,6 +13,7 @@ import pytest
 
 from spn.compiler import SPML_Compiler
 from spn.distributions import atomic
+from spn.distributions import choice
 from spn.distributions import uniform
 from spn.interpreter import IfElse
 from spn.interpreter import Sample
@@ -137,8 +138,8 @@ def model_perfect_nested():
 
 def model_ifelse_exhuastive_compiled():
     compiler = SPML_Compiler('''
-Nationality   ~= {'India': 0.5, 'USA': 0.5}
-Perfect       ~= {'True': 0.01, 'False': 0.99}
+Nationality   ~= choice({'India': 0.5, 'USA': 0.5})
+Perfect       ~= choice({'True': 0.01, 'False': 0.99})
 if (Nationality == 'India') & (Perfect == 'False'):
     GPA ~= uniform(loc=0, scale=10)
 elif (Nationality == 'India') & (Perfect == 'True'):
@@ -153,8 +154,8 @@ elif (Nationality == 'USA') & (Perfect == 'True'):
 
 def model_ifelse_non_exhuastive_compiled():
     compiler = SPML_Compiler('''
-Nationality   ~= {'India': 0.5, 'USA': 0.5}
-Perfect       ~= {'True': 0.01, 'False': 0.99}
+Nationality   ~= choice({'India': 0.5, 'USA': 0.5})
+Perfect       ~= choice({'True': 0.01, 'False': 0.99})
 if (Nationality == 'India') & (Perfect == 'False'):
     GPA ~= uniform(loc=0, scale=10)
 elif (Nationality == 'India') & (Perfect == 'True'):
@@ -169,8 +170,8 @@ else:
 
 def model_ifelse_nested_compiled():
     compiler = SPML_Compiler('''
-Nationality   ~= {'India': 0.5, 'USA': 0.5}
-Perfect       ~= {'True': 0.01, 'False': 0.99}
+Nationality   ~= choice({'India': 0.5, 'USA': 0.5})
+Perfect       ~= choice({'True': 0.01, 'False': 0.99})
 if (Nationality == 'India'):
     if (Perfect == 'False'):
         GPA ~= uniform(loc=0, scale=10)
@@ -187,15 +188,15 @@ elif (Nationality == 'USA'):
 
 def model_perfect_nested_compiled():
     compiler = SPML_Compiler('''
-Nationality   ~= {'India': 0.5, 'USA': 0.5}
+Nationality   ~= choice({'India': 0.5, 'USA': 0.5})
 if (Nationality == 'India'):
-    Perfect       ~= {'True': 0.01, 'False': 0.99}
+    Perfect       ~= choice({'True': 0.01, 'False': 0.99})
     if (Perfect == 'False'):
         GPA ~= uniform(loc=0, scale=10)
     else:
         GPA ~= atomic(loc=10)
 elif (Nationality == 'USA'):
-    Perfect       ~= {'True': 0.01, 'False': 0.99}
+    Perfect       ~= choice({'True': 0.01, 'False': 0.99})
     if (Perfect == 'False'):
         GPA ~= uniform(loc=0, scale=4)
     else:

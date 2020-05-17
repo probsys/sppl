@@ -9,6 +9,7 @@ import pytest
 import numpy
 import sympy
 
+from spn.distributions import choice
 from spn.distributions import gamma
 from spn.distributions import norm
 from spn.math_util import allclose
@@ -102,7 +103,7 @@ def test_sum_normal_nominal():
     X = Id('X')
     children = [
         X >> norm(loc=0, scale=1),
-        X >> {'low': Fraction(3, 10), 'high': Fraction(7, 10)},
+        X >> choice({'low': Fraction(3, 10), 'high': Fraction(7, 10)}),
     ]
     weights = [log(Fraction(4,7)), log(Fraction(3, 7))]
 
