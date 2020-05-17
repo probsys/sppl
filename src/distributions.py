@@ -4,7 +4,18 @@
 import scipy.stats
 import sympy
 
-class NominalDistribution():
+class Distribution():
+    def __rmul__(self, x):
+        from .sym_util import sympify_number
+        try:
+            x_val = sympify_number(x)
+            if not 0 < x_val < 1:
+                raise ValueError('invalid weight %s' % (str(x),))
+            return DistributionMix([self], [x])
+        except TypeError:
+            return NotImplemented
+
+class NominalDistribution(Distribution):
     def __init__(self, dist):
         self.dist = dict(dist)
     def __call__(self, symbol):
@@ -13,9 +24,9 @@ class NominalDistribution():
 
 choice = NominalDistribution
 
-# pylint: disable=not-callable
-# pylint: disable=multiple-statements
-class RealDistribution():
+class RealDistribution(Distribution):
+    # pylint: disable=not-callable
+    # pylint: disable=multiple-statements
     dist = None
     constructor = None
     def __init__(self, *args, **kwargs):
@@ -27,17 +38,7 @@ class RealDistribution():
     def get_domain(self, **kwargs):
         raise NotImplementedError()
 
-    def __rmul__(self, x):
-        from .sym_util import sympify_number
-        try:
-            x_val = sympify_number(x)
-            if not 0 < x_val < 1:
-                raise ValueError('invalid weight %s' % (str(x),))
-            return RealDistributionMix([self], [x])
-        except TypeError:
-            return NotImplemented
-
-class RealDistributionMix():
+class DistributionMix():
     """Weighted mixture of SPNs that do not yet sum to unity."""
     def __init__(self, distributions, weights):
         self.distributions = distributions
@@ -50,13 +51,13 @@ class RealDistributionMix():
         return SumSPN(distributions, weights)
 
     def __or__(self, x):
-        if not isinstance(x, RealDistributionMix):
+        if not isinstance(x, DistributionMix):
             return NotImplemented
         weights = self.weights + x.weights
         cumsum = float(sum(weights))
         assert 0 < cumsum <= 1
         distributions = self.distributions + x.distributions
-        return RealDistributionMix(distributions, weights)
+        return DistributionMix(distributions, weights)
 
 # ==============================================================================
 # ContinuousReal
