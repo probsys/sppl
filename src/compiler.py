@@ -31,8 +31,8 @@ def maybe_sequence_block(visitor, value, first=None):
     active = len(value) > 1 or first
     if active:
         idt = get_indentation(visitor.indentation)
-        visitor.stream.write('%sSequence(' % (idt,))
-        visitor.stream.write('\n')
+        visitor.command.write('%sSequence(' % (idt,))
+        visitor.command.write('\n')
         visitor.indentation += 4
     # Yield
     yield None
@@ -40,14 +40,14 @@ def maybe_sequence_block(visitor, value, first=None):
     if active:
         visitor.indentation -= 4
         idt = get_indentation(visitor.indentation)
-        visitor.stream.write('%s)' % (idt,))
+        visitor.command.write('%s)' % (idt,))
         if not first:
-            visitor.stream.write(',')
-            visitor.stream.write('\n')
+            visitor.command.write(',')
+            visitor.command.write('\n')
 
 class SPML_Visitor(ast.NodeVisitor):
     def __init__(self, stream=None):
-        self.stream = stream or io.StringIO()
+        self.command = stream or io.StringIO()
         self.indentation = 0
         self.variables = OrderedDict()
         self.distributions = OrderedDict()
@@ -143,8 +143,8 @@ class SPML_Visitor(ast.NodeVisitor):
         src_value = unparse(value_prime).replace(os.linesep, '')
         src_targets = unparse(node.targets).replace(os.linesep, '')
         idt = get_indentation(self.indentation)
-        self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
-        self.stream.write('\n')
+        self.command.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
+        self.command.write('\n')
 
     def visit_Assign_py(self, node):
         assert self.context == ['global']
@@ -172,17 +172,17 @@ class SPML_Visitor(ast.NodeVisitor):
         symbol = unparse(node.iter.args[0]).strip()
         values = unparse(node.iter.args[1]).strip()
         idx = unparse(node.target).strip()
-        self.stream.write('%sSwitch(%s, %s, lambda %s:'
+        self.command.write('%sSwitch(%s, %s, lambda %s:'
             % (idt, symbol, values, idx))
-        self.stream.write('\n')
+        self.command.write('\n')
         # Write the body.
         self.indentation += 4
         self.generic_visit(ast.Module(node.body))
         self.indentation -= 4
         # Close Switch
         idt = get_indentation(self.indentation)
-        self.stream.write('%s),' % (idt,))
-        self.stream.write('\n')
+        self.command.write('%s),' % (idt,))
+        self.command.write('\n')
         self.context.pop()
 
     def visit_For_vanilla(self, node):
@@ -199,16 +199,16 @@ class SPML_Visitor(ast.NodeVisitor):
         self.context.append('for')
         idt = get_indentation(self.indentation)
         idx = unparse(node.target).strip()
-        self.stream.write('%sFor(%s, %s, lambda %s:' % (idt, n0, n1, idx))
-        self.stream.write('\n')
+        self.command.write('%sFor(%s, %s, lambda %s:' % (idt, n0, n1, idx))
+        self.command.write('\n')
         # Write body.
         self.indentation += 4
         self.generic_visit(ast.Module(node.body))
         self.indentation -= 4
         # Close For.
         idt = get_indentation(self.indentation)
-        self.stream.write('%s),' % (idt,))
-        self.stream.write('\n')
+        self.command.write('%s),' % (idt,))
+        self.command.write('\n')
         self.context.pop()
 
     def visit_If(self, node):
@@ -217,8 +217,8 @@ class SPML_Visitor(ast.NodeVisitor):
         idt = get_indentation(self.indentation)
         # Open IfElse.
         self.context.append('if')
-        self.stream.write('%sIfElse(' % (idt,))
-        self.stream.write('\n')
+        self.command.write('%sIfElse(' % (idt,))
+        self.command.write('\n')
         # Write branches.
         self.indentation += 4
         for i, (test, body) in enumerate(unrolled):
@@ -226,8 +226,8 @@ class SPML_Visitor(ast.NodeVisitor):
             test_prime = SPML_Transformer_Compare().visit(test)
             src_test = unparse(test_prime).strip()
             idt = get_indentation(self.indentation)
-            self.stream.write('%s%s,' % (idt, src_test))
-            self.stream.write('\n')
+            self.command.write('%s%s,' % (idt, src_test))
+            self.command.write('\n')
             # Write the body.
             if i > 0:
                 self.context.append('elif')
@@ -239,8 +239,8 @@ class SPML_Visitor(ast.NodeVisitor):
         self.indentation -= 4
         # Close IfElse.
         idt = get_indentation(self.indentation)
-        self.stream.write('%s),' % (idt,))
-        self.stream.write('\n')
+        self.command.write('%s),' % (idt,))
+        self.command.write('\n')
         self.context.pop()
 
     def visit_Call(self, node):
@@ -248,8 +248,8 @@ class SPML_Visitor(ast.NodeVisitor):
             assert len(node.args) == 1
             idt = get_indentation(self.indentation)
             str_event = unparse(node.args[0]).replace(os.linesep, '')
-            self.stream.write('%sCondition(%s),' % (idt, str_event))
-            self.stream.write('\n')
+            self.command.write('%sCondition(%s),' % (idt, str_event))
+            self.command.write('\n')
 
 def unroll_if(node, current=None):
     current = [] if current is None else current
@@ -380,7 +380,7 @@ class SPML_Compiler():
         # Write the command.
         self.prog.command.write('# MODEL DEFINITION')
         self.prog.command.write('\n')
-        command = visitor.stream.getvalue()
+        command = visitor.command.getvalue()
         self.prog.command.write('command = %s' % (command,))
         self.prog.command.write('\n')
         # Write the interpret step.
