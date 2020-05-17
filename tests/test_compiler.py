@@ -13,12 +13,14 @@ from spn.compiler import SPML_Compiler
 # - [x] array target must not be subscript
 # - [x[ array(n) must be a number
 # - [x] array(n) must be a positive integer
-# - [/] assign invalid right-hand side (list, string, etc.)
+# - [x] assign invalid Python after sampling
+# - [x] assign invalid Python non-global
 # - [x] invalid left-hand side (tuple, unpacking, etc)
 
 overwrite_cases = [
 'X ~= norm(); X ~= bernoulli(p=.5)',
 'X = array(5); X ~= bernoulli(p=.5)',
+'X ~= bernoulli(p=.5); X = array(5)',
 '''
 X ~= norm()
 if (X > 0):
@@ -82,12 +84,24 @@ def test_error_assign_array_numeral():
     with pytest.raises(AssertionError):
         SPML_Compiler('Y = array(\'foo\')')
 
-@pytest.mark.xfail(strict=True)
-def test_error_assign_assign_invalid_rhs():
+def test_error_assign_py_constant_after_sampling():
+    source = '''
+X ~= norm()
+Y = "foo"
+'''
     with pytest.raises(AssertionError):
-        SPML_Compiler('Y = [norm()]')
+        SPML_Compiler(source)
+
+def test_error_assign_py_constant_non_global():
+    source = '''
+X ~= norm()
+if (X > 0):
+    Y = "ali"
+else:
+    Y = norm()
+'''
     with pytest.raises(AssertionError):
-        SPML_Compiler('Y = "foo"')
+        SPML_Compiler(source)
 
 def test_error_assign_assign_invalid_lhs():
     with pytest.raises(AssertionError):
@@ -324,3 +338,18 @@ else:
     compiler = SPML_Compiler(source.replace('Y > 1', 'Y > 0'))
     namespace = compiler.execute_module()
     assert abs(namespace.model.prob((-1 < namespace.Y) < 1) - 1) < 1e-10
+
+def test_constant_parameter():
+    source = '''
+parameters = [1, 2, 3]
+Y = array(3)
+for i in range(3):
+    Y[i] = randint(low=parameters[i], high=parameters[i]+1)
+'''
+    compiler = SPML_Compiler(source)
+    namespace = compiler.execute_module()
+    assert namespace.model.prob(namespace.Y[0] << {1}) == 1
+    assert namespace.model.prob(namespace.Y[1] << {2}) == 1
+    assert namespace.model.prob(namespace.Y[2] << {3}) == 1
+    with pytest.raises(AssertionError):
+        SPML_Compiler('%sZ = "foo"\n' % (source,))
