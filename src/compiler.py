@@ -31,8 +31,8 @@ def maybe_sequence_block(visitor, value, first=None):
     active = len(value) > 1 or first
     if active:
         idt = get_indentation(visitor.indentation)
-        visitor.stream.write('%sSequence(' % (idt,))
-        visitor.stream.write('\n')
+        visitor.command.write('%sSequence(' % (idt,))
+        visitor.command.write('\n')
         visitor.indentation += 4
     # Yield
     yield None
@@ -40,21 +40,21 @@ def maybe_sequence_block(visitor, value, first=None):
     if active:
         visitor.indentation -= 4
         idt = get_indentation(visitor.indentation)
-        visitor.stream.write('%s)' % (idt,))
+        visitor.command.write('%s)' % (idt,))
         if not first:
-            visitor.stream.write(',')
-            visitor.stream.write('\n')
+            visitor.command.write(',')
+            visitor.command.write('\n')
 
 class SPML_Visitor(ast.NodeVisitor):
     def __init__(self, stream=None):
-        self.stream = stream or io.StringIO()
+        self.first = True
         self.indentation = 0
-        self.arrays = OrderedDict()
+        self.context = ['global']
+        self.command = stream or io.StringIO()
+        self.imports = []
+        self.constants = OrderedDict()
         self.variables = OrderedDict()
         self.distributions = OrderedDict()
-        self.imports = []
-        self.context = ['global']
-        self.first = True
 
     def generic_visit(self, node):
         """Called if no explicit visitor function exists for a node."""
@@ -85,65 +85,73 @@ class SPML_Visitor(ast.NodeVisitor):
 
         # Analyze node.target.
         assert len(node.targets) == 1
-        target = node.targets[0]
-        # Target is a location.
-        if isinstance(target, ast.Name):
-            # Cannot assign variables in for.
-            assert 'for' not in self.context, \
-            'non-array variable in for %s' % (str_node,)
-            # Cannot assign fresh variables in else.
-            if 'elif' in self.context:
-                assert target.id in self.variables, \
-                'unknown variable %s' % (str_node,)
-            # Cannot reassign existing variables.
-            else:
-                assert target.id not in self.variables, \
-                'overwriting variable %s' % (str_node,)
-                self.variables[target.id] = None
-        # Target is a subscript.
-        elif isinstance(target, ast.Subscript):
-            assert target.value.id in self.arrays,\
-            'unknown array %s' % (str_node,)
-        else:
-            assert False,\
-            'unknown sample target %s' % (str_node,)
+        assert isinstance(node.value, ast.expr), 'unknown value %s' % (str_node,)
 
-        # Analyze node.value.
+        # Record visited distributions.
         value = node.value
-        assert isinstance(value, ast.expr), \
-            'unknown sample value %s' % (str_node,)
-        # Assigning array
+        visitor_name = SPML_Visitor_Name(DISTRIBUTIONS, self.variables)
+        visitor_name.visit(value)
+        for d in visitor_name.distributions:
+            if d not in self.distributions:
+                self.distributions[d] = None
+
+        # Assigning an array.
         if isinstance(value, ast.Call) and value.func.id == 'array':
             return self.visit_Assign_array(node)
-        # Sample or Transform.
-        return self.visit_Assign_expr(node)
+        # Assigning a distribution.
+        if visitor_name.distributions:
+            # Assigning distribution (directly).
+            if isinstance(value, ast.Call) and value.func.id in DISTRIBUTIONS:
+                return self.visit_Assign_sample_or_transform(node, 'Sample')
+            # Assigning distribution (mixture).
+            if isinstance(value, ast.BinOp) and isinstance(value.op, ast.BitOr):
+                return self.visit_Assign_sample_or_transform(node, 'Sample')
+            assert False
+        # Assigning a transform.
+        if visitor_name.variables:
+            return self.visit_Assign_sample_or_transform(node, 'Transform')
+        # Assigning a Python variable.
+        return self.visit_Assign_py(node)
 
     def visit_Assign_array(self, node):
         target = node.targets[0]
         assert self.context == ['global']               # must be global
         assert isinstance(target, ast.Name)             # must not be subscript
-        assert node.targets[0] not in self.arrays       # must be fresh
+        assert target.id not in self.variables          # must be fresh
         assert len(node.value.args) == 1                # must be array(n)
         assert isinstance(node.value.args[0], ast.Num)  # must be num n
         assert isinstance(node.value.args[0].n, int)    # must be int n
         assert node.value.args[0].n > 0                 # must be pos n
-        self.arrays[target.id] = node.value.args[0].n
+        self.variables[target.id] = ('array', node.value.args[0].n)
 
-    def visit_Assign_expr(self, node):
+    def visit_Assign_sample_or_transform(self, node, op):
+        assert op in ['Sample', 'Transform']
+        target = node.targets[0]
+        assert isinstance(target, (ast.Name, ast.Subscript))
+        if isinstance(target, ast.Name):
+            assert 'for' not in self.context
+            if 'elif' not in self.context:
+                assert target.id not in self.variables
+                self.variables[target.id] = ('variable', None)
+            if 'elif' in self.context:
+                assert target.id in self.variables
+                assert target.id in self.variables
+        if isinstance(target, ast.Subscript):
+            assert target.value.id in self.variables
+            assert self.variables[target.value.id][0] == 'array'
         value_prime = SPML_Transformer_Compare().visit(node.value)
         src_value = unparse(value_prime).replace(os.linesep, '')
         src_targets = unparse(node.targets).replace(os.linesep, '')
         idt = get_indentation(self.indentation)
-        # Determine whether value is Sample or Transform.
-        visitor = SPML_Visitor_Name()
-        visitor.visit(node.value)
-        op = 'Sample' if visitor.distributions else 'Transform'
-        for d in visitor.distributions:
-            if d not in self.distributions:
-                self.distributions[d] = None
-        # Write.
-        self.stream.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
-        self.stream.write('\n')
+        self.command.write('%s%s(%s, %s),' % (idt, op, src_targets, src_value))
+        self.command.write('\n')
+
+    def visit_Assign_py(self, node):
+        assert self.context == ['global']
+        if self.distributions:
+            assert False, 'constants only before sampling %s' % (unparse(node,))
+        str_node = unparse(node).strip()
+        self.constants[str_node] = None
 
     def visit_For(self, node):
         assert isinstance(node.iter, ast.Call)
@@ -164,17 +172,17 @@ class SPML_Visitor(ast.NodeVisitor):
         symbol = unparse(node.iter.args[0]).strip()
         values = unparse(node.iter.args[1]).strip()
         idx = unparse(node.target).strip()
-        self.stream.write('%sSwitch(%s, %s, lambda %s:'
+        self.command.write('%sSwitch(%s, %s, lambda %s:'
             % (idt, symbol, values, idx))
-        self.stream.write('\n')
+        self.command.write('\n')
         # Write the body.
         self.indentation += 4
         self.generic_visit(ast.Module(node.body))
         self.indentation -= 4
         # Close Switch
         idt = get_indentation(self.indentation)
-        self.stream.write('%s),' % (idt,))
-        self.stream.write('\n')
+        self.command.write('%s),' % (idt,))
+        self.command.write('\n')
         self.context.pop()
 
     def visit_For_vanilla(self, node):
@@ -191,16 +199,16 @@ class SPML_Visitor(ast.NodeVisitor):
         self.context.append('for')
         idt = get_indentation(self.indentation)
         idx = unparse(node.target).strip()
-        self.stream.write('%sFor(%s, %s, lambda %s:' % (idt, n0, n1, idx))
-        self.stream.write('\n')
+        self.command.write('%sFor(%s, %s, lambda %s:' % (idt, n0, n1, idx))
+        self.command.write('\n')
         # Write body.
         self.indentation += 4
         self.generic_visit(ast.Module(node.body))
         self.indentation -= 4
         # Close For.
         idt = get_indentation(self.indentation)
-        self.stream.write('%s),' % (idt,))
-        self.stream.write('\n')
+        self.command.write('%s),' % (idt,))
+        self.command.write('\n')
         self.context.pop()
 
     def visit_If(self, node):
@@ -209,8 +217,8 @@ class SPML_Visitor(ast.NodeVisitor):
         idt = get_indentation(self.indentation)
         # Open IfElse.
         self.context.append('if')
-        self.stream.write('%sIfElse(' % (idt,))
-        self.stream.write('\n')
+        self.command.write('%sIfElse(' % (idt,))
+        self.command.write('\n')
         # Write branches.
         self.indentation += 4
         for i, (test, body) in enumerate(unrolled):
@@ -218,8 +226,8 @@ class SPML_Visitor(ast.NodeVisitor):
             test_prime = SPML_Transformer_Compare().visit(test)
             src_test = unparse(test_prime).strip()
             idt = get_indentation(self.indentation)
-            self.stream.write('%s%s,' % (idt, src_test))
-            self.stream.write('\n')
+            self.command.write('%s%s,' % (idt, src_test))
+            self.command.write('\n')
             # Write the body.
             if i > 0:
                 self.context.append('elif')
@@ -231,8 +239,8 @@ class SPML_Visitor(ast.NodeVisitor):
         self.indentation -= 4
         # Close IfElse.
         idt = get_indentation(self.indentation)
-        self.stream.write('%s),' % (idt,))
-        self.stream.write('\n')
+        self.command.write('%s),' % (idt,))
+        self.command.write('\n')
         self.context.pop()
 
     def visit_Call(self, node):
@@ -240,8 +248,8 @@ class SPML_Visitor(ast.NodeVisitor):
             assert len(node.args) == 1
             idt = get_indentation(self.indentation)
             str_event = unparse(node.args[0]).replace(os.linesep, '')
-            self.stream.write('%sCondition(%s),' % (idt, str_event))
-            self.stream.write('\n')
+            self.command.write('%sCondition(%s),' % (idt, str_event))
+            self.command.write('\n')
 
 def unroll_if(node, current=None):
     current = [] if current is None else current
@@ -296,19 +304,25 @@ class SPML_Transformer_Compare(ast.NodeTransformer):
         return node
 
 class SPML_Visitor_Name(ast.NodeVisitor):
-    def __init__(self):
+    def __init__(self, distributions, variables):
+        self.distributions_lookup = distributions
+        self.variables_lookup = variables
         self.distributions = set()
+        self.variables = set()
     def visit_Name(self, node):
-        if node.id in DISTRIBUTIONS:
+        if node.id in self.distributions_lookup:
             self.distributions.add(node.id)
+        if node.id in self.variables_lookup:
+            self.variables.add(node.id)
 
-prog = namedtuple('prog', ('imports', 'variables', 'arrays', 'command'))
+prog = namedtuple('prog', ('imports', 'constants', 'variables', 'arrays', 'command'))
 class SPML_Compiler():
     def __init__(self, source, modelname='model'):
         self.source = source
         self.modelname = modelname
         self.prog = prog(
             imports=io.StringIO(),
+            constants=io.StringIO(),
             variables=io.StringIO(),
             arrays=io.StringIO(),
             command=io.StringIO())
@@ -341,26 +355,32 @@ class SPML_Compiler():
                     'Sequence', 'Switch', 'Transform']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')
+        # Write the constants.
+        if visitor.constants:
+            self.prog.constants.write('# CONSTANT DECLRATIONS')
+            self.prog.constants.write('\n')
+            for c in visitor.constants:
+                self.prog.constants.write(c)
+                self.prog.constants.write('\n')
         # Write the variables.
-        if visitor.variables:
-            variables = [v for v in visitor.variables if v not in visitor.arrays]
-            if variables:
-                self.prog.variables.write('# VARIABLE DECLARATIONS')
+        variables = [v for v, t in visitor.variables.items() if t[0] == 'variable']
+        arrays = [(v, t[1]) for v, t in visitor.variables.items() if t[0] == 'array']
+        if variables:
+            self.prog.variables.write('# VARIABLE DECLARATIONS')
+            self.prog.variables.write('\n')
+            for v in variables:
+                self.prog.variables.write('%s = Id(\'%s\')' % (v, v,))
                 self.prog.variables.write('\n')
-                for v in variables:
-                    self.prog.variables.write('%s = Id(\'%s\')' % (v, v,))
-                    self.prog.variables.write('\n')
-        # Write the arrays.
-        if visitor.arrays:
+        if arrays:
             self.prog.arrays.write('# ARRAY DECLARATIONS')
             self.prog.arrays.write('\n')
-            for v, n in visitor.arrays.items():
+            for v, n in arrays:
                 self.prog.arrays.write('%s = IdArray(\'%s\', %d)' % (v, v, n,))
                 self.prog.arrays.write('\n')
         # Write the command.
         self.prog.command.write('# MODEL DEFINITION')
         self.prog.command.write('\n')
-        command = visitor.stream.getvalue()
+        command = visitor.command.getvalue()
         self.prog.command.write('command = %s' % (command,))
         self.prog.command.write('\n')
         # Write the interpret step.
