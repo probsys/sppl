@@ -339,8 +339,8 @@ class SPML_Compiler():
         for d in sorted(visitor.distributions):
             self.prog.imports.write('from spn.distributions import %s' % (d,))
             self.prog.imports.write('\n')
-        for c in ['IfElse', 'For', 'Sample', 'Sequence', 'Switch', 'Transform',
-                    'Id', 'IdArray', 'Condition']:
+        for c in ['Id', 'IdArray', 'Condition', 'IfElse', 'For', 'Sample',
+                    'Sequence', 'Switch', 'Transform']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')
         # Write the variables.
