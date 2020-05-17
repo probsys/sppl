@@ -237,6 +237,14 @@ class SPML_Visitor(ast.NodeVisitor):
         self.stream.write('\n')
         self.context.pop()
 
+    def visit_Call(self, node):
+        if node.func.id == 'condition':
+            assert len(node.args) == 1
+            idt = get_indentation(self.indentation)
+            str_event = unparse(node.args[0]).replace(os.linesep, '')
+            self.stream.write('%sCondition(%s),' % (idt, str_event))
+            self.stream.write('\n')
+
 def unroll_if(node, current=None):
     current = [] if current is None else current
     assert isinstance(node, ast.If)
@@ -331,8 +339,8 @@ class SPML_Compiler():
         for d in sorted(visitor.distributions):
             self.prog.imports.write('from spn.distributions import %s' % (d,))
             self.prog.imports.write('\n')
-        for c in ['IfElse', 'For', 'Sample', 'Sequence', 'Switch', 'Transform',
-                    'Id', 'IdArray']:
+        for c in ['Id', 'IdArray', 'Condition', 'IfElse', 'For', 'Sample',
+                    'Sequence', 'Switch', 'Transform']:
             self.prog.imports.write('from spn.interpreter import %s' % (c,))
             self.prog.imports.write('\n')
         # Write the variables.
