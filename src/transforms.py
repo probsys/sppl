@@ -334,6 +334,10 @@ class Transform():
                 return EventFiniteNominal(self, NominalSet(*values_str))
             assert len(values) == 0
             return EventFiniteReal(self, values)
+        if isinstance(x, sympy.Range):
+            if not (isinf(x.inf) or isinf(x.sup)):
+                return self << list(x)
+            assert False, 'Infinite Range not supported'
         if isinstance(x, sympy.Interval):
             return EventInterval(self, x)
         if isinstance(x, sympy.Complement):
