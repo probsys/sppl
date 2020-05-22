@@ -113,25 +113,25 @@ z ∈ Vars = x | y[n]
     | {r₁, …, rₘ}               [RealFinite]
     | {s₁, …, sₘ}               [NominalFinite]
 
-  c ∈ Comparison = < | <=
   ϕ ∈ Predicate :=
-    | t c r                 [Less]
-    | r c t                 [Greater]
-    | t << f                [Containment]
-    | ϕ₁ & ϕ₂               [Conjunction]
-    | ϕ₁ | ϕ₂               [Disjunction]
-    | ~ϕ                    [Negation]
+    | t < r | t ≤ r | r < t | r ≤ t [Comparison]
+    | t in f                        [Containment]
+    | ϕ₁ and ϕ₂                     [Conjunction]
+    | ϕ₁ or ϕ₂                      [Disjunction]
+    | not ϕ                         [Negation]
 
   d ∈ Dist
-    = {s₁:p₁, …, sₘ:pₘ}           [NominalDist]
+    = {s₁:p₁, …, sₘ:pₘ}             [NominalDist]
     | Normal μ ν | …                [ContinuousDist]
     | Poisson λ | …                 [DiscreteDist]
-    | w₁*d₁ + … wₙ*dₙ               [MixtureDist]
+
+  m ∈ w₁*d₁ + … + wₙ*dₙ             [MixtureDist]
 
   c ∈ Program
     = y ← array(n)                                  [DeclareArr]
-    | z ~ d                                         [Sample]
-    | z ← t                                         [Transform]
+    | z ~ d                                         [SampleDst]
+    | z ~ m                                         [SampleMxtr]
+    | z ← t                                         [SampleTsfm]
     | c₁ ; c₂                                       [Sequence]
     | if ϕ₁ then c₁ elif ϕ₂ then c₂ … else cₙ       [Condition]
     | repeat n n' λi.c                              [Repeat]
