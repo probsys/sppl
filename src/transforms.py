@@ -321,6 +321,7 @@ class Transform():
             values = list(x)
             values_num = [v for v in values if is_number(v)]
             values_str = [sympify_nominal(v) for v in values if is_nominal(v)]
+            assert len(values_num) + len(values_str) <= len(values)
             if len(values_num) + len(values_str) != len(values):
                 raise ValueError('Only numeric or symbolic values, not %s'
                     % (str(x,)))
