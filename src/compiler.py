@@ -119,10 +119,11 @@ class SPML_Visitor(ast.NodeVisitor):
         assert isinstance(target, ast.Name)             # must not be subscript
         assert target.id not in self.variables          # must be fresh
         assert len(node.value.args) == 1                # must be array(n)
-        assert isinstance(node.value.args[0], ast.Num)  # must be num n
-        assert isinstance(node.value.args[0].n, int)    # must be int n
-        assert node.value.args[0].n > 0                 # must be pos n
-        self.variables[target.id] = ('array', node.value.args[0].n)
+        # assert isinstance(node.value.args[0], ast.Num)  # must be num n
+        # assert isinstance(node.value.args[0].n, int)    # must be int n
+        # assert node.value.args[0].n > 0                 # must be pos n
+        n = unparse(node.value.args[0]).strip()
+        self.variables[target.id] = ('array', n)
 
     def visit_Assign_sample_or_transform(self, node, op):
         assert op in ['Sample', 'Transform']
@@ -376,7 +377,7 @@ class SPML_Compiler():
             self.prog.arrays.write('# ARRAY DECLARATIONS')
             self.prog.arrays.write('\n')
             for v, n in arrays:
-                self.prog.arrays.write('%s = IdArray(\'%s\', %d)' % (v, v, n,))
+                self.prog.arrays.write('%s = IdArray(\'%s\', %s)' % (v, v, n,))
                 self.prog.arrays.write('\n')
         # Write the command.
         self.prog.command.write('# MODEL DEFINITION')

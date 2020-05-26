@@ -11,8 +11,6 @@ from spn.compiler import SPML_Compiler
 # - [x] assigning fresh variables in else
 # - [x] non-array variable in for
 # - [x] array target must not be subscript
-# - [x[ array(n) must be a number
-# - [x] array(n) must be a positive integer
 # - [x] assign invalid Python after sampling
 # - [x] assign invalid Python non-global
 # - [x] invalid left-hand side (tuple, unpacking, etc)
@@ -75,14 +73,6 @@ Y[0] = array(2)
     with pytest.raises(AssertionError):
         SPML_Compiler(source)
     SPML_Compiler(source.replace('array(2)', 'norm()'))
-
-def test_error_assign_array_numeral():
-    with pytest.raises(AssertionError):
-        SPML_Compiler('Y = array(1.3)')
-    with pytest.raises(AssertionError):
-        SPML_Compiler('Y = array(-1)')
-    with pytest.raises(AssertionError):
-        SPML_Compiler('Y = array(\'foo\')')
 
 def test_error_assign_py_constant_after_sampling():
     source = '''
@@ -354,8 +344,9 @@ else:
 def test_constant_parameter():
     source = '''
 parameters = [1, 2, 3]
-Y = array(3)
-for i in range(3):
+n_array = 2
+Y = array(n_array + 1)
+for i in range(n_array + 1):
     Y[i] = randint(low=parameters[i], high=parameters[i]+1)
 '''
     compiler = SPML_Compiler(source)
@@ -365,3 +356,12 @@ for i in range(3):
     assert namespace.model.prob(namespace.Y[2] << {3}) == 1
     with pytest.raises(AssertionError):
         SPML_Compiler('%sZ = "foo"\n' % (source,))
+
+def test_error_array_length():
+    with pytest.raises(TypeError):
+        SPML_Compiler('Y = array(1.3)').execute_module()
+    with pytest.raises(TypeError):
+        SPML_Compiler('Y = array(\'foo\')').execute_module()
+    # Length zero array
+    namespace = SPML_Compiler('Y = array(-1)').execute_module()
+    assert len(namespace.Y) == 0
