@@ -75,6 +75,17 @@ def test_simple_model_lte():
                 for il, ih in zip(grid[:-1], grid[1:])
             ]))
 
+def test_simple_model_enumerate():
+    command_switch = Sequence(
+        Sample(Y, randint(low=0, high=4)),
+        Switch(Y, enumerate(range(0, 4)), lambda i,j:
+            Sample(X, bernoulli(p=1/(i+j+1)))))
+    model = command_switch.interpret()
+    assert allclose(model.prob(Y<<{0} & (X << {1})), .25 * 1/(0+0+1))
+    assert allclose(model.prob(Y<<{1} & (X << {1})), .25 * 1/(1+1+1))
+    assert allclose(model.prob(Y<<{2} & (X << {1})), .25 * 1/(2+2+1))
+    assert allclose(model.prob(Y<<{3} & (X << {1})), .25 * 1/(3+3+1))
+
 def test_error_range():
     with pytest.raises(AssertionError):
         # Switch cases do not sum to one.

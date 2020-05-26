@@ -289,12 +289,24 @@ Y ~= choice({'0': .25, '1': .5, '2': .25})
 switch (Y) cases (i in ['0', '1', '2']):
     Z ~= atomic(loc=int(i))
 '''
-
     compiler = SPML_Compiler(source)
     namespace = compiler.execute_module()
     assert namespace.model.prob(namespace.Z << {0}) == .25
     assert namespace.model.prob(namespace.Z << {1}) == .5
     assert namespace.model.prob(namespace.Z << {2}) == .25
+
+def test_switch_enumerate():
+    source = '''
+Y ~= choice({'0': .25, '1': .5, '2': .25})
+
+switch (Y) cases (i,j in enumerate(['0', '1', '2'])):
+    Z ~= atomic(loc=i+int(j))
+'''
+    compiler = SPML_Compiler(source)
+    namespace = compiler.execute_module()
+    assert namespace.model.prob(namespace.Z << {0}) == .25
+    assert namespace.model.prob(namespace.Z << {2}) == .5
+    assert namespace.model.prob(namespace.Z << {4}) == .25
 
 def test_switch_nested():
     source = '''

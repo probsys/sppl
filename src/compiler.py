@@ -162,7 +162,7 @@ class SPML_Visitor(ast.NodeVisitor):
         assert False, unparse(node)
 
     def visit_For_switch(self, node):
-        assert isinstance(node.target, ast.Name), unparse(node.target)
+        assert isinstance(node.target, (ast.Name, ast.Tuple)), unparse(node.target)
         assert node.iter.func.id == 'switch', unparse(node.iter)
         assert len(node.iter.args) == 2, unparse(node.iter)
         assert isinstance(node.iter.args[0], (ast.Name, ast.Subscript))
@@ -171,7 +171,8 @@ class SPML_Visitor(ast.NodeVisitor):
         idt = get_indentation(self.indentation)
         symbol = unparse(node.iter.args[0]).strip()
         values = unparse(node.iter.args[1]).strip()
-        idx = unparse(node.target).strip()
+        translator = str.maketrans({'(':'', ')':''})
+        idx = unparse(node.target).strip().translate(translator)
         self.command.write('%sSwitch(%s, %s, lambda %s:'
             % (idt, symbol, values, idx))
         self.command.write('\n')

@@ -94,8 +94,13 @@ class Switch(Command):
         self.f = f
         self.values = values
     def interpret(self, spn=None):
-        sets = [self.value_to_set(v) for v in self.values]
-        subcommands = [self.f(v) for v in self.values]
+        if isinstance(self.values, enumerate):
+            values = list(self.values)
+            sets = [self.value_to_set(v[1]) for v in values]
+            subcommands = [self.f(*v) for v in values]
+        else:
+            sets = [self.value_to_set(v) for v in self.values]
+            subcommands = [self.f(v) for v in self.values]
         sets_disjoint = [
             reduce(lambda x, s: x - s, sets[:i], sets[i])
             for i in range(len(sets))]
