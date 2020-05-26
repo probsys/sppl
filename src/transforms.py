@@ -321,6 +321,7 @@ class Transform():
             values = list(x)
             values_num = [v for v in values if is_number(v)]
             values_str = [sympify_nominal(v) for v in values if is_nominal(v)]
+            assert len(values_num) + len(values_str) <= len(values)
             if len(values_num) + len(values_str) != len(values):
                 raise ValueError('Only numeric or symbolic values, not %s'
                     % (str(x,)))
@@ -1016,7 +1017,8 @@ class EventFiniteReal(EventBasic):
         return 'EventFiniteReal(%s, %s)' \
             % (repr(self.subexpr), repr(self.values))
     def __str__(self):
-        return '%s << %s' % (str(self.subexpr), str(self.values))
+        str_items = ', '.join('%s' % (x,) for x in sorted(self.values))
+        return '%s << %s' % (str(self.subexpr), '{%s}' % (str_items,))
     def __invert__(self):
         values_not = sympy.Complement(Reals, self.values)
         if values_not is Reals:
@@ -1086,6 +1088,7 @@ class EventFiniteNominal(EventBasic):
         return 'EventFiniteNominal(%s, %s)' \
             % (repr(self.subexpr), repr(self.values))
     def __str__(self):
+        # FIXME: https://github.com/probcomp/sum-product-dsl/issues/86
         str_values = '(%s)' % (str(self.values,)) \
             if self.complemented else '%s' % (str(set(self.values)),)
         return '%s << %s' % (str(self.subexpr), str_values)

@@ -151,8 +151,8 @@ def test_solver_8():
 def test_solver_9_open():
     # 2(log(x))**3 - log(x) -5 > 0
     solution = Interval.open(
-        sympy.exp(1/(6*(sympy.sqrt(2019)/36 + 5/4)**(1/3))
-            + (sympy.sqrt(2019)/36 + 5/4)**(1/3)),
+        sympy.exp(1/(6*(sympy.sqrt(2019)/36 + Rat(5,4))**(Rat(1, 3)))
+            + (sympy.sqrt(2019)/36 + Rat(5,4))**(Rat(1,3))),
         oo)
 
     expr = 2*(sympy.log(X))**3 - sympy.log(X) - 5 > 0
@@ -173,8 +173,8 @@ def test_solver_9_open():
 def test_solver_9_closed():
     # 2(log(x))**3 - log(x) -5 >= 0
     solution = Interval(
-        sympy.exp(1/(6*(sympy.sqrt(2019)/36 + 5/4)**(1/3))
-            + (sympy.sqrt(2019)/36 + 5/4)**(1/3)),
+        sympy.exp(1/(6*(sympy.sqrt(2019)/36 + Rat(5,4))**(Rat(1, 3)))
+            + (sympy.sqrt(2019)/36 + Rat(5,4))**(Rat(1,3))),
         oo)
 
     expr = 2*(sympy.log(X))**3 - sympy.log(X) -5 > 0
@@ -317,7 +317,7 @@ def test_solver_19():
     #   or || 3*(x**(1/7))**4 - 3*(x**(1/7))**2 > 11
     solution = Union(
         Interval(0, (Rat(1, 2) + sympy.sqrt(13)/2)**(Rat(7, 2))),
-        Interval.open((Rat(1,2) + sympy.sqrt(141)/6)**(7/2), oo))
+        Interval.open((Rat(1,2) + sympy.sqrt(141)/6)**(Rat(7, 2)), oo))
 
     Z = Y**(Rat(1, 7))
     expr = 3*Z**4 - 3*Z**2

@@ -35,7 +35,7 @@ ExtRealsNeg = RealsNeg + sympy.FiniteSet(-sympy.oo)
 UnitInterval = sympy.Interval(0, 1)
 
 ContainersFinite = (
-    sympy.FiniteSet, sympy.EmptySet, sympy.Tuple,
+    sympy.FiniteSet, type(EmptySet), sympy.Tuple,
     frozenset, set, list, tuple)
 
 def get_symbols(expr):
@@ -78,7 +78,13 @@ def partition_list_blocks(values):
 def sympify_number(x):
     msg = 'Expected a numeric term, not %s' % (x,)
     try:
-        sym = sympy.sympify(x)
+        # String fallback in sympify has been deprecated since SymPy 1.6. Use
+        # sympify(str(obj)) or sympy.core.sympify.converter or obj._sympy_
+        # instead. See https://github.com/sympy/sympy/issues/18066 for more
+        # info.
+        if is_nominal(x):
+            raise TypeError(msg)
+        sym = sympy.sympify(str(x))
         if not sym.is_number:
             raise TypeError(msg)
         return sym
@@ -101,8 +107,6 @@ def sym_log(x):
     return sympy.log(x)
 
 def is_number(x):
-    if isinstance(x, str):
-        return False
     try:
         sympify_number(x)
         return True
