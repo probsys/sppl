@@ -1,7 +1,6 @@
 .dockerignore
 .cache/
 .coverage
-/src/version.py
 __pycache__/
 build/
 clean.sh
