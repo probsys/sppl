@@ -66,12 +66,16 @@ from .spn import ContinuousLeaf
 from .sym_util import Reals
 from .sym_util import RealsNeg
 from .sym_util import RealsPos
-from .sym_util import UnitInterval
 
 def RealsPosLoc(kwargs):
     if 'loc' in kwargs:
         return sympy.Interval(kwargs['loc'], sympy.oo)
     return RealsPos
+
+def UnitIntervalLocScale(kwargs):
+    loc = kwargs.get('loc', 0)
+    scale = kwargs.get('scale', 1)
+    return sympy.Interval(loc, loc + scale)
 
 class ContinuousReal(RealDistribution):
     constructor = ContinuousLeaf
@@ -89,17 +93,17 @@ class anglit(ContinuousReal):
 class arcsine(ContinuousReal):
     """An arcsine continuous random variable."""
     dist = scipy.stats.arcsine
-    def get_domain(self, **kwargs): return UnitInterval
+    def get_domain(self, **kwargs): return UnitIntervalLocScale(kwargs)
 
 class argus(ContinuousReal):
     """Argus distribution"""
     dist = scipy.stats.argus
-    def get_domain(self, **kwargs): return UnitInterval
+    def get_domain(self, **kwargs): return UnitIntervalLocScale(kwargs)
 
 class beta(ContinuousReal):
     """A beta continuous random variable."""
     dist = scipy.stats.beta
-    def get_domain(self, **kwargs): return UnitInterval
+    def get_domain(self, **kwargs): return UnitIntervalLocScale(kwargs)
 
 class betaprime(ContinuousReal):
     """A beta prime continuous random variable."""
@@ -109,7 +113,7 @@ class betaprime(ContinuousReal):
 class bradford(ContinuousReal):
     """A Bradford continuous random variable."""
     dist = scipy.stats.bradford
-    def get_domain(self, **kwargs): return UnitInterval
+    def get_domain(self, **kwargs): return UnitIntervalLocScale(kwargs)
 
 class burr(ContinuousReal):
     """A Burr (Type III) continuous random variable."""
@@ -252,7 +256,7 @@ class genextreme(ContinuousReal):
 class gausshyper(ContinuousReal):
     """A Gauss hypergeometric continuous random variable."""
     dist = scipy.stats.gausshyper
-    def get_domain(self, **kwargs): return UnitInterval
+    def get_domain(self, **kwargs): return UnitIntervalLocScale(kwargs)
 
 class gamma(ContinuousReal):
     """A gamma continuous random variable."""
@@ -339,7 +343,7 @@ class invweibull(ContinuousReal):
 class johnsonsb(ContinuousReal):
     """A Johnson SB continuous random variable."""
     dist = scipy.stats.johnsonsb
-    def get_domain(self, **kwargs): return UnitInterval
+    def get_domain(self, **kwargs): return UnitIntervalLocScale(kwargs)
 
 class johnsonsu(ContinuousReal):
     """A Johnson SU continuous random variable."""
@@ -359,7 +363,7 @@ class kappa3(ContinuousReal):
 class ksone(ContinuousReal):
     """General Kolmogorov-Smirnov one-sided test."""
     dist = scipy.stats.ksone
-    def get_domain(self, **kwargs): return UnitInterval
+    def get_domain(self, **kwargs): return UnitIntervalLocScale(kwargs)
 
 class kstwobign(ContinuousReal):
     """Kolmogorov-Smirnov two-sided test for large N."""
@@ -474,7 +478,7 @@ class pearson3(ContinuousReal):
 class powerlaw(ContinuousReal):
     """A power-function continuous random variable."""
     dist = scipy.stats.powerlaw
-    def get_domain(self, **kwargs): return UnitInterval
+    def get_domain(self, **kwargs): return UnitIntervalLocScale(kwargs)
 
 class powerlognorm(ContinuousReal):
     """A power log-normal continuous random variable."""
