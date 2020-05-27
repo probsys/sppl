@@ -1,34 +1,36 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+"""Convert SPN to JSON."""
+
 from fractions import Fraction
 
 import scipy.stats
 import sympy
 
-from .spn import ContinuousLeaf
-from .spn import DiscreteLeaf
-from .spn import NominalLeaf
-from .spn import ProductSPN
-from .spn import SumSPN
+from ..spn import ContinuousLeaf
+from ..spn import DiscreteLeaf
+from ..spn import NominalLeaf
+from ..spn import ProductSPN
+from ..spn import SumSPN
 
 # Needed for "eval"
 from sympy import *
-from .transforms import Id
-from .transforms import Identity
-from .transforms import Radical
-from .transforms import Exponential
-from .transforms import Logarithm
-from .transforms import Abs
-from .transforms import Reciprocal
-from .transforms import Poly
-from .transforms import Piecewise
-from .transforms import EventInterval
-from .transforms import EventFiniteReal
-from .transforms import EventFiniteNominal
-from .transforms import EventOr
-from .transforms import EventAnd
-from .sym_util import NominalValue
+from ..transforms import Id
+from ..transforms import Identity
+from ..transforms import Radical
+from ..transforms import Exponential
+from ..transforms import Logarithm
+from ..transforms import Abs
+from ..transforms import Reciprocal
+from ..transforms import Poly
+from ..transforms import Piecewise
+from ..transforms import EventInterval
+from ..transforms import EventFiniteReal
+from ..transforms import EventFiniteNominal
+from ..transforms import EventOr
+from ..transforms import EventAnd
+from ..sym_util import NominalValue
 
 def env_from_json(env):
     if env is None:

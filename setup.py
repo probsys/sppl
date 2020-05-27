@@ -50,13 +50,15 @@ setup(
     ],
     packages=[
         'spn',
+        'spn.compilers',
         'spn.magics',
         'spn.tests',
     ],
     package_dir={
-        'spn': 'src',
-        'spn.magics': 'magics',
-        'spn.tests': 'tests',
+        'spn'           : 'src',
+        'spn.compilers' : 'src/compilers',
+        'spn.magics'    : 'magics',
+        'spn.tests'     : 'tests',
     },
     install_requires=requirements['src'],
     extras_require={

@@ -3,7 +3,7 @@
 
 import pytest
 
-from spn.compiler import SPML_Compiler
+from spn.compilers.spml_to_python import SPML_Compiler
 
 isclose = lambda a, b : abs(a-b) < 1e-10
 

@@ -10,11 +10,11 @@ from numpy import linspace
 from spn.distributions import bernoulli
 from spn.distributions import beta
 from spn.distributions import randint
-from spn.interpreter import IfElse
-from spn.interpreter import Sample
-from spn.interpreter import Sequence
-from spn.interpreter import Switch
-from spn.interpreter import Id
+from spn.compilers.ast_to_spn import IfElse
+from spn.compilers.ast_to_spn import Sample
+from spn.compilers.ast_to_spn import Sequence
+from spn.compilers.ast_to_spn import Switch
+from spn.compilers.ast_to_spn import Id
 from spn.math_util import allclose
 from spn.math_util import logsumexp
 from spn.sym_util import binspace

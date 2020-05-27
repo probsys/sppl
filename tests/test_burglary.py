@@ -9,11 +9,11 @@ Russel and Norvig, Fig 14.2 pp 512.
 '''
 
 from spn.distributions import bernoulli
-from spn.interpreter import IfElse
-from spn.interpreter import Otherwise
-from spn.interpreter import Sample
-from spn.interpreter import Sequence
-from spn.interpreter import Id
+from spn.compilers.ast_to_spn import IfElse
+from spn.compilers.ast_to_spn import Otherwise
+from spn.compilers.ast_to_spn import Sample
+from spn.compilers.ast_to_spn import Sequence
+from spn.compilers.ast_to_spn import Id
 
 Burglary    = Id('Burglary')
 Earthquake  = Id('Earthquake')

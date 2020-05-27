@@ -1,7 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-""""Compiler from SPML to Python 3."""
+"""Convert SPML to Python 3."""
 
 import ast
 import inspect
@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from astunparse import unparse
 
 def __load_spn_distributions():
-    from . import distributions
+    from .. import distributions
     members = inspect.getmembers(distributions,lambda t: isinstance(t, type))
     return frozenset(m for (m, v) in members if m[0].islower())
 
@@ -355,7 +355,7 @@ class SPML_Compiler():
             self.prog.imports.write('\n')
         for c in ['Id', 'IdArray', 'Condition', 'IfElse', 'For', 'Sample',
                     'Sequence', 'Switch', 'Transform']:
-            self.prog.imports.write('from spn.interpreter import %s' % (c,))
+            self.prog.imports.write('from spn.compilers.ast_to_spn import %s' % (c,))
             self.prog.imports.write('\n')
         # Write the constants.
         if visitor.constants:

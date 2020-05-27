@@ -6,8 +6,8 @@ import pytest
 from spn.distributions import gamma
 from spn.distributions import norm
 from spn.distributions import poisson
-from spn.serialize import spn_from_json
-from spn.serialize import spn_to_json
+from spn.compilers.spn_to_json import spn_from_json
+from spn.compilers.spn_to_json import spn_to_json
 from spn.sym_util import EmptySet
 from spn.transforms import EventFiniteNominal
 from spn.transforms import Exp
