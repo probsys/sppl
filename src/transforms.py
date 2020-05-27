@@ -837,6 +837,10 @@ class EventBasic(Event):
 
     def domain(self):
         return self.subexpr.domain()
+    def solve(self):
+        if isinstance(self.subexpr, Identity):
+            return self.values
+        return super().solve()
     def subs(self, env):
         if not expr_in_env(self, env):
             return self
