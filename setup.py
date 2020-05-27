@@ -61,9 +61,5 @@ setup(
         'spn.tests'     : 'tests',
     },
     install_requires=requirements['src'],
-    extras_require={
-        'magics' : requirements['magics'],
-        'tests'  : requirements['tests'],
-        'all'    : requirements['all'],
-    },
+    extras_require=requirements,
 )
