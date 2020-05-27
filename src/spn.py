@@ -4,7 +4,6 @@
 from collections import ChainMap
 from collections import Counter
 from collections import OrderedDict
-from collections import namedtuple
 from fractions import Fraction
 from functools import reduce
 from inspect import getfullargspec
