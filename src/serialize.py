@@ -67,7 +67,7 @@ def spn_to_json(spn):
             'class'        : 'ContinuousLeaf',
             'symbol'        : spn.symbol.token,
             'dist'          : scipy_dist_to_json(spn.dist),
-            'support'       : str(spn.support),
+            'support'       : repr(spn.support),
             'conditioned'   : spn.conditioned,
         }
     if isinstance(spn, DiscreteLeaf):
@@ -75,7 +75,7 @@ def spn_to_json(spn):
             'class'        : 'DiscreteLeaf',
             'symbol'        : spn.symbol.token,
             'dist'          : scipy_dist_to_json(spn.dist),
-            'support'       : str(spn.support),
+            'support'       : repr(spn.support),
             'conditioned'   : spn.conditioned,
         }
     if isinstance(spn, SumSPN):
