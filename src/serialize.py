@@ -4,8 +4,7 @@
 from fractions import Fraction
 
 import scipy.stats
-
-from sympy import *
+import sympy
 
 from .spn import ContinuousLeaf
 from .spn import DiscreteLeaf
@@ -34,15 +33,13 @@ def spn_from_json(metadata):
     if metadata['class'] == 'ContinuousLeaf':
         symbol = Id(metadata['symbol'])
         dist = scipy_dist_from_json(metadata['dist'])
-        # from sympy import *
-        support = eval(metadata['support'])
+        support = sympy.sympify(metadata['support'])
         conditioned = metadata['conditioned']
         return ContinuousLeaf(symbol, dist, support, conditioned)
     if metadata['class'] == 'DiscreteLeaf':
         symbol = Id(metadata['symbol'])
         dist = scipy_dist_from_json(metadata['dist'])
-        # from sympy import *
-        support = eval(metadata['support'])
+        support = sympy.sympify(metadata['support'])
         conditioned = metadata['conditioned']
         return DiscreteLeaf(symbol, dist, support, conditioned)
     if metadata['class'] == 'SumSPN':
