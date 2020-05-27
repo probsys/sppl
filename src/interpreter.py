@@ -10,6 +10,7 @@ from .math_util import isinf_neg
 from .math_util import logsumexp
 from .spn import Memo
 from .spn import SumSPN
+from .spn import spn_simplify_sum
 
 from . import transforms
 
@@ -141,5 +142,11 @@ def interpret_if_block(spn, events, subcommands):
         subcommand.interpret(S)
         for S, subcommand in zip(spns_conditioned, subcommands_conditioned)
     ]
+    # Maybe Simplify.
+    if len(children) == 1:
+        spn = children[0]
+    else:
+        spn_sum = SumSPN(children, weights_conditioned)
+        spn = spn_simplify_sum(spn_sum)
     # Return the SPN.
-    return SumSPN(children, weights_conditioned) if 1 < len(children) else children[0]
+    return spn
