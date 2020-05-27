@@ -1003,7 +1003,7 @@ class EventInterval(EventBasic):
 class EventFiniteReal(EventBasic):
     def __init__(self, subexpr, values):
         assert isinstance(values, ContainersFinite) or values is EmptySet
-        assert all(is_number(v) for v in values)
+        # assert all(is_number(v) for v in values)
         self.subexpr = make_subexpr(subexpr, self)
         self.values = sympy.FiniteSet(*values)
     def finv(self, y):
