@@ -10,7 +10,7 @@ from distutils.core import setup
 requirements = {
     'src' : [
         'astunparse==1.6.3',
-        'numpy==1.17.*',
+        'numpy==1.16.*',
         'scipy==1.4.1',
         'sympy==1.6',
     ],
