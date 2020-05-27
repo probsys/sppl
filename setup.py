@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
@@ -29,6 +28,7 @@ requirements = {
 }
 requirements['all'] = [r for v in requirements.values() for r in v]
 
+# Determine the version (hardcoded).
 dirname = os.path.dirname(os.path.realpath(__file__))
 vre = re.compile('__version__ = \'(.*?)\'')
 m = open(os.path.join(dirname, 'src', 'version.py')).read()
