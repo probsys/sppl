@@ -30,7 +30,7 @@ def render_networkx_graph(spn):
         G.add_node(root, label='%s\n%s%s' % (spn.symbol.token, spn.dist.dist.name, kwds))
         if len(spn.env) > 1:
             for k, v in spn.env.items():
-                if v != spn.symbol:
+                if k != spn.symbol:
                     roott = gensym()
                     G.add_node(roott, label=str(v), style='filled')
                     G.add_edge(root, roott, label=' %s' % (str(k),), style='dashed')
