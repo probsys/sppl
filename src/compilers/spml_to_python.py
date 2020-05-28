@@ -84,7 +84,7 @@ class SPML_Visitor(ast.NodeVisitor):
             return self.visit(node_prime)
 
         # Analyze node.target.
-        assert len(node.targets) == 1
+        assert len(node.targets) == 1, unparse(node)
         assert isinstance(node.value, ast.expr), 'unknown value %s' % (str_node,)
 
         # Record visited distributions.
@@ -106,7 +106,7 @@ class SPML_Visitor(ast.NodeVisitor):
             # Assigning distribution (mixture).
             if isinstance(value, ast.BinOp) and isinstance(value.op, ast.BitOr):
                 return self.visit_Assign_sample_or_transform(node, 'Sample')
-            assert False
+            assert False, unparse(node)
         # Assigning a transform.
         if visitor_name.variables:
             return self.visit_Assign_sample_or_transform(node, 'Transform')
@@ -115,31 +115,33 @@ class SPML_Visitor(ast.NodeVisitor):
 
     def visit_Assign_array(self, node):
         target = node.targets[0]
-        assert self.context == ['global']               # must be global
-        assert isinstance(target, ast.Name)             # must not be subscript
-        assert target.id not in self.variables          # must be fresh
-        assert len(node.value.args) == 1                # must be array(n)
-        # assert isinstance(node.value.args[0], ast.Num)  # must be num n
-        # assert isinstance(node.value.args[0].n, int)    # must be int n
-        # assert node.value.args[0].n > 0                 # must be pos n
+        unode = unparse(node)
+        assert self.context == ['global'], unode         # must be global
+        assert isinstance(target, ast.Name), unode       # must not be subscript
+        assert target.id not in self.variables, unode    # must be fresh
+        assert len(node.value.args) == 1, unode          # must be array(n)
+        # assert isinstance(node.value.args[0], ast.Num) # must be num n
+        # assert isinstance(node.value.args[0].n, int)   # must be int n
+        # assert node.value.args[0].n > 0                # must be pos n
         n = unparse(node.value.args[0]).strip()
         self.variables[target.id] = ('array', n)
 
     def visit_Assign_sample_or_transform(self, node, op):
-        assert op in ['Sample', 'Transform']
+        unode = unparse(node)
+        assert op in ['Sample', 'Transform'], unode
         target = node.targets[0]
-        assert isinstance(target, (ast.Name, ast.Subscript))
+        assert isinstance(target, (ast.Name, ast.Subscript)), unode
         if isinstance(target, ast.Name):
-            assert 'for' not in self.context
+            assert 'for' not in self.context, unode
             if 'elif' not in self.context:
-                assert target.id not in self.variables
+                assert target.id not in self.variables, unode
                 self.variables[target.id] = ('variable', None)
             if 'elif' in self.context:
-                assert target.id in self.variables
-                assert target.id in self.variables
+                assert target.id in self.variables, unode
+                assert target.id in self.variables, unode
         if isinstance(target, ast.Subscript):
-            assert target.value.id in self.variables
-            assert self.variables[target.value.id][0] == 'array'
+            assert target.value.id in self.variables, unode
+            assert self.variables[target.value.id][0] == 'array', unode
         value_prime = SPML_Transformer_Compare().visit(node.value)
         src_value = unparse(value_prime).replace(os.linesep, '')
         src_targets = unparse(node.targets).replace(os.linesep, '')
@@ -148,10 +150,11 @@ class SPML_Visitor(ast.NodeVisitor):
         self.command.write('\n')
 
     def visit_Assign_py(self, node):
-        assert self.context == ['global']
+        unode = unparse(node)
+        assert self.context == ['global'], unode
         if self.distributions:
-            assert False, 'constants only before sampling %s' % (unparse(node,))
-        str_node = unparse(node).strip()
+            assert False, 'constants only before sampling %s' % (unode,)
+        str_node = unode.strip()
         self.constants[str_node] = None
 
     def visit_For(self, node):
@@ -163,10 +166,11 @@ class SPML_Visitor(ast.NodeVisitor):
         assert False, unparse(node)
 
     def visit_For_switch(self, node):
-        assert isinstance(node.target, (ast.Name, ast.Tuple)), unparse(node.target)
-        assert node.iter.func.id == 'switch', unparse(node.iter)
-        assert len(node.iter.args) == 2, unparse(node.iter)
-        assert isinstance(node.iter.args[0], (ast.Name, ast.Subscript))
+        unode = unparse(node)
+        assert isinstance(node.target, (ast.Name, ast.Tuple)), unode
+        assert node.iter.func.id == 'switch', unode
+        assert len(node.iter.args) == 2, unode
+        assert isinstance(node.iter.args[0], (ast.Name, ast.Subscript)), unode
         # Open Switch.
         self.context.append('switch')
         idt = get_indentation(self.indentation)
@@ -188,9 +192,10 @@ class SPML_Visitor(ast.NodeVisitor):
         self.context.pop()
 
     def visit_For_vanilla(self, node):
-        assert isinstance(node.target, ast.Name), unparse(node.target)
-        assert node.iter.func.id == 'range', unparse(node.iter)
-        assert len(node.iter.args) in [1, 2], unparse(node.iter)
+        unode = unparse(node)
+        assert isinstance(node.target, ast.Name), unode
+        assert node.iter.func.id == 'range', unode
+        assert len(node.iter.args) in [1, 2], unode
         if len(node.iter.args) == 1:
             n0 = 0
             n1 = unparse(node.iter.args[0]).strip()
@@ -214,8 +219,9 @@ class SPML_Visitor(ast.NodeVisitor):
         self.context.pop()
 
     def visit_If(self, node):
+        unode = unparse(node)
         unrolled = unroll_if(node)
-        assert 2 <= len(unrolled), 'if needs elif/else: %s' % (unparse(node))
+        assert 2 <= len(unrolled), 'if needs elif/else: %s' % (unode,)
         idt = get_indentation(self.indentation)
         # Open IfElse.
         self.context.append('if')
@@ -246,8 +252,9 @@ class SPML_Visitor(ast.NodeVisitor):
         self.context.pop()
 
     def visit_Call(self, node):
+        unode = unparse(node)
         if node.func.id == 'condition':
-            assert len(node.args) == 1
+            assert len(node.args) == 1, unode
             idt = get_indentation(self.indentation)
             str_event = unparse(node.args[0]).replace(os.linesep, '')
             self.command.write('%sCondition(%s),' % (idt, str_event))
