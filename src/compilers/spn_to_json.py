@@ -36,7 +36,6 @@ def env_from_json(env):
     if env is None:
         return None
     # Used in eval.
-    print(env)
     return {eval(k): eval(v) for k, v in env.items()}
 
 def env_to_json(env):
