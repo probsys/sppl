@@ -10,6 +10,8 @@ from spn.distributions import bernoulli
 from spn.distributions import choice
 from spn.distributions import norm
 from spn.distributions import poisson
+from spn.distributions import rv_discrete
+from spn.distributions import uniformd
 from spn.math_util import allclose
 from spn.spn import ContinuousLeaf
 from spn.spn import DiscreteLeaf
@@ -44,3 +46,18 @@ def test_error():
     a = .1  *bernoulli(p=.1) | .7*poisson(mu=8)
     with pytest.raises(Exception):
         a(X)
+
+def test_parse_rv_discrete():
+    dist = rv_discrete(values=((1, 2, 10), (.3, .5, .2)))
+    spn = dist(X)
+    assert allclose(spn.prob(X<<{1}), .3)
+    assert allclose(spn.prob(X<<{2}), .5)
+    assert allclose(spn.prob(X<<{10}), .2)
+    assert allclose(spn.prob(X<=10), 1)
+
+    dist = uniformd(values=((1, 2, 10, 0)))
+    spn = dist(X)
+    assert allclose(spn.prob(X<<{1}), .25)
+    assert allclose(spn.prob(X<<{2}), .25)
+    assert allclose(spn.prob(X<<{10}), .25)
+    assert allclose(spn.prob(X<<{0}), .25)
