@@ -1,7 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-""""Compiler from SPML to Python 3."""
+"""Convert SPML to Python 3."""
 
 import ast
 import inspect
@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from astunparse import unparse
 
 def __load_spn_distributions():
-    from . import distributions
+    from .. import distributions
     members = inspect.getmembers(distributions,lambda t: isinstance(t, type))
     return frozenset(m for (m, v) in members if m[0].islower())
 
@@ -119,10 +119,11 @@ class SPML_Visitor(ast.NodeVisitor):
         assert isinstance(target, ast.Name)             # must not be subscript
         assert target.id not in self.variables          # must be fresh
         assert len(node.value.args) == 1                # must be array(n)
-        assert isinstance(node.value.args[0], ast.Num)  # must be num n
-        assert isinstance(node.value.args[0].n, int)    # must be int n
-        assert node.value.args[0].n > 0                 # must be pos n
-        self.variables[target.id] = ('array', node.value.args[0].n)
+        # assert isinstance(node.value.args[0], ast.Num)  # must be num n
+        # assert isinstance(node.value.args[0].n, int)    # must be int n
+        # assert node.value.args[0].n > 0                 # must be pos n
+        n = unparse(node.value.args[0]).strip()
+        self.variables[target.id] = ('array', n)
 
     def visit_Assign_sample_or_transform(self, node, op):
         assert op in ['Sample', 'Transform']
@@ -162,7 +163,7 @@ class SPML_Visitor(ast.NodeVisitor):
         assert False, unparse(node)
 
     def visit_For_switch(self, node):
-        assert isinstance(node.target, ast.Name), unparse(node.target)
+        assert isinstance(node.target, (ast.Name, ast.Tuple)), unparse(node.target)
         assert node.iter.func.id == 'switch', unparse(node.iter)
         assert len(node.iter.args) == 2, unparse(node.iter)
         assert isinstance(node.iter.args[0], (ast.Name, ast.Subscript))
@@ -171,7 +172,8 @@ class SPML_Visitor(ast.NodeVisitor):
         idt = get_indentation(self.indentation)
         symbol = unparse(node.iter.args[0]).strip()
         values = unparse(node.iter.args[1]).strip()
-        idx = unparse(node.target).strip()
+        translator = str.maketrans({'(':'', ')':''})
+        idx = unparse(node.target).strip().translate(translator)
         self.command.write('%sSwitch(%s, %s, lambda %s:'
             % (idt, symbol, values, idx))
         self.command.write('\n')
@@ -353,7 +355,7 @@ class SPML_Compiler():
             self.prog.imports.write('\n')
         for c in ['Id', 'IdArray', 'Condition', 'IfElse', 'For', 'Sample',
                     'Sequence', 'Switch', 'Transform']:
-            self.prog.imports.write('from spn.interpreter import %s' % (c,))
+            self.prog.imports.write('from spn.compilers.ast_to_spn import %s' % (c,))
             self.prog.imports.write('\n')
         # Write the constants.
         if visitor.constants:
@@ -375,7 +377,7 @@ class SPML_Compiler():
             self.prog.arrays.write('# ARRAY DECLARATIONS')
             self.prog.arrays.write('\n')
             for v, n in arrays:
-                self.prog.arrays.write('%s = IdArray(\'%s\', %d)' % (v, v, n,))
+                self.prog.arrays.write('%s = IdArray(\'%s\', %s)' % (v, v, n,))
                 self.prog.arrays.write('\n')
         # Write the command.
         self.prog.command.write('# MODEL DEFINITION')

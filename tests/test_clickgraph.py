@@ -10,14 +10,14 @@ from spn.distributions import beta
 from spn.distributions import randint
 from spn.distributions import uniform
 
-from spn.interpreter import For
-from spn.interpreter import IfElse
-from spn.interpreter import Sample
-from spn.interpreter import Sequence
-from spn.interpreter import Switch
-from spn.interpreter import Transform
-from spn.interpreter import Id
-from spn.interpreter import IdArray
+from spn.compilers.ast_to_spn import For
+from spn.compilers.ast_to_spn import IfElse
+from spn.compilers.ast_to_spn import Sample
+from spn.compilers.ast_to_spn import Sequence
+from spn.compilers.ast_to_spn import Switch
+from spn.compilers.ast_to_spn import Transform
+from spn.compilers.ast_to_spn import Id
+from spn.compilers.ast_to_spn import IdArray
 
 from spn.sym_util import binspace
 

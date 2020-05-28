@@ -11,6 +11,7 @@ from .sym_util import EmptySet
 from .transforms import EventAnd
 from .transforms import EventBasic
 from .transforms import EventOr
+from .transforms import Id
 
 def dnf_factor(event, lookup=None):
     # Given an event (in DNF) and a dictionary lookup mapping symbols
@@ -65,6 +66,9 @@ def dnf_factor(event, lookup=None):
     assert False, 'Invalid DNF event: %s' % (event,)
 
 def dnf_normalize(event):
+    if isinstance(event, EventBasic):
+        if isinstance(event.subexpr, Id):
+            return event
     # Given an arbitrary event, rewrite in terms of only Id by
     # solving the subexpressions and return the resulting DNF formula,
     # or None if all solutions evaluate to EmptySet.

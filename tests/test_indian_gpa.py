@@ -11,14 +11,14 @@ https://arxiv.org/pdf/1806.02027.pdf
 
 import pytest
 
-from spn.compiler import SPML_Compiler
+from spn.compilers.spml_to_python import SPML_Compiler
 from spn.distributions import atomic
 from spn.distributions import choice
 from spn.distributions import uniform
-from spn.interpreter import IfElse
-from spn.interpreter import Sample
-from spn.interpreter import Sequence
-from spn.interpreter import Id
+from spn.compilers.ast_to_spn import IfElse
+from spn.compilers.ast_to_spn import Sample
+from spn.compilers.ast_to_spn import Sequence
+from spn.compilers.ast_to_spn import Id
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
 from spn.transforms import Id

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
@@ -10,7 +9,7 @@ from distutils.core import setup
 requirements = {
     'src' : [
         'astunparse==1.6.3',
-        'numpy==1.17.*',
+        'numpy==1.16.*',
         'scipy==1.4.1',
         'sympy==1.6',
     ],
@@ -29,6 +28,7 @@ requirements = {
 }
 requirements['all'] = [r for v in requirements.values() for r in v]
 
+# Determine the version (hardcoded).
 dirname = os.path.dirname(os.path.realpath(__file__))
 vre = re.compile('__version__ = \'(.*?)\'')
 m = open(os.path.join(dirname, 'src', 'version.py')).read()
@@ -50,18 +50,16 @@ setup(
     ],
     packages=[
         'spn',
+        'spn.compilers',
         'spn.magics',
         'spn.tests',
     ],
     package_dir={
-        'spn': 'src',
-        'spn.magics': 'magics',
-        'spn.tests': 'tests',
+        'spn'           : 'src',
+        'spn.compilers' : 'src/compilers',
+        'spn.magics'    : 'magics',
+        'spn.tests'     : 'tests',
     },
     install_requires=requirements['src'],
-    extras_require={
-        'magics' : requirements['magics'],
-        'tests'  : requirements['tests'],
-        'all'    : requirements['all'],
-    },
+    extras_require=requirements,
 )

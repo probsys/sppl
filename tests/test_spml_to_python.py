@@ -3,7 +3,9 @@
 
 import pytest
 
-from spn.compiler import SPML_Compiler
+from spn.compilers.spml_to_python import SPML_Compiler
+
+isclose = lambda a, b : abs(a-b) < 1e-10
 
 # Test errors in visit_Assign:
 # - [x] overwrite variable / array
@@ -11,8 +13,6 @@ from spn.compiler import SPML_Compiler
 # - [x] assigning fresh variables in else
 # - [x] non-array variable in for
 # - [x] array target must not be subscript
-# - [x[ array(n) must be a number
-# - [x] array(n) must be a positive integer
 # - [x] assign invalid Python after sampling
 # - [x] assign invalid Python non-global
 # - [x] invalid left-hand side (tuple, unpacking, etc)
@@ -75,14 +75,6 @@ Y[0] = array(2)
     with pytest.raises(AssertionError):
         SPML_Compiler(source)
     SPML_Compiler(source.replace('array(2)', 'norm()'))
-
-def test_error_assign_array_numeral():
-    with pytest.raises(AssertionError):
-        SPML_Compiler('Y = array(1.3)')
-    with pytest.raises(AssertionError):
-        SPML_Compiler('Y = array(-1)')
-    with pytest.raises(AssertionError):
-        SPML_Compiler('Y = array(\'foo\')')
 
 def test_error_assign_py_constant_after_sampling():
     source = '''
@@ -244,11 +236,11 @@ else:
     compiler = SPML_Compiler(source)
     namespace = compiler.execute_module()
     model = namespace.model
-    assert model.prob(namespace.X[5] << {0}) == 0.3
-    assert model.prob(namespace.X[5] << {-1}) == 0.4
-    assert model.prob(namespace.X[5] << {3}) == 0.3
-    assert model.prob(namespace.E << {'1'}) == 0.3
-    assert model.prob(namespace.E << {'2'}) == 0.7
+    assert isclose(model.prob(namespace.X[5] << {0}), .3)
+    assert isclose(model.prob(namespace.X[5] << {-1}), .4)
+    assert isclose(model.prob(namespace.X[5] << {3}), .3)
+    assert isclose(model.prob(namespace.E << {'1'}), .3)
+    assert isclose(model.prob(namespace.E << {'2'}), .7)
 
 def test_imports():
     source = '''
@@ -264,7 +256,7 @@ for i in range(5):
     compiler = SPML_Compiler('from fractions import Fraction\n%s' % (source,))
     namespace = compiler.execute_module()
     for i in range(5):
-        assert namespace.model.prob(namespace.Z << {str(i)}) == 0.2
+        assert isclose(namespace.model.prob(namespace.Z << {str(i)}), .2)
 
 def test_ifexp():
     source = '''
@@ -278,9 +270,9 @@ Z ~= (
     compiler = SPML_Compiler(source)
     assert 'IfElse' in compiler.render_module()
     namespace = compiler.execute_module()
-    assert namespace.model.prob(namespace.Z << {0}) == 0.5
-    assert namespace.model.prob(namespace.Z << {4}) == 0.25
-    assert namespace.model.prob(namespace.Z << {6}) == 0.25
+    assert isclose(namespace.model.prob(namespace.Z << {0}), .5)
+    assert isclose(namespace.model.prob(namespace.Z << {4}), .25)
+    assert isclose(namespace.model.prob(namespace.Z << {6}), .25)
 
 def test_switch_shallow():
     source = '''
@@ -289,12 +281,24 @@ Y ~= choice({'0': .25, '1': .5, '2': .25})
 switch (Y) cases (i in ['0', '1', '2']):
     Z ~= atomic(loc=int(i))
 '''
-
     compiler = SPML_Compiler(source)
     namespace = compiler.execute_module()
-    assert namespace.model.prob(namespace.Z << {0}) == .25
-    assert namespace.model.prob(namespace.Z << {1}) == .5
-    assert namespace.model.prob(namespace.Z << {2}) == .25
+    assert isclose(namespace.model.prob(namespace.Z << {0}), .25)
+    assert isclose(namespace.model.prob(namespace.Z << {1}), .5)
+    assert isclose(namespace.model.prob(namespace.Z << {2}), .25)
+
+def test_switch_enumerate():
+    source = '''
+Y ~= choice({'0': .25, '1': .5, '2': .25})
+
+switch (Y) cases (i,j in enumerate(['0', '1', '2'])):
+    Z ~= atomic(loc=i+int(j))
+'''
+    compiler = SPML_Compiler(source)
+    namespace = compiler.execute_module()
+    assert isclose(namespace.model.prob(namespace.Z << {0}), .25)
+    assert isclose(namespace.model.prob(namespace.Z << {2}), .5)
+    assert isclose(namespace.model.prob(namespace.Z << {4}), .25)
 
 def test_switch_nested():
     source = '''
@@ -307,12 +311,12 @@ switch (Y) cases (i in range(0, 5)):
 '''
     compiler = SPML_Compiler(source)
     namespace = compiler.execute_module()
-    assert abs(namespace.model.prob(namespace.Z << {'0'}) - .25) < 1e-10
-    assert abs(namespace.model.prob(namespace.Z << {'1'}) - .25) < 1e-10
-    assert abs(namespace.model.prob(namespace.Z << {'2'}) - .25) < 1e-10
-    assert abs(namespace.model.prob(namespace.Z << {'3'}) - .25) < 1e-10
-    assert abs(namespace.model.prob(namespace.V << {0}) - .5) < 1e-10
-    assert abs(namespace.model.prob(namespace.V << {1}) - .5) < 1e-10
+    assert isclose(namespace.model.prob(namespace.Z << {'0'}), .25)
+    assert isclose(namespace.model.prob(namespace.Z << {'1'}), .25)
+    assert isclose(namespace.model.prob(namespace.Z << {'2'}), .25)
+    assert isclose(namespace.model.prob(namespace.Z << {'3'}), .25)
+    assert isclose(namespace.model.prob(namespace.V << {0}), .5)
+    assert isclose(namespace.model.prob(namespace.V << {1}), .5)
 
 def test_condition_simple():
     source = '''
@@ -322,7 +326,7 @@ Z ~= norm(loc=0, scale=2)
 '''
     compiler = SPML_Compiler(source)
     namespace = compiler.execute_module()
-    assert abs(namespace.model.prob((0 < namespace.Y) < 2) - 1) < 1e-10
+    assert isclose(namespace.model.prob((0 < namespace.Y) < 2), 1)
 
 def test_condition_if():
     source = '''
@@ -337,19 +341,29 @@ else:
         compiler.execute_module()
     compiler = SPML_Compiler(source.replace('Y > 1', 'Y > 0'))
     namespace = compiler.execute_module()
-    assert abs(namespace.model.prob((-1 < namespace.Y) < 1) - 1) < 1e-10
+    assert isclose(namespace.model.prob((-1 < namespace.Y) < 1), 1)
 
 def test_constant_parameter():
     source = '''
 parameters = [1, 2, 3]
-Y = array(3)
-for i in range(3):
+n_array = 2
+Y = array(n_array + 1)
+for i in range(n_array + 1):
     Y[i] = randint(low=parameters[i], high=parameters[i]+1)
 '''
     compiler = SPML_Compiler(source)
     namespace = compiler.execute_module()
-    assert namespace.model.prob(namespace.Y[0] << {1}) == 1
-    assert namespace.model.prob(namespace.Y[1] << {2}) == 1
-    assert namespace.model.prob(namespace.Y[2] << {3}) == 1
+    assert isclose(namespace.model.prob(namespace.Y[0] << {1}), 1)
+    assert isclose(namespace.model.prob(namespace.Y[1] << {2}), 1)
+    assert isclose(namespace.model.prob(namespace.Y[2] << {3}), 1)
     with pytest.raises(AssertionError):
         SPML_Compiler('%sZ = "foo"\n' % (source,))
+
+def test_error_array_length():
+    with pytest.raises(TypeError):
+        SPML_Compiler('Y = array(1.3)').execute_module()
+    with pytest.raises(TypeError):
+        SPML_Compiler('Y = array(\'foo\')').execute_module()
+    # Length zero array
+    namespace = SPML_Compiler('Y = array(-1)').execute_module()
+    assert len(namespace.Y) == 0

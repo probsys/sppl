@@ -443,8 +443,8 @@ class Radical(Injective):
             and self.subexpr == x.subexpr \
             and self.degree == x.degree
     def __repr__(self):
-        return 'Radical(degree=%s, %s)' \
-            % (repr(self.degree), repr(self.subexpr))
+        return 'Radical(%s, degree=%s)' \
+            % (repr(self.subexpr), repr(self.degree),)
     def __str__(self):
         return '(%s)**(1, %d)' % (str(self.subexpr), self.degree)
     def __hash__(self):
@@ -480,8 +480,8 @@ class Exponential(Injective):
             and self.subexpr == x.subexpr \
             and self.base == x.base
     def __repr__(self):
-        return 'Exponential(base=%s, %s)' \
-            % (repr(self.base), repr(self.subexpr))
+        return 'Exponential(%s, base=%s)' \
+            % (repr(self.subexpr), repr(self.base),)
     def __str__(self):
         if self.base == sympy.E:
             return 'exp(%s)' % (str(self.subexpr),)
@@ -519,8 +519,8 @@ class Logarithm(Injective):
             and self.subexpr == x.subexpr \
             and self.base == x.base
     def __repr__(self):
-        return 'Logarithm(base=%s, %s)' \
-            % (repr(self.base), repr(self.subexpr))
+        return 'Logarithm(%s, base=%s)' \
+            % (repr(self.subexpr), repr(self.base))
     def __str__(self):
         if self.base == sympy.E:
             return 'ln(%s)' % (str(self.subexpr),)
@@ -681,8 +681,8 @@ class Poly(Transform):
     def __neg__(self):
         return Poly(self.subexpr, [-c for c in self.coeffs])
     def __repr__(self):
-        return 'Poly(coeffs=%s, %s)' \
-            % (repr(self.coeffs), repr(self.subexpr))
+        return 'Poly(%s, coeffs=%s)' \
+            % (repr(self.subexpr), repr(self.coeffs))
     def __str__(self):
         ss = str(self.subexpr)
         def term_to_str(i, c):
@@ -751,8 +751,8 @@ class Piecewise(Transform):
             and self.subexprs == x.subexprs \
             and self.events == x.events
     def __repr__(self):
-        return 'Piecewise(events=%s, %s)' \
-            % (repr(self.events), repr(self.subexprs))
+        return 'Piecewise(%s, events=%s)' \
+            % (repr(self.subexprs), repr(self.events))
     def __str__(self):
         strings = [
             '(%s) * Indicator[%s]' % (str(subexpr), str(event))
@@ -837,6 +837,10 @@ class EventBasic(Event):
 
     def domain(self):
         return self.subexpr.domain()
+    def solve(self):
+        if isinstance(self.subexpr, Identity):
+            return self.values
+        return super().solve()
     def subs(self, env):
         if not expr_in_env(self, env):
             return self
@@ -982,7 +986,8 @@ class EventInterval(EventBasic):
             return EventOr([event_l, event_r])
         assert False, 'Unknown complemented interval: %s' % (values_not,)
     def __repr__(self):
-        return 'EventInterval(%s, %s)' % (repr(self.subexpr), repr(self.values))
+        return 'EventInterval(%s, values=%s)' \
+            % (repr(self.subexpr), repr(self.values))
     def __str__(self):
         sym = str(self.subexpr)
         comp_l = '<' if self.values.left_open else '<='
@@ -999,7 +1004,7 @@ class EventInterval(EventBasic):
 class EventFiniteReal(EventBasic):
     def __init__(self, subexpr, values):
         assert isinstance(values, ContainersFinite) or values is EmptySet
-        assert all(is_number(v) for v in values)
+        # assert all(is_number(v) for v in values)
         self.subexpr = make_subexpr(subexpr, self)
         self.values = sympy.FiniteSet(*values)
     def finv(self, y):
@@ -1014,7 +1019,7 @@ class EventFiniteReal(EventBasic):
         return self.subexpr.invert(ys_prime)
 
     def __repr__(self):
-        return 'EventFiniteReal(%s, %s)' \
+        return 'EventFiniteReal(%s, values=%s)' \
             % (repr(self.subexpr), repr(self.values))
     def __str__(self):
         str_items = ', '.join('%s' % (x,) for x in sorted(self.values))
@@ -1085,8 +1090,17 @@ class EventFiniteNominal(EventBasic):
                         return ~EventFiniteNominal(self.subexpr, intersection)
         return super().__or__(event)
     def __repr__(self):
-        return 'EventFiniteNominal(%s, %s)' \
-            % (repr(self.subexpr), repr(self.values))
+        if self.complemented:
+            items = complement_nominal_set(self.values)
+            items_str = 'FiniteSet%s' % (repr(items.args),)
+            values_str = 'Complement(UniversalSet, %s)' % (items_str,)
+        elif self.values is EmptySet:
+            values_str = repr(self.values)
+        else:
+            items = self.values
+            values_str = 'FiniteSet%s' % (repr(items.args),)
+        return 'EventFiniteNominal(%s, values=%s)' \
+            % (repr(self.subexpr), values_str)
     def __str__(self):
         # FIXME: https://github.com/probcomp/sum-product-dsl/issues/86
         str_values = '(%s)' % (str(self.values,)) \

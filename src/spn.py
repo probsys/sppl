@@ -4,7 +4,6 @@
 from collections import ChainMap
 from collections import Counter
 from collections import OrderedDict
-from collections import namedtuple
 from fractions import Fraction
 from functools import reduce
 from inspect import getfullargspec
@@ -351,7 +350,10 @@ def spn_simplify_sum_leaf(spn):
     return SumSPN(children, weights)
 
 def spn_simplify_sum_product(spn):
-    assert all(isinstance(c, ProductSPN) for c in spn.children)
+    # TODO: Handle case when some children are leaves with environments;
+    # e.g. SumSPN([X & Y, (X & Y=X**2)])
+    if not all(isinstance(c, ProductSPN) for c in spn.children):
+        return spn
     children_list = [c.children for c in spn.children]
     children_simplified, weight_simplified = reduce(
         lambda state, cw: spn_simplify_sum_product_helper(state, cw[0], cw[1]),

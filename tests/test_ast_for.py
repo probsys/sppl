@@ -4,13 +4,13 @@
 from math import log
 
 from spn.distributions import bernoulli
-from spn.interpreter import For
-from spn.interpreter import IfElse
-from spn.interpreter import Otherwise
-from spn.interpreter import Sample
-from spn.interpreter import Sequence
-from spn.interpreter import Id
-from spn.interpreter import IdArray
+from spn.compilers.ast_to_spn import For
+from spn.compilers.ast_to_spn import IfElse
+from spn.compilers.ast_to_spn import Otherwise
+from spn.compilers.ast_to_spn import Sample
+from spn.compilers.ast_to_spn import Sequence
+from spn.compilers.ast_to_spn import Id
+from spn.compilers.ast_to_spn import IdArray
 from spn.math_util import allclose
 
 Y = Id('Y')
