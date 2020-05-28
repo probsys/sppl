@@ -1,7 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-"""Convert SPN to JSON."""
+"""Convert SPN to a JSON serializable dictionary."""
 
 from fractions import Fraction
 
@@ -32,58 +32,58 @@ from ..transforms import EventOr
 from ..transforms import EventAnd
 from ..sym_util import NominalValue
 
-def env_from_json(env):
+def env_from_dict(env):
     if env is None:
         return None
     # Used in eval.
     return {eval(k): eval(v) for k, v in env.items()}
 
-def env_to_json(env):
+def env_to_dict(env):
     if len(env) == 1:
         return None
     return {repr(k): repr(v) for k, v in env.items()}
 
-def scipy_dist_from_json(dist):
+def scipy_dist_from_dict(dist):
     constructor = getattr(scipy.stats, dist['name'])
     return constructor(*dist['args'], **dist['kwds'])
 
-def scipy_dist_to_json(dist):
+def scipy_dist_to_dict(dist):
     return {
         'name': dist.dist.name,
         'args': dist.args,
         'kwds': dist.kwds
     }
 
-def spn_from_json(metadata):
+def spn_from_dict(metadata):
     if metadata['class'] == 'NominalLeaf':
         symbol = Id(metadata['symbol'])
         dist = {x: Fraction(w[0], w[1]) for x, w in metadata['dist']}
         return NominalLeaf(symbol, dist)
     if metadata['class'] == 'ContinuousLeaf':
         symbol = Id(metadata['symbol'])
-        dist = scipy_dist_from_json(metadata['dist'])
+        dist = scipy_dist_from_dict(metadata['dist'])
         support = sympy.sympify(metadata['support'])
         conditioned = metadata['conditioned']
-        env = env_from_json(metadata['env'])
+        env = env_from_dict(metadata['env'])
         return ContinuousLeaf(symbol, dist, support, conditioned, env=env)
     if metadata['class'] == 'DiscreteLeaf':
         symbol = Id(metadata['symbol'])
-        dist = scipy_dist_from_json(metadata['dist'])
+        dist = scipy_dist_from_dict(metadata['dist'])
         support = sympy.sympify(metadata['support'])
         conditioned = metadata['conditioned']
-        env = env_from_json(metadata['env'])
+        env = env_from_dict(metadata['env'])
         return DiscreteLeaf(symbol, dist, support, conditioned, env=env)
     if metadata['class'] == 'SumSPN':
-        children = [spn_from_json(c) for c in metadata['children']]
+        children = [spn_from_dict(c) for c in metadata['children']]
         weights = metadata['weights']
         return SumSPN(children, weights)
     if metadata['class'] == 'ProductSPN':
-        children = [spn_from_json(c) for c in metadata['children']]
+        children = [spn_from_dict(c) for c in metadata['children']]
         return ProductSPN(children)
 
     assert False, 'Cannot convert %s to SPN' % (metadata,)
 
-def spn_to_json(spn):
+def spn_to_dict(spn):
     if isinstance(spn, NominalLeaf):
         return {
             'class'        : 'NominalLeaf',
@@ -92,35 +92,35 @@ def spn_to_json(spn):
                 (str(x), (w.numerator, w.denominator))
                 for x, w in spn.dist.items()
             ],
-            'env'         : env_to_json(spn.env),
+            'env'         : env_to_dict(spn.env),
         }
     if isinstance(spn, ContinuousLeaf):
         return {
             'class'         : 'ContinuousLeaf',
             'symbol'        : spn.symbol.token,
-            'dist'          : scipy_dist_to_json(spn.dist),
+            'dist'          : scipy_dist_to_dict(spn.dist),
             'support'       : repr(spn.support),
             'conditioned'   : spn.conditioned,
-            'env'           : env_to_json(spn.env),
+            'env'           : env_to_dict(spn.env),
         }
     if isinstance(spn, DiscreteLeaf):
         return {
             'class'         : 'DiscreteLeaf',
             'symbol'        : spn.symbol.token,
-            'dist'          : scipy_dist_to_json(spn.dist),
+            'dist'          : scipy_dist_to_dict(spn.dist),
             'support'       : repr(spn.support),
             'conditioned'   : spn.conditioned,
-            'env'           : env_to_json(spn.env),
+            'env'           : env_to_dict(spn.env),
         }
     if isinstance(spn, SumSPN):
         return {
             'class'        : 'SumSPN',
-            'children'      : [spn_to_json(c) for c in spn.children],
+            'children'      : [spn_to_dict(c) for c in spn.children],
             'weights'       : spn.weights,
         }
     if isinstance(spn, ProductSPN):
         return {
             'class'        : 'ProductSPN',
-            'children'      : [spn_to_json(c) for c in spn.children],
+            'children'      : [spn_to_dict(c) for c in spn.children],
         }
     assert False, 'Cannot convert %s to JSON' % (spn,)

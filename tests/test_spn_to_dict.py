@@ -1,10 +1,11 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+import json
 import pytest
 
-from spn.compilers.spn_to_json import spn_from_json
-from spn.compilers.spn_to_json import spn_to_json
+from spn.compilers.spn_to_dict import spn_from_dict
+from spn.compilers.spn_to_dict import spn_to_dict
 from spn.distributions import gamma
 from spn.distributions import norm
 from spn.distributions import poisson
@@ -28,9 +29,11 @@ spns = [
 ]
 @pytest.mark.parametrize('spn', spns)
 def test_serialize_equal(spn):
-    metadata = spn_to_json(spn)
-    spn_loaded = spn_from_json(metadata)
-    assert spn_loaded == spn
+    metadata = spn_to_dict(spn)
+    spn_json_encoded = json.dumps(metadata)
+    spn_json_decoded = json.loads(spn_json_encoded)
+    spn2 = spn_from_dict(spn_json_decoded)
+    assert spn2 == spn
 
 transforms = [
     X,
@@ -56,6 +59,8 @@ transforms = [
 @pytest.mark.parametrize('transform', transforms)
 def test_serialize_env(transform):
     spn = (X >> norm()).transform(Y, transform)
-    metadata = spn_to_json(spn)
-    spn_loaded = spn_from_json(metadata)
-    assert spn_loaded == spn
+    metadata = spn_to_dict(spn)
+    spn_json_encoded = json.dumps(metadata)
+    spn_json_decoded = json.loads(spn_json_encoded)
+    spn2 = spn_from_dict(spn_json_decoded)
+    assert spn2 == spn
