@@ -24,6 +24,10 @@ class NominalDistribution(Distribution):
 
 choice = NominalDistribution
 
+def floatify(x):
+    try              : return float(x)
+    except TypeError : return x
+
 class RealDistribution(Distribution):
     # pylint: disable=not-callable
     # pylint: disable=multiple-statements
@@ -31,7 +35,7 @@ class RealDistribution(Distribution):
     constructor = None
     def __init__(self, *args, **kwargs):
         assert not args, 'Only keyword arguments allowed for %s' % (self.dist.name,)
-        self.kwargs = {k: float(v) for k, v in kwargs.items()}
+        self.kwargs = {k: floatify(v) for k, v in kwargs.items()}
     def __call__(self, symbol):
         domain = self.get_domain()
         return self.constructor(symbol, self.dist(**self.kwargs), domain)
@@ -694,4 +698,16 @@ class atomic(randint):
         loc = kwargs.pop('loc')
         kwargs['low'] = loc
         kwargs['high'] = loc + 1
+        super().__init__(*args, **kwargs)
+
+class rv_discrete(DiscreteReal):
+    """A general discrete random variable."""
+    dist = lambda self, **kwargs: scipy.stats.rv_discrete(**kwargs).freeze()
+    def get_domain(self): return sympy.FiniteSet(*self.kwargs['values'][0])
+
+class uniformd(rv_discrete):
+    def __init__(self, *args, **kwargs):
+        xk = tuple(kwargs.pop('values'))
+        pk = [1./len(xk)] * len(xk)
+        kwargs['values'] = (xk, pk)
         super().__init__(*args, **kwargs)
