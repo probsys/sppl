@@ -1,7 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-"""Convert SPN to a JSON serializable dictionary."""
+"""Convert SPN to JSON friendly dictionary."""
 
 from fractions import Fraction
 
@@ -114,13 +114,13 @@ def spn_to_dict(spn):
         }
     if isinstance(spn, SumSPN):
         return {
-            'class'        : 'SumSPN',
+            'class'         : 'SumSPN',
             'children'      : [spn_to_dict(c) for c in spn.children],
             'weights'       : spn.weights,
         }
     if isinstance(spn, ProductSPN):
         return {
-            'class'        : 'ProductSPN',
+            'class'         : 'ProductSPN',
             'children'      : [spn_to_dict(c) for c in spn.children],
         }
     assert False, 'Cannot convert %s to JSON' % (spn,)
