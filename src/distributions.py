@@ -711,3 +711,13 @@ class uniformd(rv_discrete):
         pk = [1./len(xk)] * len(xk)
         kwargs['values'] = (xk, pk)
         super().__init__(*args, **kwargs)
+
+class discrete(rv_discrete):
+    def __init__(self, *args, **kwargs):
+        assert len(args) == 1
+        assert not kwargs
+        values = args[0]
+        xk = tuple(values.keys())
+        pk = tuple(values.values())
+        kwargs['values'] = (xk, pk)
+        super().__init__(**kwargs)
