@@ -716,7 +716,7 @@ class discrete(rv_discrete):
     def __init__(self, *args, **kwargs):
         assert len(args) == 1
         assert not kwargs
-        values = args[0]
+        values = dict(args[0])
         xk = tuple(values.keys())
         pk = tuple(values.values())
         kwargs['values'] = (xk, pk)
