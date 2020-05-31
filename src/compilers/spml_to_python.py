@@ -256,8 +256,10 @@ class SPML_Visitor(ast.NodeVisitor):
         if node.func.id == 'condition':
             assert len(node.args) == 1, unode
             idt = get_indentation(self.indentation)
-            str_event = unparse(node.args[0]).replace(os.linesep, '')
-            self.command.write('%sCondition(%s),' % (idt, str_event))
+            event = node.args[0]
+            event_prime = SPML_Transformer_Compare().visit(event)
+            src_event = unparse(event_prime).strip()
+            self.command.write('%sCondition(%s),' % (idt, src_event))
             self.command.write('\n')
 
 def unroll_if(node, current=None):

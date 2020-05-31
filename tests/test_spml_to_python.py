@@ -322,7 +322,8 @@ def test_condition_simple():
     source = '''
 Y ~= norm(loc=0, scale=2)
 condition((0 < Y) < 2)
-Z ~= norm(loc=0, scale=2)
+Z ~= binom(n=10, p=.2)
+condition(Z == 0)
 '''
     compiler = SPML_Compiler(source)
     namespace = compiler.execute_module()
