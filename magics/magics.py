@@ -1,6 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+import sys
 from collections import namedtuple
 
 from IPython.core.magic import Magics
@@ -29,6 +30,9 @@ class SPML_Magics(Magics):
 
     @cell_magic
     def spml(self, line, cell):
+        if not line:
+            sys.stderr.write('specify model name after %%spml')
+            return
         if line in self.programs:
             del self.programs[line]
         compiler = SPML_Compiler(cell, line)
