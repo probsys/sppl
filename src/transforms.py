@@ -373,6 +373,7 @@ class Identity(Injective):
         assert isinstance(token, str)
         self.subexpr = self
         self.token = token
+        self.hash = hash((self.__class__, self.token))
         self.symbols = frozenset({self})
     def domain(self):
         return ExtReals
@@ -404,8 +405,7 @@ class Identity(Injective):
     def __str__(self):
         return self.token
     def __hash__(self):
-        x = (self.__class__, self.token)
-        return hash(x)
+        return self.hash
     def __rshift__(self, f):
         if isinstance(f, Callable):
             return f(self)
