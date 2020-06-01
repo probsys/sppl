@@ -846,8 +846,8 @@ class DiscreteLeaf(RealLeaf):
         return self.dist.logpmf(xf) - self.logZ
 
     def logprob_finite__(self, values):
-        logps = [self.logpdf__(float(x)) for x in values]
-        return logsumexp(logps)
+        logps = [self.logpdf__(x) for x in values]
+        return logps[0] if len(logps) == 1 else logsumexp(logps)
     def logprob_range__(self, values):
         if values.stop <= values.start:
             return -inf
