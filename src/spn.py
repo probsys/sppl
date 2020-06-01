@@ -253,7 +253,8 @@ class SumSPN(BranchSPN):
     def condition_factored__(self, event_factor, memo):
         logps_condt = [spn.logprob_factored(event_factor, memo) for spn in self.children]
         indexes = [i for i, lp in enumerate(logps_condt) if not isinf_neg(lp)]
-        assert indexes, 'Conditioning event "%s" has probability zero' % (str(event_factor),)
+        if not indexes:
+            raise ValueError('Conditioning event "%s" has probability zero' % (str(event_factor),))
         logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
         children = [self.children[i].condition_factored(event_factor, memo) for i in indexes]
         weights = lognorm(logps_joint)
