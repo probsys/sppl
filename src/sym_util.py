@@ -76,6 +76,8 @@ def partition_list_blocks(values):
     return list(partition.values())
 
 def sympify_number(x):
+    if isinstance(x, (int, float)):
+        return x
     msg = 'Expected a numeric term, not %s' % (x,)
     try:
         # String fallback in sympify has been deprecated since SymPy 1.6. Use
@@ -107,6 +109,8 @@ def sym_log(x):
     return sympy.log(x)
 
 def is_number(x):
+    if isinstance(x, (int, float)):
+        return True
     try:
         sympify_number(x)
         return True
