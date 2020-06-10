@@ -62,7 +62,8 @@ def solve_poly_inequality_numerically(expr, b, strict):
     # Define probe points.
     xs_probe = list(chain(
         [zeros[0] - 1/2],
-        [(i.left + i.right)/2 for i in intervals[1:-1]],
+        [(i.left + i.right)/2 for i in intervals[1:-1]
+            if isinstance(i, sympy.Interval)],
         [zeros[-1] + 1/2]))
     # Evaluate poly at the probe points.
     f_xs_probe = [poly.subs(symX, x) for x in xs_probe]
