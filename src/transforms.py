@@ -234,7 +234,7 @@ class Transform():
         raise ValueError('Cannot raise %s to %s' % (str(self), x))
     def __pow__number(self, x):
         x_val = sympify_number(x)
-        if isinstance(x_val, sympy.Integer):
+        if isinstance(x_val, (sympy.Integer, int)):
             return self.__pow__integer(x_val)
         if isinstance(x_val, sympy.Rational):
             return self.__pow__rational(x_val)
