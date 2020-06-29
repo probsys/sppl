@@ -52,6 +52,8 @@ def solve_poly_inequality_numerically(expr, b, strict):
     # Obtain numerical roots.
     roots = sympy.nroots(poly)
     zeros = sorted([r for r in roots if r.is_real])
+    if not zeros:
+        return sympy.EmptySet
     # Construct intervals around roots.
     mk_intvl = lambda a, b: \
         sympy.Interval(a, b, left_open=strict, right_open=strict)
