@@ -3,6 +3,8 @@
 
 """Convert AST to SPN."""
 
+import os
+
 from functools import reduce
 
 from ..dnf import dnf_normalize
@@ -147,7 +149,8 @@ def interpret_if_block(spn, events, subcommands):
     if len(children) == 1:
         spn = children[0]
     else:
-        spn_sum = SumSPN(children, weights_conditioned)
-        spn = spn_simplify_sum(spn_sum)
+        spn = SumSPN(children, weights_conditioned)
+        if not os.environ.get('SPN_NO_SIMPLIFY'):
+            spn = spn_simplify_sum(spn)
     # Return the SPN.
     return spn

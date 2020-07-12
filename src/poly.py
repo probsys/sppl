@@ -1,6 +1,8 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+import os
+
 from itertools import chain
 from math import isinf
 
@@ -30,6 +32,9 @@ def solve_poly_inequality(expr, b, strict, extended=None):
     # Handle infinite case.
     if isinf(b):
         return solve_poly_inequality_inf(expr, b, strict, extended=extended)
+    # Bypass symbolic inference.
+    if os.environ.get('SPN_NO_SYMBOLIC'):
+        return solve_poly_inequality_numerically(expr, b, strict)
     # Solve symbolically, if possible.
     try:
         with timeout(seconds=TIMEOUT_SYMBOLIC):
@@ -97,6 +102,9 @@ def solve_poly_equality(expr, b):
     # Handle infinite case.
     if isinf(b):
         return solve_poly_equality_inf(expr, b)
+    # Bypass symbolic inference.
+    if os.environ.get('SPN_NO_SYMBOLIC'):
+        return solve_poly_equality_numerically(expr, b)
     # Solve symbolically, if possible.
     try:
         with timeout(seconds=TIMEOUT_SYMBOLIC):
