@@ -1,6 +1,8 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
+import os
+
 from itertools import chain
 from math import isinf
 
@@ -30,6 +32,9 @@ def solve_poly_inequality(expr, b, strict, extended=None):
     # Handle infinite case.
     if isinf(b):
         return solve_poly_inequality_inf(expr, b, strict, extended=extended)
+    # Bypass symbolic inference.
+    if os.environ.get('SPN_NO_SYMBOLIC'):
+        return solve_poly_inequality_numerically(expr, b, strict)
     # Solve symbolically, if possible.
     try:
         with timeout(seconds=TIMEOUT_SYMBOLIC):
@@ -52,6 +57,8 @@ def solve_poly_inequality_numerically(expr, b, strict):
     # Obtain numerical roots.
     roots = sympy.nroots(poly)
     zeros = sorted([r for r in roots if r.is_real])
+    if not zeros:
+        return sympy.EmptySet
     # Construct intervals around roots.
     mk_intvl = lambda a, b: \
         sympy.Interval(a, b, left_open=strict, right_open=strict)
@@ -62,7 +69,8 @@ def solve_poly_inequality_numerically(expr, b, strict):
     # Define probe points.
     xs_probe = list(chain(
         [zeros[0] - 1/2],
-        [(i.left + i.right)/2 for i in intervals[1:-1]],
+        [(i.left + i.right)/2 for i in intervals[1:-1]
+            if isinstance(i, sympy.Interval)],
         [zeros[-1] + 1/2]))
     # Evaluate poly at the probe points.
     f_xs_probe = [poly.subs(symX, x) for x in xs_probe]
@@ -94,6 +102,9 @@ def solve_poly_equality(expr, b):
     # Handle infinite case.
     if isinf(b):
         return solve_poly_equality_inf(expr, b)
+    # Bypass symbolic inference.
+    if os.environ.get('SPN_NO_SYMBOLIC'):
+        return solve_poly_equality_numerically(expr, b)
     # Solve symbolically, if possible.
     try:
         with timeout(seconds=TIMEOUT_SYMBOLIC):
