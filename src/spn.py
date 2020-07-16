@@ -9,14 +9,7 @@ from functools import reduce
 from inspect import getfullargspec
 from itertools import chain
 from math import exp
-from math import isfinite
 from math import log
-
-from sympy import Complement
-from sympy import Intersection
-from sympy import Interval
-from sympy import Range
-from sympy import Union
 
 from .dnf import dnf_factor
 from .dnf import dnf_normalize
@@ -24,6 +17,9 @@ from .dnf import dnf_to_disjoint_union
 
 from .math_util import allclose
 from .math_util import flip
+from .math_util import float_to_int
+from .math_util import int_or_isinf_neg
+from .math_util import int_or_isinf_pos
 from .math_util import isinf_neg
 from .math_util import logdiffexp
 from .math_util import logflip
@@ -31,10 +27,6 @@ from .math_util import lognorm
 from .math_util import logsumexp
 from .math_util import random
 
-from .sym_util import ContainersFinite
-from .sym_util import EmptySet
-from .sym_util import NominalSet
-from .sym_util import NominalValue
 from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_union
@@ -44,8 +36,17 @@ from .sym_util import sympify_number
 
 from .transforms import EventBasic
 from .transforms import EventCompound
+from .transforms import EventFiniteNominal
+from .transforms import EventFiniteReal
 from .transforms import EventOr
 from .transforms import Id
+
+from .sets import EmptySet
+from .sets import FiniteNominal
+from .sets import FiniteReal
+from .sets import Interval
+from .sets import Range
+from .sets import Union
 
 inf = float('inf')
 
@@ -625,11 +626,12 @@ class LeafSPN(SPN):
             event = event_factor_to_event(event_factor)
             memo.logpdf[key] = self.logpdf(event)
         return memo.logpdf[key]
-    def logpdf(self, event):
-        assert isinstance(event, EventBasic)
-        assert isinstance(event.values, ContainersFinite)
+    def logpdf(self, event, memo=None):
         assert isinstance(event.subexpr, Id)
         assert event.subexpr.symbols == {self.symbol}
+        assert isinstance(event, (EventFiniteNominal, EventFiniteReal))
+        if isinstance(event, EventFiniteNominal):
+            assert not event.values.b
         assert len(event.values) == 1
         x = list(event.values)[0]
         return self.logpdf__(x)
@@ -650,15 +652,15 @@ class RealLeaf(LeafSPN):
 
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
         assert isinstance(symbol, Id)
+        assert isinstance(support, Interval)
         self.symbol = symbol
         self.dist = dist
         self.support = support
         self.conditioned = conditioned
         self.env = env or OrderedDict([(symbol, symbol)])
-        # Derive attributes.
-        self.xl = float(support.inf)
-        self.xu = float(support.sup)
         # Attributes to be populated by child classes.
+        self.xl = None
+        self.xu = None
         self.Fl = None
         self.Fu = None
         self.logFl = None
@@ -700,16 +702,14 @@ class RealLeaf(LeafSPN):
 
     def logprob__(self, event):
         interval = event.solve()
-        values = get_intersection_safe(self.support, interval)
+        values = self.support & interval
         return self.logprob_values__(values)
 
     def logprob_values__(self, values):
         if values is EmptySet:
             return -inf
-        if isinstance(values, ContainersFinite):
+        if isinstance(values, FiniteReal):
             return self.logprob_finite__(values)
-        if isinstance(values, Range):
-            return self.logprob_range__(values)
         if isinstance(values, Interval):
             return self.logprob_interval__(values)
         if isinstance(values, Union):
@@ -719,14 +719,24 @@ class RealLeaf(LeafSPN):
 
     def logprob_finite__(self, values):
         raise NotImplementedError()
-    def logprob_range__(self, values):
-        raise NotImplementedError()
     def logprob_interval__(self, values):
         raise NotImplementedError()
 
+    def values_to_support(self, values):
+        if isinstance(values, Interval):
+            return values
+        if isinstance(values, FiniteReal):
+            assert isinstance(self, DiscreteLeaf)
+            (low, high) = (min(values), max(values))
+            # https://github.com/probcomp/sum-product-dsl/issues/77
+            if sorted(values) != list(range(low, high+1)):
+                assert False, 'Cannot handle non-contiguous condition'
+            return Range(low, high)
+        assert False
+
     def condition__(self, event):
         interval = event.solve()
-        values = get_intersection_safe(self.support, interval)
+        values = self.support & interval
         weight = self.logprob_values__(values)
         # Probability zero event.
         if isinf_neg(weight):
@@ -735,12 +745,13 @@ class RealLeaf(LeafSPN):
         # Condition on support.
         if values == self.support:
             return self
-        # Condition on one set.
-        if isinstance(values, (ContainersFinite, Range, Interval)):
-            return (type(self))(self.symbol, self.dist, values, True, self.env)
+        # Condition on Interval.
+        if isinstance(values, (FiniteReal, Interval)):
+            support = self.values_to_support(values)
+            return (type(self))(self.symbol, self.dist, support, True, self.env)
         # Condition on union of sets.
         if isinstance(values, Union):
-            weights_unorm = [self.logprob_values__(v) for v in values.args]
+            weights_unorm = [self.logprob_values__(v) for v in values]
             indexes = [i for i, w in enumerate(weights_unorm) if not isinf_neg(w)]
             if not indexes:
                 raise ValueError('Conditioning event "%s" has probability zero'
@@ -748,8 +759,9 @@ class RealLeaf(LeafSPN):
             # TODO: Normalize the weights with greater precision, e.g.,
             # https://stats.stackexchange.com/questions/66616/converting-normalizing-very-small-likelihood-values-to-probability
             weights = lognorm([weights_unorm[i] for i in indexes])
+            supports = [self.values_to_support(v) for v in values]
             children = [
-                (type(self))(self.symbol, self.dist, values.args[i], True, self.env)
+                (type(self))(self.symbol, self.dist, supports[i], True, self.env)
                 for i in indexes
             ]
             return SumSPN(children, weights) if 1 < len(indexes) else children[0]
@@ -778,6 +790,8 @@ class ContinuousLeaf(RealLeaf):
     """Non-atomic distribution with a cumulative distribution function."""
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
         super().__init__(symbol, dist, support, conditioned, env)
+        self.xl = float(support.left)
+        self.xu = float(support.right)
         if conditioned:
             self.Fl = self.dist.cdf(self.xl)
             self.Fu = self.dist.cdf(self.xu)
@@ -792,7 +806,7 @@ class ContinuousLeaf(RealLeaf):
             self.logZ = 1
 
     def logpdf__(self, x):
-        if isinstance(x, NominalValue):
+        if isinstance(x, str):
             return -float('inf')
         xf = float(x)
         if not self.conditioned:
@@ -804,12 +818,9 @@ class ContinuousLeaf(RealLeaf):
     def logprob_finite__(self, values):
         return -inf
 
-    def logprob_range__(self, values):
-        return -inf
-
     def logprob_interval__(self, values):
-        xl = float(values.start)
-        xu = float(values.end)
+        xl = float(values.left)
+        xu = float(values.right)
         logFl = self.logcdf(xl)
         logFu = self.logcdf(xu)
         return logdiffexp(logFu, logFl)
@@ -818,10 +829,14 @@ class ContinuousLeaf(RealLeaf):
 # Discrete RealLeaf.
 
 class DiscreteLeaf(RealLeaf):
-    """Atomic distribution with a cumulative distribution function."""
+    """Integral atomic distribution with a cumulative distribution function."""
 
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
         super().__init__(symbol, dist, support, conditioned, env)
+        assert int_or_isinf_neg(support.left)
+        assert int_or_isinf_pos(support.right)
+        self.xl = float_to_int(support.left) + 1*bool(support.left_open)
+        self.xu = float_to_int(support.right) - 1*bool(support.right_open)
         if conditioned:
             self.Fl = self.dist.cdf(self.xl - 1)
             self.Fu = self.dist.cdf(self.xu)
@@ -836,7 +851,7 @@ class DiscreteLeaf(RealLeaf):
             self.logZ = 1
 
     def logpdf__(self, x):
-        if isinstance(x, NominalValue):
+        if isinstance(x, str):
             return -float('inf')
         xf = float(x)
         if not self.conditioned:
@@ -848,21 +863,14 @@ class DiscreteLeaf(RealLeaf):
     def logprob_finite__(self, values):
         logps = [self.logpdf__(x) for x in values]
         return logps[0] if len(logps) == 1 else logsumexp(logps)
-    def logprob_range__(self, values):
-        if values.stop <= values.start:
-            return -inf
-        if values.step == 1:
-            xl = float(values.inf)
-            xu = float(values.sup)
-            logFl = self.logcdf(xl - 1)
-            logFu = self.logcdf(xu)
-            return logdiffexp(logFu, logFl)
-        if isfinite(values.start) and isfinite(values.stop):
-            xs = list(values)
-            return self.logprob_finite__(xs)
-        raise ValueError('Cannot enumerate infinite set: %s' % (values,))
     def logprob_interval__(self, values):
-        assert False, 'Atomic distribution cannot intersect an interval!'
+        offsetl = not values.left_open and int_or_isinf_neg(values.left)
+        offsetr = values.right_open and int_or_isinf_pos(values.right)
+        xl = float_to_int(values.left) - offsetl
+        xu = float_to_int(values.right) - offsetr
+        logFl = self.logcdf(xl)
+        logFu = self.logcdf(xu)
+        return logdiffexp(logFu, logFl)
 
 # ==============================================================================
 # Nominal distribution.
@@ -874,10 +882,10 @@ class NominalLeaf(LeafSPN):
         assert isinstance(symbol, Id)
         assert all(isinstance(x, str) for x in dist)
         self.symbol = symbol
-        self.dist = {NominalValue(x): Fraction(w) for x, w in dist.items()}
+        self.dist = {x: Fraction(w) for x, w in dist.items()}
         # Derived attributes.
         self.env = {symbol: symbol}
-        self.support = NominalSet(*dist.keys())
+        self.support = FiniteNominal(*dist.keys())
         self.outcomes = list(self.dist.keys())
         self.weights = list(self.dist.values())
         assert allclose(float(sum(self.weights)),  1)
@@ -897,26 +905,23 @@ class NominalLeaf(LeafSPN):
         return [{self.symbol: x} for x in xs]
 
     def logprob__(self, event):
-        # TODO: Consider using 1 - Pr[Event] for negation to avoid
-        # iterating over domain.
-        # if is_event_transformed(event):
-        #     raise ValueError('Cannot apply transform to Nominal variable: %s'
-        #         % (str(event),))
         solution = event.solve()
-        values = Intersection(self.support, solution)
+        values = self.support & solution
+        if values is EmptySet:
+            return -inf
+        if values == FiniteNominal(b=True):
+            return 0
         p_event = sum(self.dist[x] for x in values)
         return log(p_event) if p_event != 0 else -inf
 
     def condition__(self, event):
-        # if is_event_transformed(event):
-        #     raise ValueError('Cannot apply transform to Nominal variable: %s'
-        #         % (str(event),))
         solution = event.solve()
-        values = Intersection(self.support, solution)
+        values = self.support & solution
+        if values is EmptySet:
+            raise ValueError('Zero probability condition %s' % (event,))
         p_event = sum([self.dist[x] for x in values])
         if p_event == 0:
-            raise ValueError('Conditioning event "%s" has probability zero' %
-                (str(event),))
+            raise ValueError('Zero probability condition %s' % (event,))
         if p_event == 1:
             return self
         dist = {
@@ -956,17 +961,6 @@ def spn_cache_duplicate_subtrees(spn, memo):
             spn.children = tuple(spn.children)
         return memo[spn]
     assert False, '%s is not an spn' % (spn,)
-
-def get_intersection_safe(a, b):
-    assert not isinstance(a, Union)
-    if isinstance(b, Union):
-        intersections = [get_intersection_safe(a, x) for x in b.args]
-        return Union(*intersections)
-    intersection = Intersection(a, b)
-    if isinstance(intersection, Complement):
-        (A, B) = intersection.args
-        return A - Intersection(A, B)
-    return intersection
 
 def is_event_transformed(event):
     if isinstance(event, EventBasic):

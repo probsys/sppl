@@ -13,7 +13,6 @@ import pytest
 
 from spn.compilers.spml_to_python import SPML_Compiler
 from spn.distributions import atomic
-from spn.distributions import choice
 from spn.distributions import uniform
 from spn.compilers.ast_to_spn import IfElse
 from spn.compilers.ast_to_spn import Sample
@@ -21,7 +20,7 @@ from spn.compilers.ast_to_spn import Sequence
 from spn.compilers.ast_to_spn import Id
 from spn.math_util import allclose
 from spn.spn import ExposedSumSPN
-from spn.transforms import Id
+from spn.sets import Interval
 
 Nationality = Id('Nationality')
 Perfect     = Id('Perfect')
@@ -251,8 +250,8 @@ def test_condition():
     GPA = Id('GPA')
     model_condition = model.condition(GPA << {4} | GPA << {10})
     assert len(model_condition.children) == 2
-    assert model_condition.children[0].support == {4}
-    assert model_condition.children[1].support == {10}
+    assert model_condition.children[0].support == Interval.Ropen(4, 5)
+    assert model_condition.children[1].support == Interval.Ropen(10, 11)
 
     model_condition = model.condition((0 < GPA < 4))
     assert len(model_condition.children) == 2

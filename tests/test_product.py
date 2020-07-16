@@ -16,6 +16,8 @@ from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
 from spn.math_util import lognorm
 from spn.math_util import logsumexp
+from spn.sets import Interval
+from spn.sets import inf as oo
 from spn.spn import LeafSPN
 from spn.spn import ProductSPN
 from spn.spn import SumSPN
@@ -121,7 +123,7 @@ def test_product_condition_basic():
         assert isinstance(dX, ProductSPN)
         assert dX.children[0].symbol == Id('X')
         assert dX.children[0].conditioned
-        assert dX.children[0].support == sympy.Interval.open(0, sympy.oo)
+        assert dX.children[0].support == Interval.open(0, oo)
         assert dX.children[1].symbol == Id('Y')
         assert not dX.children[1].conditioned
         assert dX.children[1].Fl == 0
@@ -134,17 +136,17 @@ def test_product_condition_basic():
     assert not dY.children[0].conditioned
     assert dY.children[1].symbol == Id('Y')
     assert dY.children[1].conditioned
-    assert dY.children[1].support == sympy.Interval.Ropen(0, 0.5)
+    assert dY.children[1].support == Interval.Ropen(0, 0.5)
 
     # Condition on (X > 0) & (Y < 0.5)
     dXY_and = spn.condition((X > 0) & (Y < 0.5))
     assert isinstance(dXY_and, ProductSPN)
     assert dXY_and.children[0].symbol == Id('X')
     assert dXY_and.children[0].conditioned
-    assert dXY_and.children[0].support == sympy.Interval.open(0, sympy.oo)
+    assert dXY_and.children[0].support == Interval.open(0, oo)
     assert dXY_and.children[1].symbol == Id('Y')
     assert dXY_and.children[1].conditioned
-    assert dXY_and.children[1].support == sympy.Interval.Ropen(0, 0.5)
+    assert dXY_and.children[1].support == Interval.Ropen(0, 0.5)
 
     # Condition on (X > 0) | (Y < 0.5)
     event = (X > 0) | (Y < 0.5)
@@ -161,14 +163,14 @@ def test_product_condition_basic():
     component_0 = dXY_disjoint_one.children[0]
     assert component_0.children[0].symbol == Id('X')
     assert component_0.children[0].conditioned
-    assert component_0.children[0].support == sympy.Interval.open(0, sympy.oo)
+    assert component_0.children[0].support == Interval.open(0, oo)
     assert component_0.children[1].symbol == Id('Y')
     assert component_0.children[1].conditioned
-    assert component_0.children[1].support == sympy.Interval.Ropen(0, 0.5)
+    assert component_0.children[1].support == Interval.Ropen(0, 0.5)
     component_1 = dXY_disjoint_one.children[1]
     assert component_1.children[0].symbol == Id('X')
     assert component_1.children[0].conditioned
-    assert component_1.children[0].support == sympy.Interval(-sympy.oo, 0)
+    assert component_1.children[0].support == Interval(-oo, 0)
     assert component_1.children[1].symbol == Id('Y')
     assert not component_1.children[1].conditioned
 
@@ -178,17 +180,17 @@ def test_product_condition_basic():
     component_0 = dXY_disjoint_two.children[0]
     assert component_0.children[0].symbol == Id('X')
     assert component_0.children[0].conditioned
-    assert component_0.children[0].support == sympy.Interval.open(0, sympy.oo)
+    assert component_0.children[0].support == Interval.open(0, oo)
     assert component_0.children[1].symbol == Id('Y')
     assert component_0.children[1].conditioned
-    assert component_0.children[1].support == sympy.Interval.Ropen(0, 0.5)
+    assert component_0.children[1].support == Interval.Ropen(0, 0.5)
     component_1 = dXY_disjoint_two.children[1]
     assert component_1.children[0].symbol == Id('X')
     assert component_1.children[0].conditioned
-    assert component_1.children[0].support == sympy.Interval(-sympy.oo, 0)
+    assert component_1.children[0].support == Interval(-oo, 0)
     assert component_1.children[1].symbol == Id('Y')
     assert component_1.children[1].conditioned
-    assert component_1.children[1].support == sympy.Interval(3, sympy.oo)
+    assert component_1.children[1].support == Interval(3, oo)
 
     # Some various conditioning.
     spn.condition((X > 0) & (Y < 0.5) | ((X <= 1) | ~(Y < 3)))
@@ -216,10 +218,10 @@ def test_product_condition_or_probabilithy_zero():
     assert isinstance(spn_condition, ProductSPN)
     assert spn_condition.children[0].symbol == X
     assert spn_condition.children[0].conditioned
-    assert spn_condition.children[0].support == sympy.Interval(1, sympy.oo)
+    assert spn_condition.children[0].support == Interval(1, oo)
     assert spn_condition.children[1].symbol == Y
     assert spn_condition.children[1].conditioned
-    assert spn_condition.children[0].support == sympy.Interval(1, sympy.oo)
+    assert spn_condition.children[0].support == Interval(1, oo)
 
     # We have (X < 2) & ~(1 < exp(|3X**2|) is empty.
     # Thus Y remains unconditioned,
@@ -235,9 +237,11 @@ def test_product_condition_or_probabilithy_zero():
     assert spn_condition.children[0].children[0].conditioned
     assert spn_condition.children[0].children[1].conditioned
     assert spn_condition.children[0].children[0].support \
-        == sympy.Interval.Ropen(-sympy.oo, 0)
+        in [Interval.Ropen(-oo, 0), Interval.Lopen(0, oo)]
     assert spn_condition.children[0].children[1].support \
-        == sympy.Interval.Lopen(0, sympy.oo)
+        in [Interval.Ropen(-oo, 0), Interval.Lopen(0, oo)]
+    assert spn_condition.children[0].children[0].support \
+        != spn_condition.children[0].children[1].support
     assert spn_condition.children[1].symbol == Y
     assert not spn_condition.children[1].conditioned
     #
@@ -255,9 +259,9 @@ def test_product_condition_or_probabilithy_zero():
     # assert spn_condition.children[0].children[0].conditioned
     # assert spn_condition.children[1].children[0].conditioned
     # assert spn_condition.children[0].children[0].support \
-    #     == sympy.Interval.Ropen(-sympy.oo, 0)
+    #     == Interval.Ropen(-oo, 0)
     # assert spn_condition.children[1].children[0].support \
-    #     == sympy.Interval.Lopen(0, sympy.oo)
+    #     == Interval.Lopen(0, oo)
     # assert Y \
     #     == spn_condition.children[0].children[1].symbol \
     #     == spn_condition.children[1].children[1].symbol

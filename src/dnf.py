@@ -5,9 +5,7 @@ from functools import reduce
 from itertools import chain
 from itertools import combinations
 
-from sympy import Intersection
-
-from .sym_util import EmptySet
+from .sets import EmptySet
 from .transforms import EventAnd
 from .transforms import EventBasic
 from .transforms import EventOr
@@ -101,7 +99,7 @@ def dnf_non_disjoint_clauses(event):
     for i, j in combinations(range(n_clauses), 2):
         # Exit if any symbol in i does not intersect a symbol in j.
         intersections = (
-            Intersection(solutions[i][symbol], solutions[j][symbol])
+            solutions[i][symbol] & solutions[j][symbol]
                 if (symbol in solutions[j]) else
                 solutions[i][symbol]
             for symbol in solutions[i]

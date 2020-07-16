@@ -49,3 +49,7 @@ def isinf_neg(x):
 
 def random(x):
     return x or numpy.random
+
+int_or_isinf_neg = lambda a: isinf_neg(a) or float(a) == int(a)
+int_or_isinf_pos = lambda a: isinf_pos(a) or float(a) == int(a)
+float_to_int = lambda a: a if isinf(a) else int(a)

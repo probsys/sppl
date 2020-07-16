@@ -6,7 +6,8 @@
 from fractions import Fraction
 
 import scipy.stats
-import sympy
+from sympy import E
+from sympy import sqrt
 
 from ..spn import ContinuousLeaf
 from ..spn import DiscreteLeaf
@@ -15,7 +16,7 @@ from ..spn import ProductSPN
 from ..spn import SumSPN
 
 # Needed for "eval"
-from sympy import *
+from ..sets import *
 from ..transforms import Id
 from ..transforms import Identity
 from ..transforms import Radical
@@ -30,7 +31,6 @@ from ..transforms import EventFiniteReal
 from ..transforms import EventFiniteNominal
 from ..transforms import EventOr
 from ..transforms import EventAnd
-from ..sym_util import NominalValue
 
 def env_from_dict(env):
     if env is None:
@@ -62,14 +62,14 @@ def spn_from_dict(metadata):
     if metadata['class'] == 'ContinuousLeaf':
         symbol = Id(metadata['symbol'])
         dist = scipy_dist_from_dict(metadata['dist'])
-        support = sympy.sympify(metadata['support'])
+        support = eval(metadata['support'])
         conditioned = metadata['conditioned']
         env = env_from_dict(metadata['env'])
         return ContinuousLeaf(symbol, dist, support, conditioned, env=env)
     if metadata['class'] == 'DiscreteLeaf':
         symbol = Id(metadata['symbol'])
         dist = scipy_dist_from_dict(metadata['dist'])
-        support = sympy.sympify(metadata['support'])
+        support = eval(metadata['support'])
         conditioned = metadata['conditioned']
         env = env_from_dict(metadata['env'])
         return DiscreteLeaf(symbol, dist, support, conditioned, env=env)

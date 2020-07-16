@@ -9,7 +9,7 @@ import pytest
 
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
-from spn.sym_util import NominalSet
+from spn.sets import FiniteNominal
 from spn.transforms import Id
 
 def test_nominal_distribution():
@@ -53,7 +53,7 @@ def test_nominal_distribution():
         spn.sample_func(lambda Y: Y, 100)
 
     spn_condition = spn.condition(X<<{'a', 'b'})
-    assert spn_condition.support == NominalSet('a', 'b', 'c')
+    assert spn_condition.support == FiniteNominal('a', 'b', 'c')
     assert allclose(spn_condition.logprob(X << {'a'}), -log(2))
     assert allclose(spn_condition.logprob(X << {'b'}), -log(2))
     assert spn_condition.logprob(X << {'c'}) == -float('inf')

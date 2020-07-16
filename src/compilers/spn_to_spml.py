@@ -62,6 +62,7 @@ def render_spml_helper(spn, state):
         state.stream.write('\n')
         if spn.conditioned:
             event = spn.symbol << spn.support
+            # TODO: Consider using repr(event)
             state.stream.write('%scondition(%s)' % (idt, event))
             state.stream.write('\n')
         for i, (var, expr) in enumerate(spn.env.items()):

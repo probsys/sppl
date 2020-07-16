@@ -17,6 +17,7 @@ def test_render_spml():
             model.logprob(Y << {str(i)}),
             namespace.model.logprob(Y << {str(i)})
         ])
-    assert allclose(
-        model.logprob(X << {0}),
-        namespace.model.logprob(X << {0}))
+    for i in range(4):
+        assert allclose(
+            model.logprob(X << {i}),
+            namespace.model.logprob(X << {i}))
