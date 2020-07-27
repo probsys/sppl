@@ -4,10 +4,13 @@
 import pytest
 import sympy
 
-from sympy import FiniteSet
-from sympy import Interval
 from sympy import Rational as Rat
-from sympy import oo
+
+from spn.sets import EmptySet
+from spn.sets import FiniteNominal
+from spn.sets import FiniteReal
+from spn.sets import Interval
+from spn.sets import inf as oo
 
 from spn.transforms import Abs
 from spn.transforms import Exp
@@ -25,10 +28,6 @@ from spn.transforms import EventFiniteNominal
 from spn.transforms import EventFiniteReal
 from spn.transforms import EventInterval
 from spn.transforms import EventOr
-
-from spn.sym_util import EmptySet
-from spn.sym_util import NominalSet
-from spn.sym_util import UniversalSet
 
 X = Identity("X")
 Y = X
@@ -428,7 +427,7 @@ def test_event_inequality_parse():
     assert ((5 < X) < 5) == EventFiniteReal(X, EmptySet)
     assert ((5 < X) <= 5) == EventFiniteReal(X, EmptySet)
     assert ((5 <= X) < 5) == EventFiniteReal(X, EmptySet)
-    assert ((5 <= X) <= 5) == EventFiniteReal(X, FiniteSet(5))
+    assert ((5 <= X) <= 5) == EventFiniteReal(X, FiniteReal(5))
 
     # Negated single interval.
     assert ~(5 < X) == (X <= 5)
@@ -491,24 +490,24 @@ def test_event_inequality_string():
     assert str(5 <= X) == '5 <= X'
     assert str(X < 10) == str(10 > X) == 'X < 10'
     assert str(X <= 10) == str(10 >= X) == 'X <= 10'
-    assert str(5 < (X < 10)) == '5 < X < 10'
-    assert str(5 <= (X < 10)) == '5 <= X < 10'
-    assert str(5 < (X <= 10)) == '5 < X <= 10'
-    assert str(5 <= (X <= 10)) == '5 <= X <= 10'
+    assert str(5 < (X < 10)) == '(5 < X) < 10'
+    assert str(5 <= (X < 10)) == '(5 <= X) < 10'
+    assert str(5 < (X <= 10)) == '(5 < X) <= 10'
+    assert str(5 <= (X <= 10)) == '(5 <= X) <= 10'
     assert str((X < 10) & (X < 5)) == 'X < 5'
     assert str((X < 10) | (X < 5)) == 'X < 10'
 
 def test_event_containment_string():
     assert str(X << [10, 1]) == 'X << {1, 10}'
     assert str(X << {1, 2}) == 'X << {1, 2}'
-    assert str(X << FiniteSet(1, 11)) == 'X << {1, 11}'
+    assert str(X << FiniteReal(1, 11)) == 'X << {1, 11}'
 
 def test_event_containment_real():
     assert (X << Interval(0, 10)) == EventInterval(X, Interval(0, 10))
-    for values in [FiniteSet(0, 10), [0, 10], {0, 10}]:
-        assert (X << values) == EventFiniteReal(X, FiniteSet(0, 10))
-    with pytest.raises(ValueError):
-        X << {1, None}
+    for values in [FiniteReal(0, 10), [0, 10], {0, 10}]:
+        assert (X << values) == EventFiniteReal(X, FiniteReal(0, 10))
+    # with pytest.raises(ValueError):
+    #     X << {1, None}
     assert X << {1, 2} == EventFiniteReal(X, {1, 2})
     assert ~(X << {1, 2}) == EventOr([
         EventInterval(X, Interval.Ropen(-oo, 1)),
@@ -521,9 +520,8 @@ def test_event_containment_real():
         ((1 <= X) & ((X <= 1) | (2 <= X)) & (X <= 2))
 
 def test_event_containment_nominal():
-    assert X << {'a'} == EventFiniteNominal(X, NominalSet('a'))
-    assert ~(X << {'a'}) == EventFiniteNominal(X,
-        sympy.Complement(UniversalSet, NominalSet('a')))
+    assert X << {'a'} == EventFiniteNominal(X, FiniteNominal('a'))
+    assert ~(X << {'a'}) == EventFiniteNominal(X, FiniteNominal('a',b=True))
     assert ~(~(X << {'a'})) == X << {'a'}
 
 def test_event_containment_mixed():
@@ -531,7 +529,7 @@ def test_event_containment_mixed():
         == (X << {1,2}) | (X << {'a'}) \
         == EventOr([
         EventFiniteReal(X, {1, 2}),
-        EventFiniteNominal(X, NominalSet('a'))
+        EventFiniteNominal(X, FiniteNominal('a'))
     ])
     assert (~(X << {1, 2, 'a'})) == ~(X << {1,2}) & ~(X << {'a'})
 
@@ -543,14 +541,19 @@ def test_event_containment_mixed():
     ])
 
 def test_event_containment_union():
-    assert (X << sympy.Union(sympy.Interval(0, 1), sympy.Interval(2, 3))) \
+    assert (X << (Interval(0, 1) | Interval(2, 3))) \
         == (((0 <= X) <= 1) | ((2 <= X) <= 3))
-    assert (X << sympy.Union(sympy.FiniteSet(0, 1), sympy.Interval(2, 3))) \
+    assert (X << (FiniteReal(0, 1) | Interval(2, 3))) \
         == ((X << {0, 1}) | ((2 <= X) <= 3))
-    assert (X << sympy.Complement(UniversalSet, NominalSet('a'))) \
-        == EventFiniteNominal(X, sympy.Complement(UniversalSet, NominalSet('a')))
-    assert (X << sympy.Complement(sympy.Interval(0, 1), NominalSet('a')))\
-        == ((0 <= X) <= 1)
+    assert (X << FiniteNominal('a', b=True)) \
+        == EventFiniteNominal(X, FiniteNominal('a', b=True))
+    assert X << EmptySet == EventFiniteReal(X, EmptySet)
+    # Ordering is not guaranteed.
+    a = X << (Interval(0,1) | (FiniteReal(1.5) | FiniteNominal('a')))
+    assert len(a.subexprs) == 3
+    assert EventInterval(X, Interval(0,1)) in a.subexprs
+    assert EventFiniteReal(X, FiniteReal(1.5)) in a.subexprs
+    assert EventFiniteNominal(X, FiniteNominal('a')) in a.subexprs
 
 def test_event_basic_simplifications():
     assert (1 < X) & (3 < X) == (3 < X)
@@ -568,15 +571,11 @@ def test_event_basic_simplifications():
     assert (X << {2}) | (X << {3,4}) == (X << {2, 3, 4})
     assert (X << {'2'}) | (X << {'a'}) == X << {'2', 'a'}
     assert (X << {'2'}) & (~(X << {'a'})) == (X << {'2'})
-    assert (X << {1}) & (~(X << {'a'})) == (X << {1})
+    assert (X << {1}) & (~(X << {'a'})) == (X << EmptySet)
 
-    # GOTCHA: ~(X << {2}) is a union of reals which do not
-    # intersect the nominals.
-    # assert ~(X << {2}) & (X << {'a'}) == X << {'a'}
-    assert (X < 1) & (X << {'a'}) == EventFiniteReal(X, EmptySet)
-
-    # Complement case in Event.__and__
-    assert ((0 <= X) < 1) & (~(X << {'a'})) == ((0 <= X) < 1)
+    assert ~(X << {2}) & (X << {'a'}) == EventAnd([~(X << {2}), X <<{'a'}])
+    assert (X < 1) & (X << {'a'}) == X << EmptySet
+    assert ((0 <= X) < 1) & (~(X << {'a'})) == X << EmptySet
 
     assert (X << {2}) & (X << {'a'}) == X << EmptySet
     assert (X << {'a'}) & (X << {1}) == X << EmptySet
@@ -585,23 +584,18 @@ def test_event_basic_simplifications():
     assert (X << {'a'}) & ~(X << {'b'}) == (X << {'a'})
 
     # Complement case in Event.__or__.
-    assert (X << {1}) | (~(X << {'a'})) == ~(X << {'a'})
+    assert (X << {1}) | (~(X << {'a'})) == EventOr([X<<{1}, ~(X<<{'a'})])
     assert (X << {'a'}) | ~(X << {'b'}) == ~(X << {'b'})
 
 def test_event_complex_simplification():
     # De Morgan's case in EventFinteNominal.__or__.
-    assert ~(X << {'a'}) | ~(X << {'b'}) == EventFiniteNominal(X, UniversalSet)
+    assert ~(X << {'a'}) | ~(X << {'b'}) == EventFiniteNominal(X, FiniteNominal(b=True))
     assert ~(X << {'a'}) | ~(X << {'a', 'b'}) == ~(X << {'a'})
-
-    # Here we fail to simplify because sympy.Union({'a'}, U \ {'a', 'b'})
-    # does not correctly simplify to U \ {'b'}.
-    assert (X << {'1'}) | ~(X << {'1', '2'}) \
-        == EventOr([X << {'1'}, ~(X << {'1', '2'})])
+    assert (X << {'1'}) | ~(X << {'1', '2'}) == ~(X << {'2'})
 
 def test_xor():
     A = X << {'a'}
     B = ~(X << {'b'})
     assert (A ^ B) \
         == ((A & ~B) | (~A & B)) \
-        == EventFiniteNominal(X,
-            sympy.Complement(UniversalSet, NominalSet('a', 'b')))
+        == EventFiniteNominal(X, FiniteNominal('a', 'b', b=True))

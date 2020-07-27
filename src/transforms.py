@@ -9,7 +9,6 @@ from math import isinf
 
 import sympy
 
-from sympy import oo
 from sympy.abc import X as symX
 
 from sympy.calculus.util import function_range
@@ -21,21 +20,21 @@ from .math_util import isinf_pos
 from .poly import solve_poly_equality
 from .poly import solve_poly_inequality
 
-from .sym_util import EmptySet
-from .sym_util import ExtReals
-from .sym_util import ExtRealsPos
-from .sym_util import Reals
-from .sym_util import UniversalSet
-from .sym_util import get_union
+from .sets import EmptySet
+from .sets import ExtReals
+from .sets import ExtRealsPos
+from .sets import FiniteNominal
+from .sets import FiniteReal
+from .sets import Interval
+from .sets import Reals
+from .sets import Strings
+from .sets import Union
+from .sets import convert_sympy
+from .sets import make_intersection
+from .sets import make_union
+from .sets import oo
 
-from .sym_util import ContainersFinite
-from .sym_util import NominalSet
-from .sym_util import complement_nominal_set
-from .sym_util import is_nominal
-from .sym_util import is_nominal_set
-from .sym_util import is_number
-from .sym_util import is_numeric_set
-from .sym_util import sympify_nominal
+from .sym_util import get_union
 from .sym_util import sympify_number
 
 # ==============================================================================
@@ -71,19 +70,16 @@ class Transform():
         raise NotImplementedError()
 
     def invert(self, ys):
-        intersection = sympy.Intersection(self.range(), ys)
+        intersection = self.range() & ys
         if intersection is EmptySet:
             return EmptySet
-        if isinstance(intersection, ContainersFinite):
+        if isinstance(intersection, FiniteReal):
             return self.invert_finite(intersection)
-        if isinstance(intersection, sympy.Interval):
+        if isinstance(intersection, Interval):
             return self.invert_interval(intersection)
-        if isinstance(intersection, sympy.Union):
+        if isinstance(intersection, Union):
             xs_list = [self.invert(ys_i) for ys_i in intersection.args]
-            return sympy.Union(*xs_list)
-        if isinstance(intersection, sympy.Complement):
-            (A, B) = intersection.args
-            return self.invert(A - sympy.Intersection(A, B))
+            return make_union(*xs_list)
         assert False, 'Unknown intersection: %s' % (intersection,)
     def invert_finite(self, ys):
         raise NotImplementedError()
@@ -286,7 +282,7 @@ class Transform():
         # self <= x
         try:
             x_val = sympify_number(x)
-            interval = sympy.Interval(-oo, x_val)
+            interval = Interval(-oo, x_val)
             return EventInterval(self, interval)
         except TypeError:
             return NotImplemented
@@ -294,7 +290,7 @@ class Transform():
         # self < x
         try:
             x_val = sympify_number(x)
-            interval = sympy.Interval(-oo, x_val, right_open=True)
+            interval = Interval(-oo, x_val, right_open=True)
             return EventInterval(self, interval)
         except TypeError:
             return NotImplemented
@@ -302,7 +298,7 @@ class Transform():
         # self >= x
         try:
             x_val = sympify_number(x)
-            interval = sympy.Interval(x_val, oo)
+            interval = Interval(x_val, oo)
             return EventInterval(self, interval)
         except TypeError:
             return NotImplemented
@@ -310,45 +306,35 @@ class Transform():
         # self > x
         try:
             x_val = sympify_number(x)
-            interval = sympy.Interval(x_val, oo, left_open=True)
+            interval = Interval(x_val, oo, left_open=True)
             return EventInterval(self, interval)
         except TypeError:
             return NotImplemented
 
     # Containment
     def __lshift__(self, x):
-        if isinstance(x, ContainersFinite):
+        if x is EmptySet:
+            return EventFiniteReal(self, x)
+        if isinstance(x, FiniteReal):
+            return EventFiniteReal(self, x)
+        if isinstance(x, FiniteNominal):
+            return EventFiniteNominal(self, x)
+        if isinstance(x, Interval):
+            return EventInterval(self, x)
+        if isinstance(x, (list, tuple, set, frozenset)):
             values = list(x)
-            values_num = [v for v in values if is_number(v)]
-            values_str = [sympify_nominal(v) for v in values if is_nominal(v)]
-            assert len(values_num) + len(values_str) <= len(values)
-            if len(values_num) + len(values_str) != len(values):
-                raise ValueError('Only numeric or symbolic values, not %s'
-                    % (str(x,)))
+            values_num = [v for v in values if not isinstance(v, str)]
+            values_str = [v for v in values if isinstance(v, str)]
             if values_num and values_str:
-                event_num = EventFiniteReal(self, sympy.FiniteSet(*values_num))
-                event_str = EventFiniteNominal(self, NominalSet(*values_str))
+                event_num = EventFiniteReal(self, FiniteReal(*values_num))
+                event_str = EventFiniteNominal(self, FiniteNominal(*values_str))
                 return EventOr([event_num, event_str])
             if values_num:
-                return EventFiniteReal(self, sympy.FiniteSet(*values_num))
+                return EventFiniteReal(self, FiniteReal(*values_num))
             if values_str:
-                return EventFiniteNominal(self, NominalSet(*values_str))
-            assert len(values) == 0
-            return EventFiniteReal(self, values)
-        if isinstance(x, sympy.Range):
-            if not (isinf(x.inf) or isinf(x.sup)):
-                return self << list(x)
-            assert False, 'Infinite Range not supported'
-        if isinstance(x, sympy.Interval):
-            return EventInterval(self, x)
-        if isinstance(x, sympy.Complement):
-            assert is_nominal_set(x.args[1])
-            if x.args[0] is UniversalSet:
-                return ~(self << x.args[1])
-            if not is_nominal_set(x.args[0]):
-                return self << x.args[0]
-            assert False, 'Impossible Complement: %s' % (x,)
-        if isinstance(x, sympy.Union):
+                return EventFiniteNominal(self, FiniteNominal(*values_str))
+            return EventFiniteReal(self, EmptySet)
+        if isinstance(x, Union):
             events = [self << y for y in x.args]
             return reduce(lambda state, event: state | event, events)
         return NotImplemented
@@ -358,10 +344,10 @@ class Transform():
 
 class Injective(Transform):
     def invert_finite(self, ys):
-        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        ys_prime = make_union(*[self.finv(y) for y in ys])
         return self.subexpr.invert(ys_prime)
     def invert_interval(self, ys):
-        assert isinstance(ys, sympy.Interval)
+        assert isinstance(ys, Interval)
         (a, b) = (ys.left, ys.right)
         a_prime = next(iter(self.finv(a)))
         b_prime = next(iter(self.finv(b)))
@@ -393,7 +379,7 @@ class Identity(Injective):
     def finv(self, y):
         if not y in self.range():
             return EmptySet
-        return {y}
+        return FiniteReal(y)
     def invert_finite(self, ys):
         return ys
     def invert_interval(self, ys):
@@ -437,7 +423,9 @@ class Radical(Injective):
     def finv(self, y):
         if y not in self.range():
             return EmptySet
-        return {sympy.Pow(y, sympy.Rational(self.degree, 1))}
+        if isinf_pos(y):
+            return FiniteReal(oo)
+        return FiniteReal(sympy.Pow(y, sympy.Rational(self.degree, 1)))
     def __eq__(self, x):
         return isinstance(x, Radical) \
             and self.subexpr == x.subexpr \
@@ -474,7 +462,11 @@ class Exponential(Injective):
     def finv(self, y):
         if not y in self.range():
             return EmptySet
-        return {sympy.log(y, self.base) if y > 0 else -oo}
+        if isinf_pos(y):
+            return FiniteReal(oo)
+        if y <= 0:
+            return FiniteReal(-oo)
+        return FiniteReal(sympy.log(y, self.base))
     def __eq__(self, x):
         return isinstance(x, Exponential) \
             and self.subexpr == x.subexpr \
@@ -513,7 +505,9 @@ class Logarithm(Injective):
     def finv(self, y):
         if not y in self.range():
             return EmptySet
-        return {sympy.Pow(self.base, y)}
+        if isinf_pos(y):
+            return FiniteReal(oo)
+        return FiniteReal(sympy.Pow(self.base, y))
     def __eq__(self, x):
         return isinstance(x, Logarithm) \
             and self.subexpr == x.subexpr \
@@ -555,16 +549,16 @@ class Abs(Transform):
     def finv(self, y):
         if not y in self.range():
             return EmptySet
-        return {y, -y}
+        return FiniteReal(y, -y)
     def invert_finite(self, ys):
-        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        ys_prime = make_union(*[self.finv(y) for y in ys])
         return self.subexpr.invert(ys_prime)
     def invert_interval(self, ys):
-        assert isinstance(ys, sympy.Interval)
+        assert isinstance(ys, Interval)
         (a, b) = (ys.left, ys.right)
         ys_pos = transform_interval(ys, a, b)
         ys_neg = transform_interval(ys, -b, -a, flip=True)
-        ys_prime = ys_pos + ys_neg
+        ys_prime = ys_pos | ys_neg
         return self.subexpr.invert(ys_prime)
     def __eq__(self, x):
         return isinstance(x, Abs) and self.subexpr == x.subexpr
@@ -582,9 +576,10 @@ class Reciprocal(Transform):
     def __init__(self, subexpr):
         self.subexpr = make_subexpr(subexpr, self)
     def domain(self):
-        return ExtReals - sympy.FiniteSet(0)
+        # return ExtReals - sympy.FiniteSet(0)
+        return FiniteReal(oo, -oo) | Interval.Ropen(-oo, 0) | Interval.Lopen(0, oo)
     def range(self):
-        return Reals - sympy.FiniteSet(0)
+        return Interval.Ropen(-oo, 0) | Interval.Lopen(0, oo)
     def subs(self, env):
         if not expr_in_env(self, env):
             return self
@@ -600,10 +595,10 @@ class Reciprocal(Transform):
         if y not in self.range():
             return EmptySet
         if y == 0:
-            return {-oo, oo}
-        return {sympy.Rational(1, y)}
+            return FiniteReal(-oo, oo)
+        return FiniteReal(sympy.Rational(1, y))
     def invert_finite(self, ys):
-        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        ys_prime = make_union(*[self.finv(y) for y in ys])
         return self.subexpr.invert(ys_prime)
     def invert_interval(self, ys):
         (a, b) = (ys.left, ys.right)
@@ -641,12 +636,12 @@ class Poly(Transform):
     def domain(self):
         return ExtReals
     def range(self):
-        result = function_range(self.symexpr, symX, Reals)
-        if isinstance(result, ContainersFinite):
-            return result
-        pos_inf = sympy.FiniteSet(oo) if result.right == oo else EmptySet
-        neg_inf = sympy.FiniteSet(-oo) if result.left == -oo else EmptySet
-        return sympy.Union(result, pos_inf, neg_inf)
+        result = function_range(self.symexpr, symX, sympy.Reals)
+        if isinstance(result, sympy.FiniteSet):
+            return FiniteReal(*[float(x) for x in result.args])
+        pos_inf = FiniteReal(oo) if result.right == oo else EmptySet
+        neg_inf = FiniteReal(-oo) if result.left == -oo else EmptySet
+        return make_union(convert_sympy(result), pos_inf, neg_inf)
     def subs(self, env):
         if not expr_in_env(self, env):
             return self
@@ -664,15 +659,15 @@ class Poly(Transform):
             return EmptySet
         return solve_poly_equality(self.symexpr, y)
     def invert_finite(self, ys):
-        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        ys_prime = make_union(*[self.finv(y) for y in ys])
         return self.subexpr.invert(ys_prime)
     def invert_interval(self, ys):
-        assert isinstance(ys, sympy.Interval)
+        assert isinstance(ys, Interval)
         (a, b) = (ys.left, ys.right)
         (lo, ro) = (not ys.left_open, ys.right_open)
         ys_prime_a = solve_poly_inequality(self.symexpr, a, lo, extended=False)
         ys_prime_b = solve_poly_inequality(self.symexpr, b, ro, extended=False)
-        ys_prime = sympy.Complement(ys_prime_b, ys_prime_a)
+        ys_prime = ys_prime_b & (~ys_prime_a)
         return self.subexpr.invert(ys_prime)
     def __eq__(self, x):
         return isinstance(x, Poly) \
@@ -712,10 +707,10 @@ class Piecewise(Transform):
         self.symbols = get_piecewise_symbol(self.subexprs, self.events)
         self.domains = get_piecewise_domains(self.events)
     def domain(self):
-        return sympy.Union(*self.domains)
+        return make_union(*self.domains)
     def range(self):
         ranges = [subexpr.range() for subexpr in self.subexprs]
-        return sympy.Union(*ranges)
+        return make_union(*ranges)
     def subs(self, env):
         if not expr_in_env(self, env):
             return self
@@ -731,15 +726,15 @@ class Piecewise(Transform):
     def finv(self, y):
         xs_list = get_piecewise_inverse(lambda subexpr: subexpr.finv(y),
             self.subexprs, self.domains)
-        return sympy.Union(*xs_list)
+        return make_union(*xs_list)
     def invert_finite(self, ys):
         xs_list = get_piecewise_inverse(lambda subexpr: subexpr.invert(ys),
             self.subexprs, self.domains)
-        return sympy.Union(*xs_list)
+        return make_union(*xs_list)
     def invert_interval(self, ys):
         xs_list = get_piecewise_inverse(lambda subexpr: subexpr.invert(ys),
             self.subexprs, self.domains)
-        return sympy.Union(*xs_list)
+        return make_union(*xs_list)
     def __add__(self, x):
         if isinstance(x, Piecewise):
             subexprs = self.subexprs + x.subexprs
@@ -782,7 +777,7 @@ def get_piecewise_domains(events):
         for j, dj in enumerate(domains):
             if i == j:
                 continue
-            intersection = sympy.Intersection(di, dj)
+            intersection = di & dj
             if intersection is not EmptySet:
                 raise ValueError('Piecewise events %s and %s overlap'
                     % (di, dj))
@@ -790,14 +785,15 @@ def get_piecewise_domains(events):
 
 def get_piecewise_inverse(f_inv, subexprs, domains):
     inverses = [f_inv(subexpr) for subexpr in subexprs]
-    return [sympy.Intersection(i, d) for i, d in zip(inverses, domains)]
+    intersections = [i & d for i, d in zip(inverses, domains)]
+    return make_union(intersections)
 
 # ==============================================================================
 # Non-injective Boolean-valued Transforms.
 
 class Event(Transform):
     def range(self):
-        return sympy.FiniteSet(0, 1)
+        return FiniteReal(0, 1)
 
     def __mul__(self, x):
         if isinstance(x, Transform):
@@ -808,7 +804,7 @@ class Event(Transform):
     def solve(self):
         if len(self.symbols) > 1:
             raise ValueError('Cannot solve multi-symbol Event.')
-        return self.invert({1})
+        return self.invert(FiniteReal(1))
     def to_dnf(self):
         dnf = self.to_dnf_list()
         simplify_event = lambda x, E: x[0] if len(x)==1 else E(x)
@@ -869,23 +865,15 @@ class EventBasic(Event):
         # Simplify.
         if isinstance(event, EventBasic):
             if event.subexpr == self.subexpr:
-                intersection = sympy.Intersection(self.values, event.values)
+                intersection = self.values & event.values
                 if intersection is EmptySet:
                     return EventFiniteReal(self.subexpr, EmptySet)
-                if isinstance(intersection, sympy.FiniteSet):
-                    if is_nominal_set(intersection):
-                        return EventFiniteNominal(self.subexpr, intersection)
-                    if is_numeric_set(intersection):
-                        return EventFiniteReal(self.subexpr, intersection)
-                if isinstance(intersection, sympy.Interval):
+                if isinstance(intersection, FiniteReal):
+                    return EventFiniteReal(self.subexpr, intersection)
+                if isinstance(intersection, FiniteNominal):
+                    return EventFiniteNominal(self.subexpr, intersection)
+                if isinstance(intersection, Interval):
                     return EventInterval(self.subexpr, intersection)
-                if isinstance(intersection, sympy.Complement):
-                    assert is_nominal_set(intersection.args[1])
-                    if intersection.args[0] is UniversalSet:
-                        return EventFiniteNominal(self.subexpr, intersection)
-                    if isinstance(intersection.args[0], sympy.Interval):
-                        return EventInterval(self.subexpr, intersection.args[0])
-                    assert False, 'Unknown intersection: %s' % (intersection,)
         # Linearize but do not simplify.
         if isinstance(event, EventAnd):
             events = (self,) + event.subexprs
@@ -897,18 +885,15 @@ class EventBasic(Event):
         # Simplify.
         if isinstance(event, EventBasic):
             if event.subexpr == self.subexpr:
-                union = sympy.Union(self.values, event.values)
+                union = self.values | event.values
                 if union is EmptySet:
                     return EventFiniteReal(self.subexpr, EmptySet)
-                if isinstance(union, sympy.FiniteSet):
-                    if is_nominal_set(union):
-                        return EventFiniteNominal(self.subexpr, union)
-                    if is_numeric_set(union):
-                        return EventFiniteReal(self.subexpr, union)
-                if isinstance(union, sympy.Interval):
-                    return EventInterval(self.subexpr, union)
-                if isinstance(union, sympy.Complement):
+                if isinstance(union, FiniteReal):
+                    return EventFiniteReal(self.subexpr, union)
+                if isinstance(union, FiniteNominal):
                     return EventFiniteNominal(self.subexpr, union)
+                if isinstance(union, Interval):
+                    return EventInterval(self.subexpr, union)
         # Linearize but do not simplify.
         if isinstance(event, EventOr):
             events = (self,) + event.subexprs
@@ -926,7 +911,7 @@ class EventBasic(Event):
 
 class EventInterval(EventBasic):
     def __init__(self, subexpr, values):
-        assert isinstance(values, sympy.Interval)
+        assert isinstance(values, Interval)
         self.subexpr = make_subexpr(subexpr, self)
         self.values = values
     def finv(self, y):
@@ -935,9 +920,9 @@ class EventInterval(EventBasic):
         if y == 1:
             return self.values
         if y == 0:
-            return sympy.Complement(Reals, self.values)
+            return ~self.values
     def invert_finite(self, ys):
-        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        ys_prime = make_union(*[self.finv(y) for y in ys])
         return self.subexpr.invert(ys_prime)
 
     # Support chaining notation (a < X) < b
@@ -947,11 +932,15 @@ class EventInterval(EventBasic):
         if not isinf_neg(self.values.left):
             raise ValueError('cannot compute %s < %s' % (x, str(self)))
         xn = sympify_number(x)
-        interval = sympy.Interval(xn, self.values.right,
-            left_open=left_open, right_open=self.values.right_open)
-        if isinstance(interval, sympy.Interval):
+        # TODO: Replace interval_tmp
+        interval_tmp = sympy.Interval(
+            xn, self.values.right,
+            left_open=left_open,
+            right_open=self.values.right_open)
+        interval = convert_sympy(interval_tmp)
+        if isinstance(interval, Interval):
             return EventInterval(self.subexpr, interval)
-        if isinstance(interval, ContainersFinite):
+        if isinstance(interval, FiniteReal) or interval is EmptySet:
             return EventFiniteReal(self.subexpr, interval)
         assert False, 'Unknown interval: %s' % (interval,)
     def __compute_lte__(self, x, right_open):
@@ -959,11 +948,15 @@ class EventInterval(EventBasic):
         if not isinf_pos(self.values.right):
             raise ValueError('cannot compute %s < %s' % (str(self), x))
         xn = sympify_number(x)
-        interval = sympy.Interval(self.values.left, xn,
-            left_open=self.values.left_open, right_open=right_open)
-        if isinstance(interval, sympy.Interval):
+        # TODO: Replace interval_tmp
+        interval_tmp = sympy.Interval(
+            self.values.left, xn,
+            left_open=self.values.left_open,
+            right_open=right_open)
+        interval = convert_sympy(interval_tmp)
+        if isinstance(interval, Interval):
             return EventInterval(self.subexpr, interval)
-        if isinstance(interval, ContainersFinite):
+        if isinstance(interval, FiniteReal) or interval is EmptySet:
             return EventFiniteReal(self.subexpr, interval)
         assert False, 'Unknown interval: %s' % (interval,)
     def __gt__(self, x):
@@ -975,12 +968,13 @@ class EventInterval(EventBasic):
     def __le__(self, x):
         return self.__compute_lte__(x, False)
     def __invert__(self):
-        values_not = sympy.Complement(Reals, self.values)
+        values_not = ~self.values
         if values_not is EmptySet:
             return EventFiniteReal(self.subexpr, values_not)
-        if isinstance(values_not, sympy.Interval):
+        if isinstance(values_not, Interval):
             return EventInterval(self.subexpr, values_not)
-        if isinstance(values_not, sympy.Union):
+        if isinstance(values_not, Union):
+            assert len(values_not.args) == 2
             event_l = EventInterval(self.subexpr, values_not.args[0])
             event_r = EventInterval(self.subexpr, values_not.args[1])
             return EventOr([event_l, event_r])
@@ -998,50 +992,48 @@ class EventInterval(EventBasic):
         elif isinf_pos(x_r):
             result = '%s %s %s' % (x_l, comp_l, sym)
         else:
-            result = '%s %s %s %s %s' % (x_l, comp_l, sym, comp_r, x_r)
+            # Python-style parenthesis are required for
+            # rendering condition(E) in spn_to_spml.py
+            result = '(%s %s %s) %s %s' % (x_l, comp_l, sym, comp_r, x_r)
         return result
 
 class EventFiniteReal(EventBasic):
     def __init__(self, subexpr, values):
-        assert isinstance(values, ContainersFinite) or values is EmptySet
-        # assert all(is_number(v) for v in values)
         self.subexpr = make_subexpr(subexpr, self)
-        self.values = sympy.FiniteSet(*values)
+        self.values = values if values is EmptySet else FiniteReal(*values)
     def finv(self, y):
         if y not in self.range():
             return EmptySet
         if y == 1:
             return self.values
         if y == 0:
-            return sympy.Complement(Reals, self.values)
+            return ~self.values
     def invert_finite(self, ys):
-        ys_prime = sympy.Union(*[self.finv(y) for y in ys])
+        ys_prime = make_union(*[self.finv(y) for y in ys])
         return self.subexpr.invert(ys_prime)
 
     def __repr__(self):
         return 'EventFiniteReal(%s, values=%s)' \
             % (repr(self.subexpr), repr(self.values))
     def __str__(self):
-        str_items = ', '.join('%s' % (x,) for x in sorted(self.values))
+        str_items = '' if self.values is EmptySet else \
+            ', '.join('%s' % (x,) for x in sorted(self.values))
         return '%s << %s' % (str(self.subexpr), '{%s}' % (str_items,))
     def __invert__(self):
-        values_not = sympy.Complement(Reals, self.values)
-        if values_not is Reals:
-            return EventInterval(self.subexpr, sympy.Interval(-oo, oo))
-        assert isinstance(values_not, sympy.Union)
+        values_not = ~self.values
+        if values_not == Reals:
+            return EventInterval(self.subexpr, Reals)
+        assert isinstance(values_not, Union)
         events = [EventInterval(self.subexpr, v) for v in values_not.args]
         return EventOr(events)
 
 class EventFiniteNominal(EventBasic):
     def __init__(self, subexpr, values):
-        special = values is EmptySet \
-            or values is UniversalSet \
-            or isinstance(values, sympy.Complement)
-        assert special or is_nominal_set(values)
+        assert values is EmptySet or isinstance(values, FiniteNominal)
         self.subexpr = make_subexpr(subexpr, self)
-        self.values = values if special else values
+        self.values = values
         self.transformed = not isinstance(self.subexpr, Identity)
-        self.complemented = isinstance(values, sympy.Complement)
+        self.complemented = self.values is not EmptySet and self.values.b
 
     def finv(self, y):
         if y not in self.range():
@@ -1053,61 +1045,33 @@ class EventFiniteNominal(EventBasic):
                 if not self.complemented:
                     return EmptySet
                 else:
-                    return UniversalSet
+                    return Strings
             return self.values
         if y == 0:
             if self.values is EmptySet:
-                return UniversalSet
+                return Strings
             if self.transformed:
                 if not self.complemented:
-                    return UniversalSet
+                    return Strings
                 else:
                     return EmptySet
-            return complement_nominal_set(self.values)
+            return ~self.values
 
     def invert_finite(self, ys):
-        if ys == sympy.FiniteSet(0):
+        if ys == FiniteReal(0):
             return self.finv(0)
-        if ys == sympy.FiniteSet(1):
+        if ys == FiniteReal(1):
             return self.finv(1)
-        if ys == sympy.FiniteSet(1, 2):
-            return UniversalSet
+        if ys == FiniteReal(1, 2):
+            return Strings
 
-    def __or__(self, event):
-        # De Morgan's laws for Events of the form
-        # ~(X << A) | ~(X << B) = ~( (X << A) & (X << B) )
-        if isinstance(event, EventFiniteNominal):
-            if event.subexpr == self.subexpr:
-                union = sympy.Union(self.values, event.values)
-                if isinstance(union, sympy.Union):
-                    if (union.args[0].args[0] is UniversalSet
-                            and union.args[1].args[0] is UniversalSet):
-                        assert isinstance(self.values, sympy.Complement)
-                        assert isinstance(event.values, sympy.Complement)
-                        A = complement_nominal_set(self.values)
-                        B = complement_nominal_set(event.values)
-                        intersection = sympy.Intersection(A, B)
-                        return ~EventFiniteNominal(self.subexpr, intersection)
-        return super().__or__(event)
     def __repr__(self):
-        if self.complemented:
-            items = complement_nominal_set(self.values)
-            items_str = 'FiniteSet%s' % (repr(items.args),)
-            values_str = 'Complement(UniversalSet, %s)' % (items_str,)
-        elif self.values is EmptySet:
-            values_str = repr(self.values)
-        else:
-            items = self.values
-            values_str = 'FiniteSet%s' % (repr(items.args),)
         return 'EventFiniteNominal(%s, values=%s)' \
-            % (repr(self.subexpr), values_str)
+            % (repr(self.subexpr), repr(self.values))
     def __str__(self):
-        # FIXME: https://github.com/probcomp/sum-product-dsl/issues/86
-        str_values = '(%s)' % (str(self.values,)) \
-            if self.complemented else '%s' % (str(set(self.values)),)
-        return '%s << %s' % (str(self.subexpr), str_values)
+        return '%s << %s' % (str(self.subexpr), str(self.values))
     def __invert__(self):
-        values_not = complement_nominal_set(self.values)
+        values_not = ~self.values
         return EventFiniteNominal(self.subexpr, values_not)
 
 class EventCompound(Event):
@@ -1119,7 +1083,7 @@ class EventCompound(Event):
         if len(self.symbols) > 1:
             raise ValueError('No domain for multi-symbol Event.')
         domains = [event.domain() for event in self.subexprs]
-        return sympy.Intersection(*domains)
+        return make_intersection(*domains)
     def subs(self, env):
         if not expr_in_env(self, env):
             return self
@@ -1137,10 +1101,10 @@ class EventOr(EventCompound):
     def finv(self, y):
         # Cannot invert multi-symbol Event.
         xs_list = [event.finv(y) for event in self.subexprs]
-        return sympy.Union(*xs_list)
+        return make_union(*xs_list)
     def invert_finite(self, ys):
         xs_list = [event.invert(ys) for event in self.subexprs]
-        return sympy.Union(*xs_list)
+        return make_union(*xs_list)
 
     # Event methods.
     def to_dnf_list(self):
@@ -1187,10 +1151,10 @@ class EventAnd(EventCompound):
     def finv(self, y):
         # Cannot invert multi-symbol Event.
         xs_list = [event.finv(y) for event in self.subexprs]
-        return sympy.Intersection(*xs_list)
+        return make_intersection(*xs_list)
     def invert_finite(self, ys):
         xs_list = [event.invert(ys) for event in self.subexprs]
-        return sympy.Intersection(*xs_list)
+        return make_intersection(*xs_list)
 
     # Event methods.
     def to_dnf_list(self):
@@ -1250,9 +1214,9 @@ def expr_in_env(expr, env):
 
 def transform_interval(interval, a, b, flip=None):
     return \
-        sympy.Interval(a, b, interval.left_open, interval.right_open) \
+        Interval(a, b, interval.left_open, interval.right_open) \
         if not flip else \
-        sympy.Interval(a, b, interval.right_open, interval.left_open) \
+        Interval(a, b, interval.right_open, interval.left_open) \
 
 def make_sympy_polynomial(coeffs):
     terms = [c*symX**i for (i,c) in enumerate(coeffs)]

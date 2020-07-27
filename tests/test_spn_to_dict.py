@@ -4,12 +4,14 @@
 import json
 import pytest
 
+from sympy import sqrt
+
 from spn.compilers.spn_to_dict import spn_from_dict
 from spn.compilers.spn_to_dict import spn_to_dict
 from spn.distributions import gamma
 from spn.distributions import norm
 from spn.distributions import poisson
-from spn.sym_util import EmptySet
+from spn.sets import EmptySet
 from spn.transforms import EventFiniteNominal
 from spn.transforms import Exp
 from spn.transforms import Exponential
@@ -46,7 +48,7 @@ transforms = [
     1/X,
     2*X + X**3,
     (X/2)*(X<0) + (X**(1,2))*(0<=X),
-    X < 3,
+    X < sqrt(3),
     X << [],
     ~(X << []),
     EventFiniteNominal(1/X**(1,10), EmptySet),

@@ -4,23 +4,23 @@
 import pytest
 import sympy
 
-from sympy import Complement
-from sympy import FiniteSet
-from sympy import Interval
 from sympy import Rational as Rat
-from sympy import Union
-from sympy import oo
 
 from spn.math_util import allclose
-from spn.sym_util import EmptySet
-from spn.sym_util import NominalSet
-from spn.sym_util import Reals
-from spn.sym_util import UniversalSet
+
+from spn.sets import EmptySet
+from spn.sets import FiniteNominal
+from spn.sets import FiniteReal
+from spn.sets import Interval
+from spn.sets import Reals
+from spn.sets import Union
+from spn.sets import inf as oo
+
 from spn.sym_util import sympy_solver
 from spn.transforms import Exp
 from spn.transforms import Identity
-from spn.transforms import Logarithm
 from spn.transforms import Log
+from spn.transforms import Logarithm
 from spn.transforms import Sqrt
 
 X = sympy.symbols('X')
@@ -29,11 +29,6 @@ Y = Identity('Y')
 def test_solver_1_open():
     # log(x) > 2
     solution = Interval.open(sympy.exp(2), oo)
-
-    expr = sympy.log(X) > 2
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = Log(Y) > 2
     answer = event.solve()
     assert answer == solution
@@ -41,11 +36,6 @@ def test_solver_1_open():
 def test_solver_1_closed():
     # log(x) >= 2
     solution = Interval(sympy.exp(2), oo)
-
-    expr = sympy.log(X) >= 2
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = Log(Y) >= 2
     answer = event.solve()
     assert answer == solution
@@ -53,23 +43,13 @@ def test_solver_1_closed():
 def test_solver_2_open():
     # log(x) < 2 & (x < exp(2))
     solution = EmptySet
-
-    expr = (sympy.log(X) > 2) & (X < sympy.exp(2))
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = (Log(Y) > 2) & (Y < sympy.exp(2))
     answer = event.solve()
     assert answer == solution
 
 def test_solver_2_closed():
     # (log(x) <= 2) & (x >= exp(2))
-    solution = FiniteSet(sympy.exp(2))
-
-    expr = (sympy.log(X) >= 2) & (X <= sympy.exp(2))
-    answer = sympy_solver(expr)
-    assert answer == solution
-
+    solution = FiniteReal(sympy.exp(2))
     event = (Log(Y) >= 2) & (Y <= sympy.exp(2))
     answer = event.solve()
     assert answer == solution
@@ -77,11 +57,6 @@ def test_solver_2_closed():
 def test_solver_4():
     # (x >= 0) & (x <= 0)
     solution = Reals
-
-    expr = (X >= 0) | (X <= 0)
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = (Y >= 0) | (Y <= 0)
     answer = event.solve()
     assert answer == solution
@@ -89,11 +64,6 @@ def test_solver_4():
 def test_solver_5_open():
     # (2*x+10 < 4) & (x + 10 > 3)
     solution = Interval.open(3-10, (4-10)/2)
-
-    expr = ((2*X + 10) < 4) & (X + 10 > 3)
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = ((2*Y + 10) < 4) & (Y + 10 > 3)
     answer = event.solve()
     assert answer == solution
@@ -101,11 +71,6 @@ def test_solver_5_open():
 def test_solver_5_ropen():
     # (2*x+10 < 4) & (x + 10 >= 3)
     solution = Interval.Ropen(3-10, (4-10)/2)
-
-    expr = ((2*X + 10) < 4) & (X + 10 >= 3)
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = ((2*Y + 10) < 4) & (Y + 10 >= 3)
     answer = event.solve()
     assert answer == solution
@@ -113,11 +78,6 @@ def test_solver_5_ropen():
 def test_solver_5_lopen():
     # (2*x + 10 < 4) & (x + 10 >= 3)
     solution =Interval.Lopen(3-10, (4-10)/2)
-
-    expr = ((2*X + 10) <= 4) & (X + 10 > 3)
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = ((2*Y + 10) <= 4) & (Y + 10 > 3)
     answer = event.solve()
     assert answer == solution
@@ -127,11 +87,6 @@ def test_solver_6():
     solution =  Union(
         Interval.open(-oo, 1 - sympy.sqrt(11)),
         Interval.open(1 + sympy.sqrt(11), oo))
-
-    expr = (X**2 - 2*X) > 10
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = (Y**2 - 2*Y) > 10
     answer = event.solve()
     assert answer == solution
@@ -154,11 +109,6 @@ def test_solver_9_open():
         sympy.exp(1/(6*(sympy.sqrt(2019)/36 + Rat(5,4))**(Rat(1, 3)))
             + (sympy.sqrt(2019)/36 + Rat(5,4))**(Rat(1,3))),
         oo)
-
-    expr = 2*(sympy.log(X))**3 - sympy.log(X) - 5 > 0
-    with pytest.raises(ValueError):
-        assert sympy_solver(expr) == solution
-
     # Our solver handles this case as follows
     # expr' = 2*Z**3 - Z - 5 > 0 [[subst. Z=log(X)]]
     # [Z_low, Z_high] = sympy_solver(expr')
@@ -176,22 +126,14 @@ def test_solver_9_closed():
         sympy.exp(1/(6*(sympy.sqrt(2019)/36 + Rat(5,4))**(Rat(1, 3)))
             + (sympy.sqrt(2019)/36 + Rat(5,4))**(Rat(1,3))),
         oo)
-
-    expr = 2*(sympy.log(X))**3 - sympy.log(X) -5 > 0
-    with pytest.raises(ValueError):
-        assert sympy_solver(expr) == solution
-
     event = 2*(Log(Y))**3 - Log(Y) - 5 >= 0
     answer = event.solve()
     assert answer == solution
 
 def test_solver_10():
+    # Sympy hangs on this test.
     # exp(sqrt(log(x))) > -5
     solution = Interval(1, oo)
-
-    # Sympy hangs for some reason; cannot test.
-    # expr = exp(sqrt(log(X))) > -5
-
     event = Exp(Sqrt(Log(Y))) > -5
     answer = event.solve()
     assert answer == solution
@@ -199,10 +141,6 @@ def test_solver_10():
 def test_solver_11_open():
     # exp(sqrt(log(x))) > 6
     solution = Interval.open(sympy.exp(sympy.log(6)**2), oo)
-
-    # Sympy hangs for some reason.
-    # expr = exp(sqrt(log(X))) > 6
-
     event = Exp(Sqrt(Log(Y))) > 6
     answer = event.solve()
     assert answer == solution
@@ -210,10 +148,6 @@ def test_solver_11_open():
 def test_solver_11_closed():
     # exp(sqrt(log(x))) >= 6
     solution = Interval(sympy.exp(sympy.log(6)**2), oo)
-
-    # Sympy hangs for some reason.
-    # expr = exp(sqrt(log(X))) > 6
-
     event = Exp(Sqrt(Log(Y))) >= 6
     answer = event.solve()
     assert answer == solution
@@ -223,11 +157,6 @@ def test_solver_12():
     solution = Union(
         Interval.open(-oo, -Rat(169, 4)),
         Interval.open(Rat(169, 4), oo))
-
-    expr = 2*sympy.sqrt(sympy.Abs(X)) - 3 > 10
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = (2*Sqrt(abs(Y)) - 3) > 10
     answer = event.solve()
     assert answer == solution
@@ -237,11 +166,6 @@ def test_solver_13():
     solution = Union(
         Interval.open(-oo, -Rat(13, 2)),
         Interval.open(Rat(13, 2), oo))
-
-    expr = 2*sympy.sqrt(sympy.Abs(X)**2) - 3 > 10
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = (2*Sqrt(abs(Y)**2) - 3) > 10
     answer = event.solve()
     assert answer == solution
@@ -251,11 +175,6 @@ def test_solver_14():
     solution = Union(
         Interval.open(-oo, -sympy.sqrt(10)),
         Interval.open(sympy.sqrt(10), oo))
-
-    expr = X**2 > 10
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = Y**2 > 10
     answer = event.solve()
     assert answer == solution
@@ -263,14 +182,6 @@ def test_solver_14():
 def test_solver_15():
     # ((x**4)**(1/7)) < 9
     solution = Interval.open(-27*sympy.sqrt(3), 27*sympy.sqrt(3))
-
-    expr = ((X**4))**(Rat(1, 7)) < 9
-    answer = sympy_solver(expr)
-    with pytest.raises(AssertionError):
-        # SymPy handles exponents unclearly.
-        # Exponent laws with negative numbers are subtle.
-        assert answer == solution
-
     event = ((Y**4))**(Rat(1, 7)) < 9
     answer = event.solve()
     assert answer == solution
@@ -278,14 +189,6 @@ def test_solver_15():
 def test_solver_16():
     # (x**(1/7))**4 < 9
     solution = Interval.Ropen(0, 27*sympy.sqrt(3))
-
-    expr = ((X**Rat(1,7)))**4 < 9
-    answer = sympy_solver(expr)
-    with pytest.raises(AssertionError):
-        # SymPy handles exponents unclearly.
-        # Exponent laws with negative numbers are subtle.
-        assert answer == solution
-
     event = ((Y**Rat(1,7)))**4 < 9
     answer = event.solve()
     assert answer == solution
@@ -335,11 +238,6 @@ def test_solver_20():
     solution = Union(
         Interval.open(-sympy.sqrt(3 + sympy.exp(5)), -sympy.sqrt(3)),
         Interval.open(sympy.sqrt(3), sympy.sqrt(3 + sympy.exp(5))))
-
-    expr = sympy.log(X**2 - 3) < 5
-    answer = sympy_solver(expr)
-    assert answer == solution
-
     event = Log(Y**2 - 3) < 5
     answer = event.solve()
     assert answer == solution
@@ -356,42 +254,40 @@ def test_solver_21__ci_():
             1.683036896007873002053903888560528225797,
             5.448658707897512189124586716091172798465))
 
-    with pytest.raises(ValueError):
-        term = sympy.log(X**3 - 3*X + 3)
-        expr = (1 < term) & (term < 5)
-        answer = sympy_solver(expr)
-
     expr = Log(Y**3 - 3*Y + 3)
     event = ((1 <= expr) & (expr < 5))
     answer = event.solve()
     assert isinstance(answer, Union)
+    assert len(answer.args) == 2
+    first = answer.args[0] if answer.args[0].a < 0 else answer.args[1]
+    second = answer.args[0] if answer.args[0].a > 0 else answer.args[1]
     # Check first interval.
-    assert not answer.args[0].left_open
-    assert not answer.args[0].right_open
-    assert allclose(float(answer.args[0].inf), float(solution.args[0].inf))
-    assert allclose(float(answer.args[0].sup), float(solution.args[0].sup))
+    assert not first.left_open
+    assert not first.right_open
+    assert allclose(float(first.a), float(solution.args[0].a))
+    assert allclose(float(first.b), float(solution.args[0].b))
     # Check second interval.
-    assert not answer.args[1].left_open
-    assert answer.args[1].right_open
-    assert allclose(float(answer.args[1].inf), float(solution.args[1].inf))
-    assert allclose(float(answer.args[1].sup), float(solution.args[1].sup))
+    assert not second.left_open
+    assert second.right_open
+    assert allclose(float(second.a), float(solution.args[1].a))
+    assert allclose(float(second.b), float(solution.args[1].b))
 
 def test_solver_22():
     # 2 < abs(X) < 5
     event = (2 < abs(Y)) < 5
-    solution = Interval.open(2, 5) + Interval.open(-5, -2)
+    solution = Interval.open(2, 5) | Interval.open(-5, -2)
     assert event.solve() == solution
     # 2 <= abs(X) < 5
     event = (2 <= abs(Y)) < 5
-    solution = Interval.Ropen(2, 5) + Interval.Lopen(-5, -2)
+    solution = Interval.Ropen(2, 5) | Interval.Lopen(-5, -2)
     assert event.solve() == solution
     # 2 < abs(X) <= 5
     event = (2 <  abs(Y)) <= 5
-    solution = Interval.Lopen(2, 5) + Interval.Ropen(-5, -2)
+    solution = Interval.Lopen(2, 5) | Interval.Ropen(-5, -2)
     assert event.solve() == solution
     # 2 <= abs(X) <= 5
     event = (2 <=  abs(Y)) <= 5
-    solution = Interval(2, 5) + Interval(-5, -2)
+    solution = Interval(2, 5) | Interval(-5, -2)
     assert event.solve() == solution
 
     # -2 < abs(X) < 5
@@ -415,11 +311,11 @@ def test_solver_23_reciprocal_lte():
     for c in [1, 3]:
         # Positive
         # 1 / X < 10
-        solution = Interval.Ropen(-oo, 0) + Interval.Lopen(Rat(c, 10), oo)
+        solution = Interval.Ropen(-oo, 0) | Interval.Lopen(Rat(c, 10), oo)
         event = (c / Y) < 10
         assert event.solve() == solution
         # 1 / X <= 10
-        solution = Interval.Ropen(-oo, 0) + Interval(Rat(c, 10), oo)
+        solution = Interval.Ropen(-oo, 0) | Interval(Rat(c, 10), oo)
         event = (c / Y) <= 10
         assert event.solve() == solution
         # Negative.
@@ -445,11 +341,11 @@ def test_solver_23_reciprocal_gte():
         assert event.solve() == solution
         # Negative
         # -10 < 1 / X
-        solution = Interval.Lopen(0, oo) + Interval.open(-oo, -Rat(c, 10))
+        solution = Interval.Lopen(0, oo) | Interval.open(-oo, -Rat(c, 10))
         event = -10 < (c / Y)
         assert event.solve() == solution
         # -10 <= 1 / X
-        solution = Interval.Lopen(0, oo) + Interval.Lopen(-oo, -Rat(c, 10))
+        solution = Interval.Lopen(0, oo) | Interval.Lopen(-oo, -Rat(c, 10))
         event =  -10 <= (c / Y)
         assert event.solve() == solution
 
@@ -555,50 +451,50 @@ def test_solver_27_piecewise_many():
 def test_solver_finite_injective():
     sqrt3 = sympy.sqrt(3)
     # Identity.
-    solution = {2, 4, -10, sqrt3}
+    solution = FiniteReal(2, 4, -10, sqrt3)
     event = Y << {2, 4, -10, sqrt3}
     assert event.solve() == solution
     # Exp.
-    solution = {sympy.log(10), sympy.log(3), sympy.log(sqrt3)}
+    solution = FiniteReal(sympy.log(10), sympy.log(3), sympy.log(sqrt3))
     event = Exp(Y) << {10, 3, sqrt3}
     assert event.solve() == solution
     # Exp2.
-    solution = {sympy.log(10, 2), 4, sympy.log(sqrt3, 2)}
+    solution = FiniteReal(sympy.log(10, 2), 4, sympy.log(sqrt3, 2))
     event = (2**Y) << {10, 16, sqrt3}
     assert event.solve() == solution
     # Log.
-    solution = {sympy.exp(10), sympy.exp(-3), sympy.exp(sqrt3)}
+    solution = FiniteReal(sympy.exp(10), sympy.exp(-3), sympy.exp(sqrt3))
     event = Log(Y) << {10, -3, sqrt3}
     assert event.solve() == solution
     # Log2
-    solution = {sympy.Pow(2, 10), sympy.Pow(2, -3), sympy.Pow(2, sqrt3)}
+    solution = FiniteReal(sympy.Pow(2, 10), sympy.Pow(2, -3), sympy.Pow(2, sqrt3))
     event = Logarithm(Y, 2) << {10, -3, sqrt3}
     assert event.solve() == solution
     # Radical.
-    solution = {7**4, 12**4, sqrt3**4}
+    solution = FiniteReal(7**4, 12**4, sqrt3**4)
     event = Y**Rat(1, 4) << {7, 12, sqrt3}
     assert event.solve() == solution
 
 def test_solver_finite_non_injective():
     sqrt2 = sympy.sqrt(2)
     # Abs.
-    solution = {-10, -3, 3, 10}
+    solution = FiniteReal(-10, -3, 3, 10)
     event = abs(Y) << {10, 3}
     assert event.solve() == solution
     # Abs(Poly).
-    solution = {-5, -Rat(3,2), Rat(3,2), 5}
+    solution = FiniteReal(-5, -Rat(3,2), Rat(3,2), 5)
     event = abs(2*Y) << {10, 3}
     assert event.solve() == solution
     # Poly order 2.
-    solution = {-sqrt2, sqrt2}
+    solution = FiniteReal(-sqrt2, sqrt2)
     event = (Y**2) << {2}
     assert event.solve() == solution
     # Poly order 3.
-    solution = {1, 3}
+    solution = FiniteReal(1, 3)
     event = Y**3 << {1, 27}
     assert event.solve() == solution
     # Poly Abs.
-    solution = {-3, -1, 1, 3}
+    solution = FiniteReal(-3, -1, 1, 3)
     event = (abs(Y))**3 << {1, 27}
     assert event.solve() == solution
     # Abs Not.
@@ -610,69 +506,62 @@ def test_solver_finite_non_injective():
     assert event.solve() == solution
     # Abs in EmptySet.
     solution = EmptySet
-    event = (abs(Y))**3 << set([])
+    event = (abs(Y))**3 << set()
     assert event.solve() == solution
     # Abs Not in EmptySet (yields all reals).
     solution = Interval(-oo, oo)
-    event = ~(((abs(Y))**3) << set([]))
+    event = ~(((abs(Y))**3) << set())
     assert event.solve() == solution
     # Log in Reals (yields positive reals).
     solution = Interval.open(0, oo)
-    event = ~((Log(Y))**3 << set([]))
+    event = ~((Log(Y))**3 << set())
     assert event.solve() == solution
 
 def test_solver_finite_symbolic():
     # Transform can never be symbolic.
     event = Y << {'a', 'b'}
-    assert event.solve() == NominalSet('a', 'b')
+    assert event.solve() == FiniteNominal('a', 'b')
     # Complement the Identity.
     event = ~(Y << {'a', 'b'})
-    assert event.solve() == Complement(
-        UniversalSet, NominalSet('a', 'b'))
+    assert event.solve() == FiniteNominal('a', 'b', b=True)
     # Transform can never be symbolic.
     event = Y**2 << {'a', 'b'}
     assert event.solve() is EmptySet
     # Complement the Identity.
     event = ~(Y**2 << {'a', 'b'})
-    assert event.solve() == UniversalSet
+    assert event.solve() == FiniteNominal(b=True)
     # Solve Identity mixed.
     event = Y << {9, 'a', '7'}
     assert event.solve() == Union(
-        FiniteSet(9),
-        NominalSet('a', '7'))
+        FiniteReal(9),
+        FiniteNominal('a', '7'))
     # Solve Transform mixed.
     event = Y**2 << {9, 'a', 'b'}
-    assert event.solve() == {-3, 3}
+    assert event.solve() == FiniteReal(-3, 3)
     # Solve a disjunction.
     event = (Y << {'a', 'b'}) | (Y << {'c'})
-    assert event.solve() == NominalSet('a', 'b', 'c')
+    assert event.solve() == FiniteNominal('a', 'b', 'c')
     # Solve a conjunction with intersection.
     event = (Y << {'a', 'b'}) & (Y << {'b', 'c'})
-    assert event.solve() == NominalSet('b')
+    assert event.solve() == FiniteNominal('b')
     # Solve a conjunction with no intersection.
     event = (Y << {'a', 'b'}) & (Y << {'c'})
     assert event.solve() is EmptySet
     # Solve a disjunction with complement.
     event = (Y << {'a', 'b'}) & ~(Y << {'c'})
-    assert event.solve() == NominalSet('a', 'b')
+    assert event.solve() == FiniteNominal('a', 'b')
     # Solve a disjunction with complement.
     event = (Y << {'a', 'b'}) | ~(Y << {'c'})
-    assert event.solve() == Complement(UniversalSet, NominalSet('c'))
+    assert event.solve() == FiniteNominal('c', b=True)
     # Union of interval and symbolic.
     event = (Y**2 <= 9) | (Y << {'a'})
-    assert event.solve() == Union(
-        Interval(-3, 3),
-        NominalSet('a'))
+    assert event.solve() == Interval(-3, 3) | FiniteNominal('a')
     # Union of interval and not symbolic.
     event = (Y**2 <= 9) | ~(Y << {'a'})
-    assert event.solve() == Union(
-        Interval(-3, 3),
-        Complement(UniversalSet, NominalSet('a')))
+    assert event.solve() == Interval(-3, 3) | FiniteNominal('a', b=True)
     # Intersection of interval and symbolic.
     event = (Y**2 <= 9) & (Y << {'a'})
     assert event.solve() is EmptySet
     # Intersection of interval and not symbolic.
     event = (Y**2 <= 9) & ~(Y << {'a'})
-    assert event.solve() == Complement(
-        Interval(-3, 3),
-        NominalSet('a'))
+    assert event.solve() == EmptySet

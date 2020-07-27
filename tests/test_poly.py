@@ -1,34 +1,33 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from sympy import FiniteSet
-from sympy import Interval
 from sympy import Poly as SymPoly
 from sympy import Rational
-from sympy import Union
-from sympy import oo
 from sympy import sqrt as SymSqrt
 from sympy.abc import x
-
-from spn.sym_util import EmptySet
-from spn.sym_util import ExtReals
-from spn.sym_util import Reals
 
 from spn.poly import solve_poly_equality
 from spn.poly import solve_poly_inequality
 
 from spn.math_util import allclose
 
+from spn.sets import EmptySet
+from spn.sets import ExtReals
+from spn.sets import FiniteReal
+from spn.sets import Interval
+from spn.sets import Reals
+from spn.sets import Union
+from spn.sets import inf as oo
 
 def test_solve_poly_inequaltiy_pos_inf():
     assert solve_poly_inequality(x**2-10*x+100, oo, True) == Reals
     assert solve_poly_inequality(x**2-10*x+100, oo, False) == ExtReals
 
     assert solve_poly_inequality(-x**3+10*x, oo, False) == ExtReals
-    assert solve_poly_inequality(-x**3+10*x, oo, True) == Union(Reals, FiniteSet(oo))
+    assert solve_poly_inequality(-x**3+10*x, oo, True) == Reals | FiniteReal(oo)
 
     assert solve_poly_inequality(x**3-10*x, oo, False) == ExtReals
-    assert solve_poly_inequality(x**3-10*x, oo, True) == Union(Reals, FiniteSet(-oo))
+    assert solve_poly_inequality(x**3-10*x, oo, True) == Reals | FiniteReal(-oo)
 
 
 def test_solve_poly_inequaltiy_neg_inf():
@@ -36,17 +35,17 @@ def test_solve_poly_inequaltiy_neg_inf():
     assert solve_poly_inequality(x**2-10*x+100, -oo, False) is EmptySet
 
     assert solve_poly_inequality(x**3-10*x, -oo, True) is EmptySet
-    assert solve_poly_inequality(x**3-10*x, -oo, False) == FiniteSet(-oo)
+    assert solve_poly_inequality(x**3-10*x, -oo, False) == FiniteReal(-oo)
 
     assert solve_poly_inequality(-x**2+10*x+100, -oo, True) is EmptySet
-    assert solve_poly_inequality(-x**2+10*x+100, -oo, False) == FiniteSet(-oo, oo)
+    assert solve_poly_inequality(-x**2+10*x+100, -oo, False) == FiniteReal(-oo, oo)
 
 
 p_quadratic = SymPoly((x-SymSqrt(2)/10)*(x+Rational(10, 7)), x)
 expr_quadratic = p_quadratic.args[0]
 def test_solve_poly_equality_quadratic_zero():
     roots = solve_poly_equality(expr_quadratic, 0)
-    assert roots == FiniteSet(SymSqrt(2)/10, -Rational(10,7))
+    assert roots == FiniteReal(SymSqrt(2)/10, -Rational(10,7))
 def test_solve_poly_inequality_quadratic_zero():
     interval = solve_poly_inequality(expr_quadratic, 0, False)
     assert interval == Interval(-Rational(10,7), SymSqrt(2)/10)
@@ -68,12 +67,12 @@ p_cubic_int = SymPoly((x-1)*(x+2)*(x-11), x)
 expr_cubic_int = p_cubic_int.args[0]
 def test_solve_poly_equality_cubic_int_zero():
     roots = solve_poly_equality(expr_cubic_int, 0)
-    assert roots == FiniteSet(-2, 1, 11)
+    assert roots == FiniteReal(-2, 1, 11)
 def test_solve_poly_inequality_cubic_int_zero():
     interval = solve_poly_inequality(expr_cubic_int, 0, False)
-    assert interval == Union(Interval(-oo, -2), Interval(1, 11))
+    assert interval == Interval(-oo, -2) | Interval(1, 11)
     interval = solve_poly_inequality(expr_cubic_int, 0, True)
-    assert interval == Union(Interval.open(-oo, -2), Interval.open(1, 11))
+    assert interval == Interval.open(-oo, -2) | Interval.open(1, 11)
 
 xe1_cubic_int0 = -1.97408387376586
 xe1_cubic_int1 = 0.966402009973818

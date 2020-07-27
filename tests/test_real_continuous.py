@@ -6,16 +6,17 @@ from math import log
 import numpy
 import pytest
 import scipy.stats
-import sympy
 
 from spn.distributions import gamma
 from spn.distributions import norm
 from spn.math_util import allclose
 from spn.math_util import isinf_neg
 from spn.math_util import logdiffexp
+from spn.sets import Interval
+from spn.sets import inf as oo
 from spn.spn import ContinuousLeaf
 from spn.spn import SumSPN
-from spn.sym_util import Reals
+from spn.sets import Reals
 from spn.transforms import Id
 
 def test_numeric_distribution_normal():
@@ -88,7 +89,7 @@ def test_numeric_distribution_gamma():
     spn_condition = spn.condition((X << {1,2} | (X <= 3)))
     assert isinstance(spn_condition, ContinuousLeaf)
     assert spn_condition.conditioned
-    assert spn_condition.support == sympy.Interval(-sympy.oo, 3)
+    assert spn_condition.support == Interval(-oo, 3)
     assert allclose(
         spn_condition.logprob(X <= 2),
         logdiffexp(spn.logprob(X<=2), spn.logprob(X<=0))

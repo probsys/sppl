@@ -11,6 +11,9 @@ from ..dnf import dnf_normalize
 from ..math_util import allclose
 from ..math_util import isinf_neg
 from ..math_util import logsumexp
+from ..sets import FiniteNominal
+from ..sets import FiniteReal
+from ..sets import Set
 from ..spn import Memo
 from ..spn import SumSPN
 from ..spn import spn_simplify_sum
@@ -106,16 +109,16 @@ class Switch(Command):
             sets = [self.value_to_set(v) for v in self.values]
             subcommands = [self.f(v) for v in self.values]
         sets_disjoint = [
-            reduce(lambda x, s: x - s, sets[:i], sets[i])
+            reduce(lambda x, s: x & ~s, sets[:i], sets[i])
             for i in range(len(sets))]
         events = [self.symbol << s for s in sets_disjoint]
         return interpret_if_block(spn, events, subcommands)
     def value_to_set(self, v):
-        try:
-            a = self.symbol << v
-        except TypeError:
-            a = self.symbol << {v}
-        return a.values
+        if isinstance(v, Set):
+            return v
+        if isinstance(v, str):
+            return FiniteNominal(v)
+        return FiniteReal(v)
 
 class Sequence(Command):
     def __init__(self, *commands):
