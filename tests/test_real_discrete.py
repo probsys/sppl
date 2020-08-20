@@ -86,10 +86,11 @@ def test_poisson():
     assert spn_condition.xu == 3
     assert allclose(spn_condition.logprob((1 <= X) <=3), 0)
 
-    # https://github.com/probcomp/sum-product-dsl/issues/77
-    # Condition on FiniteReal non-contiguous.
-    with pytest.raises(Exception):
-        spn_condition = spn.condition(X << {1,2,3,5})
+@pytest.mark.xfail(strict=True, reason='https://github.com/probcomp/sum-product-dsl/issues/77')
+def test_condition_non_contiguous():
+    X = Id('X')
+    spn = X >> poisson(mu=5)
+    spn.condition(X << {1,2,3,5})
 
 def test_randint():
     X = Id('X')
