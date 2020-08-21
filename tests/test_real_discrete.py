@@ -89,11 +89,22 @@ def test_poisson():
     # Condition on single point.
     assert allclose(0, spn.condition(X << {2}).logprob(X<<{2}))
 
-@pytest.mark.xfail(strict=True, reason='https://github.com/probcomp/sum-product-dsl/issues/77')
 def test_condition_non_contiguous():
     X = Id('X')
     spn = X >> poisson(mu=5)
-    spn.condition(X << {1,2,3,5})
+    # FiniteSet.
+    for c in [{0,2,3}, {-1,0,2,3}, {-1,0,2,3,'z'}]:
+        spn_condition = spn.condition((X << c))
+        assert isinstance(spn_condition, SumSPN)
+        assert allclose(0, spn_condition.children[0].logprob(X<<{0}))
+        assert allclose(0, spn_condition.children[1].logprob(X<<{2,3}))
+    # FiniteSet or Interval.
+    spn_condition = spn.condition((X << {-1,'x',0,2,3}) | (X > 7))
+    assert isinstance(spn_condition, SumSPN)
+    assert len(spn_condition.children) == 3
+    assert allclose(0, spn_condition.children[0].logprob(X<<{0}))
+    assert allclose(0, spn_condition.children[1].logprob(X<<{2,3}))
+    assert allclose(0, spn_condition.children[2].logprob(X>7))
 
 def test_randint():
     X = Id('X')
