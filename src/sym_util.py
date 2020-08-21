@@ -11,6 +11,7 @@ import sympy
 
 from sympy.core.relational import Relational
 
+from .sets import FiniteReal
 from .sets import Interval
 
 def get_symbols(expr):
@@ -49,6 +50,19 @@ def partition_list_blocks(values):
             partition[x] = []
         partition[x].append(i)
     return list(partition.values())
+
+def partition_finite_real_contiguous(x):
+    # Convert FiniteReal to list of FiniteReal, each with contiguous values.
+    assert isinstance(x, FiniteReal)
+    values = sorted(x.values)
+    blocks = [[values[0]]]
+    for y in values[1:]:
+        expected = blocks[-1][-1] + 1
+        if y == expected:
+            blocks[-1].append(y)
+        else:
+            blocks.append([y])
+    return [FiniteReal(*v) for v in blocks]
 
 def sympify_number(x):
     if isinstance(x, (int, float)):
