@@ -86,6 +86,9 @@ def test_poisson():
     assert spn_condition.xu == 3
     assert allclose(spn_condition.logprob((1 <= X) <=3), 0)
 
+    # Condition on single point.
+    assert allclose(0, spn.condition(X << {2}).logprob(X<<{2}))
+
 @pytest.mark.xfail(strict=True, reason='https://github.com/probcomp/sum-product-dsl/issues/77')
 def test_condition_non_contiguous():
     X = Id('X')
