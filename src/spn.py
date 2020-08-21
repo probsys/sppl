@@ -31,6 +31,7 @@ from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_union
 from .sym_util import partition_list_blocks
+from .sym_util import partition_finite_real_contiguous
 from .sym_util import powerset
 from .sym_util import sympify_number
 
@@ -722,35 +723,36 @@ class RealLeaf(LeafSPN):
     def logprob_interval__(self, values):
         raise NotImplementedError()
 
-    def values_to_support(self, values):
+    def flatten_values_contiguous(self, values):
         if isinstance(values, Interval):
-            return values
+            return [values]
         if isinstance(values, FiniteReal):
             assert isinstance(self, DiscreteLeaf)
-            (low, high) = (min(values), max(values))
-            # https://github.com/probcomp/sum-product-dsl/issues/77
-            if sorted(values) != list(range(low, high+1)):
-                assert False, 'Cannot handle non-contiguous condition'
-            return Range(low, high)
+            blocks = partition_finite_real_contiguous(values)
+            return [Range(min(v), max(v)) for v in blocks]
+        if isinstance(values, Union):
+            subvalues = (self.flatten_values_contiguous(v) for v in values)
+            return list(chain(*subvalues))
         assert False
 
     def condition__(self, event):
         interval = event.solve()
-        values = self.support & interval
-        weight = self.logprob_values__(values)
+        values_set = self.support & interval
+        weight = self.logprob_values__(values_set)
         # Probability zero event.
         if isinf_neg(weight):
             raise ValueError('Conditioning event "%s" has probability zero'
                 % (str(event)))
         # Condition on support.
-        if values == self.support:
+        if values_set == self.support:
             return self
-        # Condition on Interval.
-        if isinstance(values, (FiniteReal, Interval)):
-            support = self.values_to_support(values)
-            return (type(self))(self.symbol, self.dist, support, True, self.env)
-        # Condition on union of sets.
-        if isinstance(values, Union):
+        # Flatten the set.
+        values = self.flatten_values_contiguous(values_set)
+        # Condition on a single contiguous set.
+        if len(values) == 0:
+            return (type(self))(self.symbol, self.dist, values[0], True, self.env)
+        # Condition on a union of contiguous set.
+        else:
             weights_unorm = [self.logprob_values__(v) for v in values]
             indexes = [i for i, w in enumerate(weights_unorm) if not isinf_neg(w)]
             if not indexes:
@@ -759,9 +761,8 @@ class RealLeaf(LeafSPN):
             # TODO: Normalize the weights with greater precision, e.g.,
             # https://stats.stackexchange.com/questions/66616/converting-normalizing-very-small-likelihood-values-to-probability
             weights = lognorm([weights_unorm[i] for i in indexes])
-            supports = [self.values_to_support(v) for v in values]
             children = [
-                (type(self))(self.symbol, self.dist, supports[i], True, self.env)
+                (type(self))(self.symbol, self.dist, values[i], True, self.env)
                 for i in indexes
             ]
             return SumSPN(children, weights) if 1 < len(indexes) else children[0]

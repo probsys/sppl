@@ -7,7 +7,9 @@ from sympy import exp as SymExp
 from sympy import log as SymLog
 from sympy import symbols
 
+from spn.sets import FiniteReal
 from spn.sym_util import get_symbols
+from spn.sym_util import partition_finite_real_contiguous
 from spn.sym_util import partition_list_blocks
 
 (X0, X1, X2, X3, X4, X5, X6, X7, X8, X9) = symbols('X:10')
@@ -31,4 +33,15 @@ def test_get_symbols():
 ])
 def test_partition_list_blocks(a, b):
     solution = partition_list_blocks(a)
+    assert solution == b
+
+@pytest.mark.parametrize('a, b', [
+    (FiniteReal(0,1,2), [FiniteReal(0,1,2)]),
+    (FiniteReal(0,3,1,2), [FiniteReal(0,1,2,3)]),
+    (FiniteReal(-1,3,1,2), [FiniteReal(-1), FiniteReal(1,2,3)]),
+    (FiniteReal(-1,3,1,2,-2,-7), [FiniteReal(-7), FiniteReal(-1,-2), FiniteReal(1,2,3)]),
+    (FiniteReal(-1,3,1,2,-2,-7,0), [FiniteReal(-7), FiniteReal(-2,-1,0,1,2,3)]),
+])
+def test_parition_finite_real_contiguous(a, b):
+    solution = partition_finite_real_contiguous(a)
     assert solution == b
