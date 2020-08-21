@@ -963,13 +963,6 @@ def spn_cache_duplicate_subtrees(spn, memo):
         return memo[spn]
     assert False, '%s is not an spn' % (spn,)
 
-def is_event_transformed(event):
-    if isinstance(event, EventBasic):
-        return not isinstance(event.subexpr, Id)
-    if isinstance(event, EventCompound):
-        return any(map(is_event_transformed, event.subexprs))
-    assert False, 'Unknown event: %s' % (event,)
-
 def func_evaluate(spn, func, samples):
     args = func_symbols(spn, func)
     sample_kwargs = [{X.token: s[X] for X in args} for s in samples]
