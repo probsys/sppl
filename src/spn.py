@@ -457,27 +457,27 @@ class ProductSPN(BranchSPN):
     def logprob_factored__(self, event_factor, memo):
         # Adopting Inclusion--Exclusion principle for DNF event:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
-        #
-        # TODO: This implementation is based on "shallow"-filtering, where
-        # all singletons with probability zeros are discarded before
-        # constructing the power set.  A more efficient implementation is
-        # recursive filtering, where the powerset is constructed
-        # incrementally, by leveraging the fact that
-        #   J \subset J' and isinf_neg(J) implies isinf_neg(J').
-        # https://github.com/probcomp/sum-product-dsl/issues/58
         (logps_pos, logps_neg) = ([], [])
-        indexes = []
-        # Compute probabilities of singleton subsets.
-        for i in range(len(event_factor)):
-            logprob = self.logprob_conjunction(event_factor, [i], memo)
-            logps_pos.append(logprob)
-            if not isinf_neg(logprob):
-                indexes.append(i)
-        # Compute probabilities of remaining subsets.
-        subsets = list(powerset(indexes, start=2))
-        for J in subsets:
-            logprob = self.logprob_conjunction(event_factor, J, memo)
-            (logps_pos if len(J) % 2 else logps_neg).append(logprob)
+        indexes = range(len(event_factor))
+        stack = [([i], i) for i in indexes]
+        avoid = []
+        while stack:
+            # Obtain the next subset.
+            subset, index = stack.pop(0)
+            # Skip descendants of this subset if it contains a bad subset.
+            if any(
+                    len(b) <= len(subset) and all(z in subset for z in b)
+                    for b in avoid):
+                continue
+            # Compute the probability of this subset.
+            logprob = self.logprob_conjunction(event_factor, subset, memo)
+            (logps_pos if len(subset) % 2 else logps_neg).append(logprob)
+            # Skip descendants of this subset if measure zero.
+            if isinf_neg(logprob):
+                avoid.append(subset)
+            # Add all subsets for which this subset is a prefix.
+            for i in range(index + 1, len(indexes)):
+                stack.append((subset + [indexes[i]], i))
         # Aggregate positive term.
         logp_pos = logsumexp(logps_pos)
         if isinf_neg(logp_pos) or not logps_neg:
