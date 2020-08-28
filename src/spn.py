@@ -174,16 +174,22 @@ class BranchSPN(SPN):
         assert len(event_factor) == 1
         return self.logpdf_factored(event_factor, memo)
     def logprob_factored(self, event_factor, memo):
+        if memo is False:
+            return self.logprob_factored__(event_factor, memo)
         key = self.get_memo_key(event_factor)
         if key not in memo.logprob:
             memo.logprob[key] = self.logprob_factored__(event_factor, memo)
         return memo.logprob[key]
     def condition_factored(self, event_factor, memo):
+        if memo is False:
+            return self.logprob_factored__(event_factor, memo)
         key = self.get_memo_key(event_factor)
         if key not in memo.condition:
             memo.condition[key] = self.condition_factored__(event_factor, memo)
         return memo.condition[key]
     def logpdf_factored(self, event_factor, memo):
+        if memo is False:
+            return self.logprob_factored__(event_factor, memo)
         key = self.get_memo_key(event_factor)
         if key not in memo.logpdf:
             memo.logpdf[key] = self.logpdf_factored__(event_factor, memo)
@@ -591,7 +597,7 @@ class LeafSPN(SPN):
         event_subs = event.substitute(self.env)
         assert all(s in self.env for s in event.get_symbols())
         assert event_subs.get_symbols() == {self.symbol}
-        if memo is None:
+        if memo is None or memo is False:
             return self.logprob__(event_subs)
         key = self.get_memo_key(({self.symbol: event_subs},))
         if key not in memo.logprob:
@@ -601,26 +607,34 @@ class LeafSPN(SPN):
         event_subs = event.substitute(self.env)
         assert all(s in self.env for s in event.get_symbols())
         assert event_subs.get_symbols() == {self.symbol}
-        if memo is None:
+        if memo is None or memo is False:
             return self.condition__(event_subs)
         key = self.get_memo_key(({self.symbol: event_subs},))
         if key not in memo.condition:
             memo.condition[key] = self.condition__(event_subs)
         return memo.condition[key]
     def logprob_factored(self, event_factor, memo):
-        # Check memo table.
+        if memo is False:
+            event = event_factor_to_event(event_factor)
+            return self.logprob(event)
         key = self.get_memo_key(event_factor)
         if key not in memo.logprob:
             event = event_factor_to_event(event_factor)
             memo.logprob[key] = self.logprob(event)
         return memo.logprob[key]
     def condition_factored(self, event_factor, memo):
+        if memo is False:
+            event = event_factor_to_event(event_factor)
+            return self.condition(event)
         key = self.get_memo_key(event_factor)
         if key not in memo.condition:
             event = event_factor_to_event(event_factor)
             memo.condition[key] = self.condition(event)
         return memo.condition[key]
     def logpdf_factored(self, event_factor, memo):
+        if memo is False:
+            event = event_factor_to_event(event_factor)
+            return self.logpdf(event)
         key = self.get_memo_key(event_factor)
         if key not in memo.logpdf:
             assert len(event_factor) == 1
