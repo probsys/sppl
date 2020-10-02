@@ -11,7 +11,7 @@ https://arxiv.org/pdf/1806.02027.pdf
 
 import pytest
 
-from spn.compilers.spml_to_python import SPML_Compiler
+from spn.compilers.spml_to_python import SPPL_Compiler
 from spn.distributions import atomic
 from spn.distributions import uniform
 from spn.compilers.ast_to_spn import IfElse
@@ -136,7 +136,7 @@ def model_perfect_nested():
     return command.interpret()
 
 def model_ifelse_exhuastive_compiled():
-    compiler = SPML_Compiler('''
+    compiler = SPPL_Compiler('''
 Nationality   ~= choice({'India': 0.5, 'USA': 0.5})
 Perfect       ~= choice({'True': 0.01, 'False': 0.99})
 if (Nationality == 'India') & (Perfect == 'False'):
@@ -152,7 +152,7 @@ elif (Nationality == 'USA') & (Perfect == 'True'):
     return namespace.model
 
 def model_ifelse_non_exhuastive_compiled():
-    compiler = SPML_Compiler('''
+    compiler = SPPL_Compiler('''
 Nationality   ~= choice({'India': 0.5, 'USA': 0.5})
 Perfect       ~= choice({'True': 0.01, 'False': 0.99})
 if (Nationality == 'India') & (Perfect == 'False'):
@@ -168,7 +168,7 @@ else:
     return namespace.model
 
 def model_ifelse_nested_compiled():
-    compiler = SPML_Compiler('''
+    compiler = SPPL_Compiler('''
 Nationality   ~= choice({'India': 0.5, 'USA': 0.5})
 Perfect       ~= choice({'True': 0.01, 'False': 0.99})
 if (Nationality == 'India'):
@@ -186,7 +186,7 @@ elif (Nationality == 'USA'):
     return namespace.model
 
 def model_perfect_nested_compiled():
-    compiler = SPML_Compiler('''
+    compiler = SPPL_Compiler('''
 Nationality   ~= choice({'India': 0.5, 'USA': 0.5})
 if (Nationality == 'India'):
     Perfect       ~= choice({'True': 0.01, 'False': 0.99})

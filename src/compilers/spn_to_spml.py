@@ -1,7 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-"""Convert SPN to SPML."""
+"""Convert SPN to SPPL."""
 
 from io import StringIO
 from math import exp
@@ -13,7 +13,7 @@ from ..spn import SumSPN
 
 get_indentation = lambda i: ' ' * i
 float_to_str = lambda x,fw: '%1.*f' % (fw, float(x)) if fw else str(x)
-class _SPML_Render_State:
+class _SPPL_Render_State:
     def __init__(self, stream=None, branches=None, indentation=None,
             fwidth=None):
         self.stream = stream or StringIO()
@@ -100,7 +100,7 @@ def render_spml_helper(spn, state):
 def render_spml(spn, stream=None, fwidth=None):
     if stream is None:
         stream = StringIO()
-    state = _SPML_Render_State(fwidth=fwidth)
+    state = _SPPL_Render_State(fwidth=fwidth)
     state = render_spml_helper(spn, state)
     assert state.indentation == 0
     # Write the import.
@@ -111,6 +111,6 @@ def render_spml(spn, stream=None, fwidth=None):
     for branch_var, branch_dist in state.branches:
         render_spml_choice(branch_var, branch_dist, stream, 0, fwidth)
     stream.write('\n')
-    # Write the SPML.
+    # Write the SPPL.
     stream.write(state.stream.getvalue())
     return stream

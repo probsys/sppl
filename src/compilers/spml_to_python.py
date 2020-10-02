@@ -1,7 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-"""Convert SPML to Python 3."""
+"""Convert SPPL to Python 3."""
 
 import ast
 import inspect
@@ -45,7 +45,7 @@ def maybe_sequence_block(visitor, value, first=None):
             visitor.command.write(',')
             visitor.command.write('\n')
 
-class SPML_Visitor(ast.NodeVisitor):
+class SPPL_Visitor(ast.NodeVisitor):
     def __init__(self, stream=None):
         self.first = True
         self.indentation = 0
@@ -89,7 +89,7 @@ class SPML_Visitor(ast.NodeVisitor):
 
         # Record visited distributions.
         value = node.value
-        visitor_name = SPML_Visitor_Name(DISTRIBUTIONS, self.variables)
+        visitor_name = SPPL_Visitor_Name(DISTRIBUTIONS, self.variables)
         visitor_name.visit(value)
         for d in visitor_name.distributions:
             if d not in self.distributions:
@@ -142,7 +142,7 @@ class SPML_Visitor(ast.NodeVisitor):
         if isinstance(target, ast.Subscript):
             assert target.value.id in self.variables, unode
             assert self.variables[target.value.id][0] == 'array', unode
-        value_prime = SPML_Transformer_Compare().visit(node.value)
+        value_prime = SPPL_Transformer_Compare().visit(node.value)
         src_value = unparse(value_prime).replace(os.linesep, '')
         src_targets = unparse(node.targets).replace(os.linesep, '')
         idt = get_indentation(self.indentation)
@@ -231,7 +231,7 @@ class SPML_Visitor(ast.NodeVisitor):
         self.indentation += 4
         for i, (test, body) in enumerate(unrolled):
             # Write the test.
-            test_prime = SPML_Transformer_Compare().visit(test)
+            test_prime = SPPL_Transformer_Compare().visit(test)
             src_test = unparse(test_prime).strip()
             idt = get_indentation(self.indentation)
             self.command.write('%s%s,' % (idt, src_test))
@@ -257,7 +257,7 @@ class SPML_Visitor(ast.NodeVisitor):
             assert len(node.args) == 1, unode
             idt = get_indentation(self.indentation)
             event = node.args[0]
-            event_prime = SPML_Transformer_Compare().visit(event)
+            event_prime = SPPL_Transformer_Compare().visit(event)
             src_event = unparse(event_prime).strip()
             self.command.write('%sCondition(%s),' % (idt, src_event))
             self.command.write('\n')
@@ -285,7 +285,7 @@ def unroll_ifexp(target, node):
         expr.orelse = [ast.Assign(target, node.orelse)]
     return expr
 
-class SPML_Transformer_Compare(ast.NodeTransformer):
+class SPPL_Transformer_Compare(ast.NodeTransformer):
     def visit_Compare(self, node):
         # TODO: Implement or/and.
         if len(node.ops) > 1:
@@ -314,7 +314,7 @@ class SPML_Transformer_Compare(ast.NodeTransformer):
                 operand=self.visit_Compare(node_copy))
         return node
 
-class SPML_Visitor_Name(ast.NodeVisitor):
+class SPPL_Visitor_Name(ast.NodeVisitor):
     def __init__(self, distributions, variables):
         self.distributions_lookup = distributions
         self.variables_lookup = variables
@@ -327,7 +327,7 @@ class SPML_Visitor_Name(ast.NodeVisitor):
             self.variables.add(node.id)
 
 prog = namedtuple('prog', ('imports', 'constants', 'variables', 'arrays', 'command'))
-class SPML_Compiler():
+class SPPL_Compiler():
     def __init__(self, source, modelname='model'):
         self.source = source
         self.modelname = modelname
@@ -351,7 +351,7 @@ class SPML_Compiler():
         # Parse and visit.
         source_prime = self.preprocess()
         tree = ast.parse(source_prime)
-        visitor = SPML_Visitor()
+        visitor = SPPL_Visitor()
         visitor.visit(tree)
         # Write the imports.
         self.prog.imports.write("# IMPORT STATEMENTS")

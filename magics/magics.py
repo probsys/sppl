@@ -10,14 +10,14 @@ from IPython.core.magic import line_magic
 from IPython.core.magic import magics_class
 from IPython.core.magic import needs_local_scope
 
-from spn.compilers.spml_to_python import SPML_Compiler
+from spn.compilers.spml_to_python import SPPL_Compiler
 
 from .render import render_graphviz
 
 Model = namedtuple('Model', ['source', 'compiler', 'namespace'])
 
 @magics_class
-class SPML_Magics(Magics):
+class SPPL_Magics(Magics):
 
     def __init__(self, shell):
         super().__init__(shell)
@@ -35,7 +35,7 @@ class SPML_Magics(Magics):
             return
         if line in self.programs:
             del self.programs[line]
-        compiler = SPML_Compiler(cell, line)
+        compiler = SPPL_Compiler(cell, line)
         namespace = compiler.execute_module()
         self.programs[line] = Model(cell, compiler, namespace)
 
