@@ -19,6 +19,7 @@ requirements = {
         'jupyter-core==4.6.*',
         'networkx==2.4',
         'notebook==6.0.*',
+        'matplotlib==3.3.*',
         'pygraphviz==1.5',
     ],
     'tests' : [
