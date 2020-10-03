@@ -20,7 +20,7 @@ class _SPPL_Render_State:
         self.branches = branches or []
         self.indentation = indentation or 0
         self.fwidth = fwidth
-def render_spml_choice(symbol, dist, stream, indentation, fwidth):
+def render_sppl_choice(symbol, dist, stream, indentation, fwidth):
     idt = get_indentation(indentation)
     dist_pairs = [
         '\'%s\' : %s' % (k, float_to_str(v, fwidth))
@@ -41,10 +41,10 @@ def render_spml_choice(symbol, dist, stream, indentation, fwidth):
     stream.write('%s%s ~= choice({%s%s%s})' %
         (idt, symbol, dist_op, dist_str, dist_cl))
     stream.write('\n')
-def render_spml_helper(spn, state):
+def render_sppl_helper(spn, state):
     if isinstance(spn, NominalLeaf):
         assert len(spn.env) == 1
-        render_spml_choice(
+        render_sppl_choice(
             spn.symbol,
             spn.dist,
             state.stream,
@@ -72,13 +72,13 @@ def render_spml_helper(spn, state):
         return state
     if isinstance(spn, ProductSPN):
         for child in spn.children:
-            state = render_spml_helper(child, state)
+            state = render_sppl_helper(child, state)
         return state
     if isinstance(spn, SumSPN):
         if len(spn.children) == 0:
             return state
         if len(spn.children) == 1:
-            return render_spml_helper(spn.children[0], state)
+            return render_sppl_helper(spn.children[0], state)
         branch_var = 'branch_var_%s' % (len(state.branches))
         branch_idxs = [str(i) for i in range(len(spn.children))]
         branch_dist = {k: exp(w) for k, w in zip(branch_idxs, spn.weights)}
@@ -91,17 +91,17 @@ def render_spml_helper(spn, state):
                 % (idt, ifstmt, branch_var, i))
             state.stream.write('\n')
             state.indentation += 4
-            state = render_spml_helper(child, state)
+            state = render_sppl_helper(child, state)
             state.stream.write('\n')
             state.indentation -= 4
         return state
     assert False, 'Unknown spn %s' % (spn,)
 
-def render_spml(spn, stream=None, fwidth=None):
+def render_sppl(spn, stream=None, fwidth=None):
     if stream is None:
         stream = StringIO()
     state = _SPPL_Render_State(fwidth=fwidth)
-    state = render_spml_helper(spn, state)
+    state = render_sppl_helper(spn, state)
     assert state.indentation == 0
     # Write the import.
     stream.write('from spn.distributions import *')
@@ -109,7 +109,7 @@ def render_spml(spn, stream=None, fwidth=None):
     stream.write('\n')
     # Write the branch variables (if any).
     for branch_var, branch_dist in state.branches:
-        render_spml_choice(branch_var, branch_dist, stream, 0, fwidth)
+        render_sppl_choice(branch_var, branch_dist, stream, 0, fwidth)
     stream.write('\n')
     # Write the SPPL.
     stream.write(state.stream.getvalue())

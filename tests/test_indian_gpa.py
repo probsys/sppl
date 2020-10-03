@@ -11,7 +11,7 @@ https://arxiv.org/pdf/1806.02027.pdf
 
 import pytest
 
-from spn.compilers.spml_to_python import SPPL_Compiler
+from spn.compilers.sppl_to_python import SPPL_Compiler
 from spn.distributions import atomic
 from spn.distributions import uniform
 from spn.compilers.ast_to_spn import IfElse
