@@ -104,7 +104,7 @@ def render_sppl(spn, stream=None, fwidth=None):
     state = render_sppl_helper(spn, state)
     assert state.indentation == 0
     # Write the import.
-    stream.write('from spn.distributions import *')
+    stream.write('from sppl.distributions import *')
     stream.write('\n')
     stream.write('\n')
     # Write the branch variables (if any).

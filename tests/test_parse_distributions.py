@@ -5,23 +5,23 @@ from math import log
 
 import pytest
 
-from spn.distributions import DistributionMix
-from spn.distributions import bernoulli
-from spn.distributions import choice
-from spn.distributions import discrete
-from spn.distributions import norm
-from spn.distributions import poisson
-from spn.distributions import rv_discrete
-from spn.distributions import uniformd
-from spn.math_util import allclose
-from spn.sets import FiniteNominal
-from spn.sets import Interval
-from spn.sets import inf as oo
-from spn.spn import ContinuousLeaf
-from spn.spn import DiscreteLeaf
-from spn.spn import NominalLeaf
-from spn.spn import SumSPN
-from spn.transforms import Id
+from sppl.distributions import DistributionMix
+from sppl.distributions import bernoulli
+from sppl.distributions import choice
+from sppl.distributions import discrete
+from sppl.distributions import norm
+from sppl.distributions import poisson
+from sppl.distributions import rv_discrete
+from sppl.distributions import uniformd
+from sppl.math_util import allclose
+from sppl.sets import FiniteNominal
+from sppl.sets import Interval
+from sppl.sets import inf as oo
+from sppl.spn import ContinuousLeaf
+from sppl.spn import DiscreteLeaf
+from sppl.spn import NominalLeaf
+from sppl.spn import SumSPN
+from sppl.transforms import Id
 
 X = Id('X')
 

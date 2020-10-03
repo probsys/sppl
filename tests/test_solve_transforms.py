@@ -6,22 +6,22 @@ import sympy
 
 from sympy import Rational as Rat
 
-from spn.math_util import allclose
+from sppl.math_util import allclose
 
-from spn.sets import EmptySet
-from spn.sets import FiniteNominal
-from spn.sets import FiniteReal
-from spn.sets import Interval
-from spn.sets import Reals
-from spn.sets import Union
-from spn.sets import inf as oo
+from sppl.sets import EmptySet
+from sppl.sets import FiniteNominal
+from sppl.sets import FiniteReal
+from sppl.sets import Interval
+from sppl.sets import Reals
+from sppl.sets import Union
+from sppl.sets import inf as oo
 
-from spn.sym_util import sympy_solver
-from spn.transforms import Exp
-from spn.transforms import Identity
-from spn.transforms import Log
-from spn.transforms import Logarithm
-from spn.transforms import Sqrt
+from sppl.sym_util import sympy_solver
+from sppl.transforms import Exp
+from sppl.transforms import Identity
+from sppl.transforms import Log
+from sppl.transforms import Logarithm
+from sppl.transforms import Sqrt
 
 X = sympy.symbols('X')
 Y = Identity('Y')

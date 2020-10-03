@@ -1,10 +1,10 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from spn.compilers.sppl_to_python import SPPL_Compiler
-from spn.compilers.spn_to_sppl import render_sppl
-from spn.math_util import allclose
-from spn.tests.test_render import get_model
+from sppl.compilers.sppl_to_python import SPPL_Compiler
+from sppl.compilers.spn_to_sppl import render_sppl
+from sppl.math_util import allclose
+from sppl.tests.test_render import get_model
 
 def test_render_sppl():
     model = get_model()

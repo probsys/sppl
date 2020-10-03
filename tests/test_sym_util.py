@@ -7,10 +7,10 @@ from sympy import exp as SymExp
 from sympy import log as SymLog
 from sympy import symbols
 
-from spn.sets import FiniteReal
-from spn.sym_util import get_symbols
-from spn.sym_util import partition_finite_real_contiguous
-from spn.sym_util import partition_list_blocks
+from sppl.sets import FiniteReal
+from sppl.sym_util import get_symbols
+from sppl.sym_util import partition_finite_real_contiguous
+from sppl.sym_util import partition_list_blocks
 
 (X0, X1, X2, X3, X4, X5, X6, X7, X8, X9) = symbols('X:10')
 

@@ -5,15 +5,15 @@ import os
 
 import pytest
 
-from spn.distributions import bernoulli
-from spn.compilers.ast_to_spn import Id
-from spn.compilers.ast_to_spn import IfElse
-from spn.compilers.ast_to_spn import Otherwise
-from spn.compilers.ast_to_spn import Sample
-from spn.compilers.ast_to_spn import Sequence
-from spn.compilers.ast_to_spn import Transform
-from spn.render import render_nested_lists
-from spn.render import render_nested_lists_concise
+from sppl.distributions import bernoulli
+from sppl.compilers.ast_to_spn import Id
+from sppl.compilers.ast_to_spn import IfElse
+from sppl.compilers.ast_to_spn import Otherwise
+from sppl.compilers.ast_to_spn import Sample
+from sppl.compilers.ast_to_spn import Sequence
+from sppl.compilers.ast_to_spn import Transform
+from sppl.render import render_nested_lists
+from sppl.render import render_nested_lists_concise
 
 def get_model():
     Y = Id('Y')
@@ -37,8 +37,8 @@ def test_render_graphviz_crash():
     pytest.importorskip('pygraphviz')
     pytest.importorskip('networkx')
 
-    from spn.magics.render import render_networkx_graph
-    from spn.magics.render import render_graphviz
+    from sppl.magics.render import render_networkx_graph
+    from sppl.magics.render import render_graphviz
 
     model = get_model()
     render_networkx_graph(model)

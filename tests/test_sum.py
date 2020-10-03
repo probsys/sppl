@@ -8,21 +8,21 @@ import pytest
 
 import numpy
 
-from spn.distributions import choice
-from spn.distributions import gamma
-from spn.distributions import norm
-from spn.math_util import allclose
-from spn.math_util import isinf_neg
-from spn.math_util import logsumexp
-from spn.sets import FiniteNominal
-from spn.sets import Interval
-from spn.sets import inf as oo
-from spn.spn import ContinuousLeaf
-from spn.spn import ExposedSumSPN
-from spn.spn import NominalLeaf
-from spn.spn import ProductSPN
-from spn.spn import SumSPN
-from spn.transforms import Id
+from sppl.distributions import choice
+from sppl.distributions import gamma
+from sppl.distributions import norm
+from sppl.math_util import allclose
+from sppl.math_util import isinf_neg
+from sppl.math_util import logsumexp
+from sppl.sets import FiniteNominal
+from sppl.sets import Interval
+from sppl.sets import inf as oo
+from sppl.spn import ContinuousLeaf
+from sppl.spn import ExposedSumSPN
+from sppl.spn import NominalLeaf
+from sppl.spn import ProductSPN
+from sppl.spn import SumSPN
+from sppl.transforms import Id
 
 def test_sum_normal_gamma():
     X = Id('X')

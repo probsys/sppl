@@ -5,17 +5,17 @@ import pytest
 
 import numpy
 
-from spn.distributions import poisson
-from spn.distributions import randint
-from spn.math_util import allclose
-from spn.math_util import logdiffexp
-from spn.math_util import logsumexp
-from spn.spn import DiscreteLeaf
-from spn.spn import SumSPN
-from spn.transforms import Id
-from spn.sets import Range
-from spn.sets import Interval
-from spn.sets import inf as oo
+from sppl.distributions import poisson
+from sppl.distributions import randint
+from sppl.math_util import allclose
+from sppl.math_util import logdiffexp
+from sppl.math_util import logsumexp
+from sppl.spn import DiscreteLeaf
+from sppl.spn import SumSPN
+from sppl.transforms import Id
+from sppl.sets import Range
+from sppl.sets import Interval
+from sppl.sets import inf as oo
 
 def test_poisson():
     X = Id('X')

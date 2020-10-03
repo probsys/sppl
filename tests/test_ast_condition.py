@@ -7,15 +7,15 @@ import pytest
 
 from numpy import linspace
 
-from spn.distributions import bernoulli
-from spn.distributions import beta
-from spn.distributions import randint
-from spn.compilers.ast_to_spn import IfElse
-from spn.compilers.ast_to_spn import Condition
-from spn.compilers.ast_to_spn import Sample
-from spn.compilers.ast_to_spn import Sequence
-from spn.compilers.ast_to_spn import Id
-from spn.math_util import allclose
+from sppl.distributions import bernoulli
+from sppl.distributions import beta
+from sppl.distributions import randint
+from sppl.compilers.ast_to_spn import IfElse
+from sppl.compilers.ast_to_spn import Condition
+from sppl.compilers.ast_to_spn import Sample
+from sppl.compilers.ast_to_spn import Sequence
+from sppl.compilers.ast_to_spn import Id
+from sppl.math_util import allclose
 
 Y = Id('Y')
 X = Id('X')

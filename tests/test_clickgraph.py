@@ -5,21 +5,21 @@ import pytest
 
 from numpy import linspace
 
-from spn.distributions import bernoulli
-from spn.distributions import beta
-from spn.distributions import randint
-from spn.distributions import uniform
+from sppl.distributions import bernoulli
+from sppl.distributions import beta
+from sppl.distributions import randint
+from sppl.distributions import uniform
 
-from spn.compilers.ast_to_spn import For
-from spn.compilers.ast_to_spn import IfElse
-from spn.compilers.ast_to_spn import Sample
-from spn.compilers.ast_to_spn import Sequence
-from spn.compilers.ast_to_spn import Switch
-from spn.compilers.ast_to_spn import Transform
-from spn.compilers.ast_to_spn import Id
-from spn.compilers.ast_to_spn import IdArray
+from sppl.compilers.ast_to_spn import For
+from sppl.compilers.ast_to_spn import IfElse
+from sppl.compilers.ast_to_spn import Sample
+from sppl.compilers.ast_to_spn import Sequence
+from sppl.compilers.ast_to_spn import Switch
+from sppl.compilers.ast_to_spn import Transform
+from sppl.compilers.ast_to_spn import Id
+from sppl.compilers.ast_to_spn import IdArray
 
-from spn.sym_util import binspace
+from sppl.sym_util import binspace
 
 simAll   = Id('simAll')
 sim      = IdArray('sim', 5)

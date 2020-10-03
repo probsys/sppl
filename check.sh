@@ -17,11 +17,11 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         # activates integration testing code path. If --integration is
         # not specified then a __ci_() test will either run as a crash test
         # or not run at all. (Use git grep '__ci_' to find these tests.)
-        ./pythenv.sh "$PYTHON" -m pytest -k 'not __ci_' --pyargs spn
+        ./pythenv.sh "$PYTHON" -m pytest -k 'not __ci_' --pyargs sppl
     elif [ ${1} = 'ci' ]; then
-        ./pythenv.sh "$PYTHON" -m pytest --pyargs spn
+        ./pythenv.sh "$PYTHON" -m pytest --pyargs sppl
     elif [ ${1} = 'coverage' ]; then
-        ./pythenv.sh coverage run --source=build/ -m pytest --pyargs spn
+        ./pythenv.sh coverage run --source=build/ -m pytest --pyargs sppl
         coverage html
         coverage report
     else

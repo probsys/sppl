@@ -6,28 +6,28 @@ import sympy
 
 from sympy import Rational as Rat
 
-from spn.sets import EmptySet
-from spn.sets import FiniteNominal
-from spn.sets import FiniteReal
-from spn.sets import Interval
-from spn.sets import inf as oo
+from sppl.sets import EmptySet
+from sppl.sets import FiniteNominal
+from sppl.sets import FiniteReal
+from sppl.sets import Interval
+from sppl.sets import inf as oo
 
-from spn.transforms import Abs
-from spn.transforms import Exp
-from spn.transforms import Identity
-from spn.transforms import Log
-from spn.transforms import Piecewise
-from spn.transforms import Poly
-from spn.transforms import Pow
-from spn.transforms import Radical
-from spn.transforms import Reciprocal
-from spn.transforms import Sqrt
+from sppl.transforms import Abs
+from sppl.transforms import Exp
+from sppl.transforms import Identity
+from sppl.transforms import Log
+from sppl.transforms import Piecewise
+from sppl.transforms import Poly
+from sppl.transforms import Pow
+from sppl.transforms import Radical
+from sppl.transforms import Reciprocal
+from sppl.transforms import Sqrt
 
-from spn.transforms import EventAnd
-from spn.transforms import EventFiniteNominal
-from spn.transforms import EventFiniteReal
-from spn.transforms import EventInterval
-from spn.transforms import EventOr
+from sppl.transforms import EventAnd
+from sppl.transforms import EventFiniteNominal
+from sppl.transforms import EventFiniteReal
+from sppl.transforms import EventInterval
+from sppl.transforms import EventOr
 
 X = Identity("X")
 Y = X

@@ -7,17 +7,17 @@ import numpy
 import pytest
 import scipy.stats
 
-from spn.distributions import gamma
-from spn.distributions import norm
-from spn.math_util import allclose
-from spn.math_util import isinf_neg
-from spn.math_util import logdiffexp
-from spn.sets import Interval
-from spn.sets import inf as oo
-from spn.spn import ContinuousLeaf
-from spn.spn import SumSPN
-from spn.sets import Reals
-from spn.transforms import Id
+from sppl.distributions import gamma
+from sppl.distributions import norm
+from sppl.math_util import allclose
+from sppl.math_util import isinf_neg
+from sppl.math_util import logdiffexp
+from sppl.sets import Interval
+from sppl.sets import inf as oo
+from sppl.spn import ContinuousLeaf
+from sppl.spn import SumSPN
+from sppl.sets import Reals
+from sppl.transforms import Id
 
 def test_numeric_distribution_normal():
     X = Id('X')

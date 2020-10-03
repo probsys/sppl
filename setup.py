@@ -35,7 +35,7 @@ m = open(os.path.join(dirname, 'src', 'version.py')).read()
 __version__ = vre.findall(m)[0]
 
 setup(
-    name='spn',
+    name='sppl',
     version=__version__,
     description='Probabilistic Programming with Sum-Product Networks',
     url='https://github.com/probcomp/sum-product-dsl',
@@ -49,16 +49,16 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
     packages=[
-        'spn',
-        'spn.compilers',
-        'spn.magics',
-        'spn.tests',
+        'sppl',
+        'sppl.compilers',
+        'sppl.magics',
+        'sppl.tests',
     ],
     package_dir={
-        'spn'           : 'src',
-        'spn.compilers' : 'src/compilers',
-        'spn.magics'    : 'magics',
-        'spn.tests'     : 'tests',
+        'sppl'           : 'src',
+        'sppl.compilers' : 'src/compilers',
+        'sppl.magics'    : 'magics',
+        'sppl.tests'     : 'tests',
     },
     install_requires=requirements['src'],
     extras_require=requirements,

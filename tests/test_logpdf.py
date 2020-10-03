@@ -5,14 +5,14 @@ from math import log
 
 import pytest
 
-from spn.distributions import gamma
-from spn.distributions import norm
-from spn.distributions import poisson
-from spn.math_util import allclose
-from spn.math_util import isinf_neg
-from spn.math_util import logsumexp
-from spn.transforms import Id
-from spn.spn import SumSPN
+from sppl.distributions import gamma
+from sppl.distributions import norm
+from sppl.distributions import poisson
+from sppl.math_util import allclose
+from sppl.math_util import isinf_neg
+from sppl.math_util import logsumexp
+from sppl.transforms import Id
+from sppl.spn import SumSPN
 
 X = Id('X')
 Y = Id('Y')

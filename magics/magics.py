@@ -10,7 +10,7 @@ from IPython.core.magic import line_magic
 from IPython.core.magic import magics_class
 from IPython.core.magic import needs_local_scope
 
-from spn.compilers.sppl_to_python import SPPL_Compiler
+from sppl.compilers.sppl_to_python import SPPL_Compiler
 
 from .render import render_graphviz
 

@@ -360,11 +360,11 @@ class SPPL_Compiler():
             self.prog.imports.write(i)
             self.prog.imports.write('\n')
         for d in sorted(visitor.distributions):
-            self.prog.imports.write('from spn.distributions import %s' % (d,))
+            self.prog.imports.write('from sppl.distributions import %s' % (d,))
             self.prog.imports.write('\n')
         for c in ['Id', 'IdArray', 'Condition', 'IfElse', 'For', 'Sample',
                     'Sequence', 'Switch', 'Transform']:
-            self.prog.imports.write('from spn.compilers.ast_to_spn import %s' % (c,))
+            self.prog.imports.write('from sppl.compilers.ast_to_spn import %s' % (c,))
             self.prog.imports.write('\n')
         # Write the constants.
         if visitor.constants:

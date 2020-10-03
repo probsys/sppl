@@ -3,10 +3,10 @@
 
 import pytest
 
-from spn.distributions import norm
-from spn.distributions import poisson
-from spn.math_util import allclose
-from spn.transforms import Id
+from sppl.distributions import norm
+from sppl.distributions import poisson
+from sppl.math_util import allclose
+from sppl.transforms import Id
 
 def test_transform_real_leaf_logprob():
     X = Id('X')

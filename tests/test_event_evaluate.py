@@ -3,9 +3,9 @@
 
 import pytest
 
-from spn.transforms import Exp
-from spn.transforms import Id
-from spn.transforms import Log
+from sppl.transforms import Exp
+from sppl.transforms import Id
+from sppl.transforms import Log
 
 X = Id('X')
 Y = Id('Y')
