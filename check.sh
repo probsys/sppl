@@ -24,6 +24,13 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         ./pythenv.sh coverage run --source=build/ -m pytest --pyargs sppl
         coverage html
         coverage report
+    elif [ ${1} = 'examples' ]; then
+        # Run the .ipynb notebooks under examples/
+        # Requires 'magics' dependencies listed in setup.py
+        for x in $(ls examples/*.ipynb); do
+            rm -rf ${x%%.ipynb}.html
+            ./pythenv.sh jupyter nbconvert --execute --to html ${x};
+        done
     else
         # If args are specified delegate control to user.
         ./pythenv.sh "$PYTHON" -m pytest "$@"
