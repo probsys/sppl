@@ -465,6 +465,7 @@ class norm(ContinuousReal):
     """A normal continuous random variable."""
     dist = scipy.stats.norm
     def get_domain(self): return Reals
+normal = norm
 
 class norminvgauss(ContinuousReal):
     """A normal Inverse Gaussian continuous random variable."""
