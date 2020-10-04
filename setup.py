@@ -39,8 +39,8 @@ __version__ = vre.findall(m)[0]
 setup(
     name='sppl',
     version=__version__,
-    description='Probabilistic Programming with Sum-Product Networks',
-    url='https://github.com/probcomp/sum-product-dsl',
+    description='The Sum-Product Probabilistic Language',
+    url='https://github.com/probcomp/sum-product-probabilistic-language',
     license='Apache-2.0',
     maintainer='Feras A. Saad',
     maintainer_email='fsaad@.mit.edu',
@@ -48,7 +48,7 @@ setup(
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     packages=[
         'sppl',
@@ -64,4 +64,5 @@ setup(
     },
     install_requires=requirements['src'],
     extras_require=requirements,
+    python_requires='>=3.6.9',
 )
