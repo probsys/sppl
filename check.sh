@@ -31,6 +31,9 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
             rm -rf ${x%%.ipynb}.html
             ./pythenv.sh jupyter nbconvert --execute --to html ${x};
         done
+    elif [ ${1} = 'docker' ]; then
+        # Build docker image containing the software.
+        docker build -t probcomp:sppl -f docker/ubuntu1804 .
     else
         # If args are specified delegate control to user.
         ./pythenv.sh "$PYTHON" -m pytest "$@"

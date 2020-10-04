@@ -6,18 +6,18 @@ RUN             apt-get update && apt-get install -y python3-venv
 RUN             python3 -m venv /venv
 
                 # Add the source code.
-ADD             . /sum-product-dsl
-WORKDIR         /sum-product-dsl
+ADD             . /sum-product-probabilistic-language
+WORKDIR         /sum-product-probabilistic-language
 
                 # Build and test the minimal suite.
 RUN             . /venv/bin/activate && pip install '.[tests]'
-RUN             . /venv/bin/activate && ./check.sh tests
-RUN             . /venv/bin/activate && pip uninstall -y spn
+RUN             . /venv/bin/activate && ./check.sh
+RUN             . /venv/bin/activate && pip uninstall -y sppl
 
                 # Build and test the full suite.
 RUN             . /venv/bin/activate && sh requirements.sh
 RUN             . /venv/bin/activate && pip install '.[all]'
-RUN             . /venv/bin/activate && ./check.sh tests
+RUN             . /venv/bin/activate && ./check.sh ci
 
                 # Package into source and binaries.
 RUN             . /venv/bin/activate && python setup.py sdist
