@@ -25,6 +25,7 @@ requirements = {
     'tests' : [
         'pytest-timeout==1.3.3',
         'pytest==5.2.2',
+        'coverage==5.3',
     ]
 }
 requirements['all'] = [r for v in requirements.values() for r in v]
