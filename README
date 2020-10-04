@@ -19,23 +19,12 @@ To install the full suite, which includes a Jupyter interface:
 
 ## Tests
 
-To run crash tests:
+To run crash tests:             $ ./check.sh
+To run integration tests:       $ ./check.sh ci
+To run a specific test:         $ ./check.sh /path/to/test.py
+To generate a coverage report:  $ ./check.sh coverage
 
-    $ ./check.sh
-
-To run integration tests:
-
-    $ ./check.sh ci
-
-To run a specific test:
-
-    $ ./check.sh /path/to/test.py
-
-To generate a coverage report:
-
-    $./check.sh coverage
-
-  To view the report, open ./htmlcov/index.html
+To view the coverage report, open ./htmlcov/index.html
 
 ## Examples
 
