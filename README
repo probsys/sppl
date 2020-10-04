@@ -22,20 +22,15 @@ To install the full suite, which includes a Jupyter interface:
 To run crash tests:             $ ./check.sh
 To run integration tests:       $ ./check.sh ci
 To run a specific test:         $ ./check.sh /path/to/test.py
+To run the examples:            $ ./check.sh examples
 To generate a coverage report:  $ ./check.sh coverage
 
-To view the coverage report, open ./htmlcov/index.html
+To view the coverage report, open htmlcov/index.html
 
 ## Examples
 
 Refer to the .ipynb notebooks under the examples/ directory.
 Running these examples requires the full installation.
-
-The example notebooks can be run in bulk using the following
-command, which executes each .ipynb file and renders the
-output as an .html file.
-
-    $ ./check.sh notebooks
 
 ## Documentation
 
