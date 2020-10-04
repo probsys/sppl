@@ -27,14 +27,26 @@ To run integration tests:
 
     $ ./check.sh ci
 
-To run the example notebooks:
+To run a specific test:
 
-  $ ./check.sh notebooks
+    $ ./check.sh /path/to/test.py
+
+To generate a coverage report:
+
+    $./check.sh coverage
+
+  To view the report, open ./htmlcov/index.html
 
 ## Examples
 
 Refer to the .ipynb notebooks under the examples/ directory.
 Running these examples requires the full installation.
+
+The example notebooks can be run in bulk using the following
+command, which executes each .ipynb file and renders the
+output as an .html file.
+
+    $ ./check.sh notebooks
 
 ## Documentation
 
@@ -43,3 +55,7 @@ Coming Soon!
 ## Benchmarks
 
 Coming Soon!
+
+## License
+
+Apache 2.0; see LICENSE.txt
