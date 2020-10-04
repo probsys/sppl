@@ -993,7 +993,7 @@ class EventInterval(EventBasic):
             result = '%s %s %s' % (x_l, comp_l, sym)
         else:
             # Python-style parenthesis are required for
-            # rendering condition(E) in spn_to_spml.py
+            # rendering condition(E) in spn_to_sppl.py
             result = '(%s %s %s) %s %s' % (x_l, comp_l, sym, comp_r, x_r)
         return result
 

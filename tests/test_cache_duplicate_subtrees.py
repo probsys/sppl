@@ -5,12 +5,12 @@ from math import log
 
 import numpy
 
-from spn.distributions import bernoulli
-from spn.distributions import norm
-from spn.spn import ProductSPN
-from spn.spn import SumSPN
-from spn.spn import spn_cache_duplicate_subtrees
-from spn.transforms import Id
+from sppl.distributions import bernoulli
+from sppl.distributions import norm
+from sppl.spn import ProductSPN
+from sppl.spn import SumSPN
+from sppl.spn import spn_cache_duplicate_subtrees
+from sppl.transforms import Id
 
 rng = numpy.random.RandomState(1)
 

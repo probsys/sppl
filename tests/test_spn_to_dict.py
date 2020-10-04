@@ -6,18 +6,18 @@ import pytest
 
 from sympy import sqrt
 
-from spn.compilers.spn_to_dict import spn_from_dict
-from spn.compilers.spn_to_dict import spn_to_dict
-from spn.distributions import gamma
-from spn.distributions import norm
-from spn.distributions import poisson
-from spn.sets import EmptySet
-from spn.transforms import EventFiniteNominal
-from spn.transforms import Exp
-from spn.transforms import Exponential
-from spn.transforms import Id
-from spn.transforms import Log
-from spn.transforms import Logarithm
+from sppl.compilers.spn_to_dict import spn_from_dict
+from sppl.compilers.spn_to_dict import spn_to_dict
+from sppl.distributions import gamma
+from sppl.distributions import norm
+from sppl.distributions import poisson
+from sppl.sets import EmptySet
+from sppl.transforms import EventFiniteNominal
+from sppl.transforms import Exp
+from sppl.transforms import Exponential
+from sppl.transforms import Id
+from sppl.transforms import Log
+from sppl.transforms import Logarithm
 
 X = Id('X')
 Y = Id('Y')

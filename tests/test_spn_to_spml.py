@@ -1,15 +1,15 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from spn.compilers.spml_to_python import SPML_Compiler
-from spn.compilers.spn_to_spml import render_spml
-from spn.math_util import allclose
-from spn.tests.test_render import get_model
+from sppl.compilers.sppl_to_python import SPPL_Compiler
+from sppl.compilers.spn_to_sppl import render_sppl
+from sppl.math_util import allclose
+from sppl.tests.test_render import get_model
 
-def test_render_spml():
+def test_render_sppl():
     model = get_model()
-    spml_code = render_spml(model)
-    compiler = SPML_Compiler(spml_code.getvalue())
+    sppl_code = render_sppl(model)
+    compiler = SPPL_Compiler(sppl_code.getvalue())
     namespace = compiler.execute_module()
     (X, Y) = (namespace.X, namespace.Y)
     for i in range(5):

@@ -3,15 +3,15 @@
 
 from math import log
 
-from spn.distributions import bernoulli
-from spn.distributions import norm
-from spn.compilers.ast_to_spn import IfElse
-from spn.compilers.ast_to_spn import Otherwise
-from spn.compilers.ast_to_spn import Sample
-from spn.compilers.ast_to_spn import Sequence
-from spn.compilers.ast_to_spn import Transform
-from spn.compilers.ast_to_spn import Id
-from spn.math_util import allclose
+from sppl.distributions import bernoulli
+from sppl.distributions import norm
+from sppl.compilers.ast_to_spn import IfElse
+from sppl.compilers.ast_to_spn import Otherwise
+from sppl.compilers.ast_to_spn import Sample
+from sppl.compilers.ast_to_spn import Sequence
+from sppl.compilers.ast_to_spn import Transform
+from sppl.compilers.ast_to_spn import Id
+from sppl.math_util import allclose
 
 X = Id('X')
 Y = Id('Y')

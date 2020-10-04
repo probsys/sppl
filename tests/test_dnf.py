@@ -3,15 +3,15 @@
 
 import pytest
 
-from spn.dnf import dnf_factor
-from spn.dnf import dnf_non_disjoint_clauses
-from spn.dnf import dnf_to_disjoint_union
+from sppl.dnf import dnf_factor
+from sppl.dnf import dnf_non_disjoint_clauses
+from sppl.dnf import dnf_to_disjoint_union
 
-from spn.transforms import EventOr
-from spn.transforms import Exp
-from spn.transforms import Id
-from spn.transforms import Log
-from spn.transforms import Sqrt
+from sppl.transforms import EventOr
+from sppl.transforms import Exp
+from sppl.transforms import Id
+from sppl.transforms import Log
+from sppl.transforms import Sqrt
 
 (X0, X1, X2, X3, X4, X5) = [Id("X%d" % (i,)) for i in range(6)]
 

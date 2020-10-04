@@ -8,22 +8,22 @@ import pytest
 import numpy
 import sympy
 
-from spn.distributions import gamma
-from spn.distributions import norm
-from spn.dnf import dnf_to_disjoint_union
-from spn.math_util import allclose
-from spn.math_util import isinf_neg
-from spn.math_util import logdiffexp
-from spn.math_util import lognorm
-from spn.math_util import logsumexp
-from spn.sets import Interval
-from spn.sets import inf as oo
-from spn.spn import LeafSPN
-from spn.spn import ProductSPN
-from spn.spn import SumSPN
-from spn.transforms import Exp
-from spn.transforms import Id
-from spn.transforms import Log
+from sppl.distributions import gamma
+from sppl.distributions import norm
+from sppl.dnf import dnf_to_disjoint_union
+from sppl.math_util import allclose
+from sppl.math_util import isinf_neg
+from sppl.math_util import logdiffexp
+from sppl.math_util import lognorm
+from sppl.math_util import logsumexp
+from sppl.sets import Interval
+from sppl.sets import inf as oo
+from sppl.spn import LeafSPN
+from sppl.spn import ProductSPN
+from sppl.spn import SumSPN
+from sppl.transforms import Exp
+from sppl.transforms import Id
+from sppl.transforms import Log
 
 def test_product_distribution_normal_gamma_basic():
     X1 = Id('X1')

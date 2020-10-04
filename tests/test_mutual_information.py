@@ -7,13 +7,13 @@ from math import log
 import numpy
 import pytest
 
-from spn.distributions import norm
-from spn.math_util import allclose
-from spn.math_util import isinf_neg
-from spn.math_util import logdiffexp
-from spn.math_util import logsumexp
-from spn.spn import Memo
-from spn.transforms import Id
+from sppl.distributions import norm
+from sppl.math_util import allclose
+from sppl.math_util import isinf_neg
+from sppl.math_util import logdiffexp
+from sppl.math_util import logsumexp
+from sppl.spn import Memo
+from sppl.transforms import Id
 
 prng = numpy.random.RandomState(1)
 

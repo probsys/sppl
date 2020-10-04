@@ -2,8 +2,8 @@
 # See LICENSE.txt
 
 import pytest
-from spn.transforms import Id
-from spn.transforms import Logarithm
+from sppl.transforms import Id
+from sppl.transforms import Logarithm
 
 X = Id('X')
 Z = Id('Z')

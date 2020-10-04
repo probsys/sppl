@@ -6,18 +6,18 @@ from sympy import Rational
 from sympy import sqrt as SymSqrt
 from sympy.abc import x
 
-from spn.poly import solve_poly_equality
-from spn.poly import solve_poly_inequality
+from sppl.poly import solve_poly_equality
+from sppl.poly import solve_poly_inequality
 
-from spn.math_util import allclose
+from sppl.math_util import allclose
 
-from spn.sets import EmptySet
-from spn.sets import ExtReals
-from spn.sets import FiniteReal
-from spn.sets import Interval
-from spn.sets import Reals
-from spn.sets import Union
-from spn.sets import inf as oo
+from sppl.sets import EmptySet
+from sppl.sets import ExtReals
+from sppl.sets import FiniteReal
+from sppl.sets import Interval
+from sppl.sets import Reals
+from sppl.sets import Union
+from sppl.sets import inf as oo
 
 def test_solve_poly_inequaltiy_pos_inf():
     assert solve_poly_inequality(x**2-10*x+100, oo, True) == Reals

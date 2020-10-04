@@ -3,7 +3,7 @@
 
 import pytest
 
-from spn.compilers.spml_to_python import SPML_Compiler
+from sppl.compilers.sppl_to_python import SPPL_Compiler
 
 isclose = lambda a, b : abs(a-b) < 1e-10
 
@@ -33,7 +33,7 @@ else:
 @pytest.mark.parametrize('case', overwrite_cases)
 def test_error_assign_overwrite_variable(case):
     with pytest.raises(AssertionError):
-        SPML_Compiler(case)
+        SPPL_Compiler(case)
 
 def test_error_assign_unknown_array():
     source = '''
@@ -41,8 +41,8 @@ X ~= uniform(loc=0, scale=1);
 Y[0] ~= bernoulli(p=.1)
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
-    SPML_Compiler('Y = array(10);\n%s' % (source,))
+        SPPL_Compiler(source)
+    SPPL_Compiler('Y = array(10);\n%s' % (source,))
 
 def test_error_assign_fresh_variable_else():
     source = '''
@@ -53,8 +53,8 @@ else:
     W ~= 2*X
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
-    SPML_Compiler(source.replace('W', 'Y'))
+        SPPL_Compiler(source)
+    SPPL_Compiler(source.replace('W', 'Y'))
 
 def test_error_assign_non_array_in_for():
     source = '''
@@ -63,9 +63,9 @@ for i in range(10):
     X ~= norm()
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
+        SPPL_Compiler(source)
     source_prime = 'X = array(5);\n%s' % (source.replace('X', 'X[i]'),)
-    SPML_Compiler(source_prime)
+    SPPL_Compiler(source_prime)
 
 def test_error_assign_array_subscript():
     source = '''
@@ -73,8 +73,8 @@ Y = array(5)
 Y[0] = array(2)
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
-    SPML_Compiler(source.replace('array(2)', 'norm()'))
+        SPPL_Compiler(source)
+    SPPL_Compiler(source.replace('array(2)', 'norm()'))
 
 def test_error_assign_py_constant_after_sampling():
     source = '''
@@ -82,7 +82,7 @@ X ~= norm()
 Y = "foo"
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
+        SPPL_Compiler(source)
 
 def test_error_assign_py_constant_non_global():
     source = '''
@@ -93,13 +93,13 @@ else:
     Y = norm()
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
+        SPPL_Compiler(source)
 
 def test_error_assign_assign_invalid_lhs():
     with pytest.raises(AssertionError):
-        SPML_Compiler('[Y] ~= norm()')
+        SPPL_Compiler('[Y] ~= norm()')
     with pytest.raises(AssertionError):
-        SPML_Compiler('(X, Y) ~= norm()')
+        SPPL_Compiler('(X, Y) ~= norm()')
 
 # Test errors in visit_For:
 # - [x] func is not range.
@@ -113,8 +113,8 @@ for i in xrange(10):
     X[i] ~= norm()
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
-    SPML_Compiler(source.replace('xrange', 'range'))
+        SPPL_Compiler(source)
+    SPPL_Compiler(source.replace('xrange', 'range'))
 
 def test_error_for_range_step():
     source = '''
@@ -124,8 +124,8 @@ for i in range(1, 10, 2):
     X[i] ~= 2*X[i-1]
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
-    SPML_Compiler(source.replace(', 2)' , ')'))
+        SPPL_Compiler(source)
+    SPPL_Compiler(source.replace(', 2)' , ')'))
 
 def test_error_for_range_multiple_vars():
     source = '''
@@ -135,8 +135,8 @@ for (i, j) in range(1, 9):
     X[i] ~= 2*X[i-1]
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
-    SPML_Compiler(source.replace('(i, j)' , 'i'))
+        SPPL_Compiler(source)
+    SPPL_Compiler(source.replace('(i, j)' , 'i'))
 
 # Test errors in visit_If:
 # - [x] if without matching else/elif
@@ -147,11 +147,11 @@ if (X > 0):
     Y ~= 2*X + 1
 '''
     with pytest.raises(AssertionError):
-        SPML_Compiler(source)
-    SPML_Compiler('%s\nelse:\n    Y~= norm()' % (source,))
-    SPML_Compiler('%s\nelif (X<0):\n    Y~= norm()' % (source,))
+        SPPL_Compiler(source)
+    SPPL_Compiler('%s\nelse:\n    Y~= norm()' % (source,))
+    SPPL_Compiler('%s\nelif (X<0):\n    Y~= norm()' % (source,))
 
-# Test SPML_Transformer
+# Test SPPL_Transformer
 # Q = Z in {0, 1}         E = Z << {0, 1}
 # Q = Z not in {0, 1}     Q = ~(Z << {0, 1})
 # Q = Z == 'foo'          Q = Z << {'foo'}
@@ -162,7 +162,7 @@ def test_transform_in():
 X ~= choice({'foo': .5, 'bar': .1, 'baz': .4})
 Y = X in {'foo', 'baz'}
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     py_source = compiler.render_module()
     assert 'X << {\'foo\', \'baz\'}' in py_source
     assert 'X in' not in py_source
@@ -172,7 +172,7 @@ def test_transform_in_not():
 X ~= choice({'foo': .5, 'bar': .1, 'baz': .4})
 Y = X not in {'foo', 'baz'}
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     py_source = compiler.render_module()
     assert '~ (X << {\'foo\', \'baz\'})' in py_source
     assert 'not in' not in py_source
@@ -182,7 +182,7 @@ def test_transform_eq():
 X ~= choice({'foo': .5, 'bar': .1, 'baz': .4})
 Y = X == 'foo'
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     py_source = compiler.render_module()
     assert 'X << {\'foo\'}' in py_source
     assert '==' not in py_source
@@ -192,7 +192,7 @@ def test_transform_eq_not():
 X ~= choice({'foo': .5, 'bar': .1, 'baz': .4})
 Y = X != 'foo'
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     py_source = compiler.render_module()
     assert '~ (X << {\'foo\'})' in py_source
     assert '!=' not in py_source
@@ -233,7 +233,7 @@ else:
         X[7] = bernoulli(p=0.2)
         X[8] = 1 + X[3]
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     namespace = compiler.execute_module()
     model = namespace.model
     assert isclose(model.prob(namespace.X[5] << {0}), .3)
@@ -250,10 +250,10 @@ X = array(5)
 for i in range(5):
     X[i] ~= Fraction(1,2) * Y
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     with pytest.raises(NameError):
         compiler.execute_module()
-    compiler = SPML_Compiler('from fractions import Fraction\n%s' % (source,))
+    compiler = SPPL_Compiler('from fractions import Fraction\n%s' % (source,))
     namespace = compiler.execute_module()
     for i in range(5):
         assert isclose(namespace.model.prob(namespace.Z << {str(i)}), .2)
@@ -267,7 +267,7 @@ Z ~= (
     atomic(loc=4)    if (Y == '2') else
     atomic(loc=6))
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     assert 'IfElse' in compiler.render_module()
     namespace = compiler.execute_module()
     assert isclose(namespace.model.prob(namespace.Z << {0}), .5)
@@ -281,7 +281,7 @@ Y ~= choice({'0': .25, '1': .5, '2': .25})
 switch (Y) cases (i in ['0', '1', '2']):
     Z ~= atomic(loc=int(i))
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     namespace = compiler.execute_module()
     assert isclose(namespace.model.prob(namespace.Z << {0}), .25)
     assert isclose(namespace.model.prob(namespace.Z << {1}), .5)
@@ -294,7 +294,7 @@ Y ~= choice({'0': .25, '1': .5, '2': .25})
 switch (Y) cases (i,j in enumerate(['0', '1', '2'])):
     Z ~= atomic(loc=i+int(j))
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     namespace = compiler.execute_module()
     assert isclose(namespace.model.prob(namespace.Z << {0}), .25)
     assert isclose(namespace.model.prob(namespace.Z << {2}), .5)
@@ -309,7 +309,7 @@ switch (Y) cases (i in range(0, 5)):
     Z ~= choice({str(i): 1})
     switch (W) cases (i in range(0, 2)): V ~= atomic(loc=i)
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     namespace = compiler.execute_module()
     assert isclose(namespace.model.prob(namespace.Z << {'0'}), .25)
     assert isclose(namespace.model.prob(namespace.Z << {'1'}), .25)
@@ -325,7 +325,7 @@ condition((0 < Y) < 2)
 Z ~= binom(n=10, p=.2)
 condition(Z == 0)
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     namespace = compiler.execute_module()
     assert isclose(namespace.model.prob((0 < namespace.Y) < 2), 1)
 
@@ -338,9 +338,9 @@ else:
     condition(Y > -1)
 '''
     with pytest.raises(Exception):
-        compiler = SPML_Compiler(source)
+        compiler = SPPL_Compiler(source)
         compiler.execute_module()
-    compiler = SPML_Compiler(source.replace('Y > 1', 'Y > 0'))
+    compiler = SPPL_Compiler(source.replace('Y > 1', 'Y > 0'))
     namespace = compiler.execute_module()
     assert isclose(namespace.model.prob((-1 < namespace.Y) < 1), 1)
 
@@ -352,19 +352,19 @@ Y = array(n_array + 1)
 for i in range(n_array + 1):
     Y[i] = randint(low=parameters[i], high=parameters[i]+1)
 '''
-    compiler = SPML_Compiler(source)
+    compiler = SPPL_Compiler(source)
     namespace = compiler.execute_module()
     assert isclose(namespace.model.prob(namespace.Y[0] << {1}), 1)
     assert isclose(namespace.model.prob(namespace.Y[1] << {2}), 1)
     assert isclose(namespace.model.prob(namespace.Y[2] << {3}), 1)
     with pytest.raises(AssertionError):
-        SPML_Compiler('%sZ = "foo"\n' % (source,))
+        SPPL_Compiler('%sZ = "foo"\n' % (source,))
 
 def test_error_array_length():
     with pytest.raises(TypeError):
-        SPML_Compiler('Y = array(1.3)').execute_module()
+        SPPL_Compiler('Y = array(1.3)').execute_module()
     with pytest.raises(TypeError):
-        SPML_Compiler('Y = array(\'foo\')').execute_module()
+        SPPL_Compiler('Y = array(\'foo\')').execute_module()
     # Length zero array
-    namespace = SPML_Compiler('Y = array(-1)').execute_module()
+    namespace = SPPL_Compiler('Y = array(-1)').execute_module()
     assert len(namespace.Y) == 0

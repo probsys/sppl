@@ -7,10 +7,10 @@ from math import log
 import numpy
 import pytest
 
-from spn.math_util import allclose
-from spn.math_util import isinf_neg
-from spn.sets import FiniteNominal
-from spn.transforms import Id
+from sppl.math_util import allclose
+from sppl.math_util import isinf_neg
+from sppl.sets import FiniteNominal
+from sppl.transforms import Id
 
 def test_nominal_distribution():
     X = Id('X')

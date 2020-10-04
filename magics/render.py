@@ -10,10 +10,10 @@ from math import exp
 import graphviz
 import networkx as nx
 
-from spn.spn import NominalLeaf
-from spn.spn import ProductSPN
-from spn.spn import RealLeaf
-from spn.spn import SumSPN
+from sppl.spn import NominalLeaf
+from sppl.spn import ProductSPN
+from sppl.spn import RealLeaf
+from sppl.spn import SumSPN
 
 gensym = lambda: 'r%s' % (str(time.time()).replace('.', ''),)
 

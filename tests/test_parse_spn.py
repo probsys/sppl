@@ -5,16 +5,16 @@ from math import log
 
 import pytest
 
-from spn.spn import ContinuousLeaf
-from spn.spn import PartialSumSPN
-from spn.spn import ProductSPN
-from spn.spn import SumSPN
+from sppl.spn import ContinuousLeaf
+from sppl.spn import PartialSumSPN
+from sppl.spn import ProductSPN
+from sppl.spn import SumSPN
 
-from spn.distributions import gamma
-from spn.distributions import norm
-from spn.transforms import Id
+from sppl.distributions import gamma
+from sppl.distributions import norm
+from sppl.transforms import Id
 
-from spn.math_util import allclose
+from sppl.math_util import allclose
 
 X = Id('X')
 Y = Id('Y')

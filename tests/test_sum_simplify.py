@@ -3,13 +3,13 @@
 
 from math import log
 
-from spn.distributions import gamma
-from spn.distributions import norm
-from spn.math_util import allclose
-from spn.spn import ProductSPN
-from spn.spn import SumSPN
-from spn.spn import spn_simplify_sum
-from spn.transforms import Id
+from sppl.distributions import gamma
+from sppl.distributions import norm
+from sppl.math_util import allclose
+from sppl.spn import ProductSPN
+from sppl.spn import SumSPN
+from sppl.spn import spn_simplify_sum
+from sppl.transforms import Id
 
 def test_sum_simplify_nested_sum_1():
     X = Id('X')

@@ -3,14 +3,14 @@
 
 import pytest
 
-from spn.sets import EmptySet
-from spn.sets import FiniteNominal as FN
-from spn.sets import FiniteReal as FR
-from spn.sets import Interval
-from spn.sets import Union
-from spn.sets import inf
-from spn.sets import union_intervals
-from spn.sets import union_intervals_finite
+from sppl.sets import EmptySet
+from sppl.sets import FiniteNominal as FN
+from sppl.sets import FiniteReal as FR
+from sppl.sets import Interval
+from sppl.sets import Union
+from sppl.sets import inf
+from sppl.sets import union_intervals
+from sppl.sets import union_intervals_finite
 
 def test_FiniteNominal_in():
     with pytest.raises(Exception):
