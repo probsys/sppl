@@ -590,13 +590,13 @@ class Reciprocal(Transform):
         return self.ffwd(x)
     def ffwd(self, x):
         assert x in self.domain()
-        return 0 if isinf(x) else sympy.Rational(1, x)
+        return 0 if isinf(x) else sympy.Pow(x, -1)
     def finv(self, y):
         if y not in self.range():
             return EmptySet
         if y == 0:
             return FiniteReal(-oo, oo)
-        return FiniteReal(sympy.Rational(1, y))
+        return FiniteReal(sympy.Pow(y, -1))
     def invert_finite(self, ys):
         ys_prime = make_union(*[self.finv(y) for y in ys])
         return self.subexpr.invert(ys_prime)
@@ -604,14 +604,14 @@ class Reciprocal(Transform):
         (a, b) = (ys.left, ys.right)
         if (0 <= a < b):
             assert 0 < a or ys.left_open
-            a_inv = sympy.Rational(1, a) if 0 < a else oo
-            b_inv = sympy.Rational(1, b) if (not isinf(b)) else 0
+            a_inv = sympy.Pow(a, -1) if 0 < a else oo
+            b_inv = sympy.Pow(b, -1) if (not isinf(b)) else 0
             ys_prime = transform_interval(ys, b_inv, a_inv, flip=True)
             return self.subexpr.invert(ys_prime)
         if (a < b <= 0):
             assert b < 0 or ys.right_open
-            a_inv = sympy.Rational(1, a) if (not isinf(a)) else 0
-            b_inv = sympy.Rational(1, b) if b < 0 else -oo
+            a_inv = sympy.Pow(a, -1) if (not isinf(a)) else 0
+            b_inv = sympy.Pow(b, -1) if b < 0 else -oo
             ys_prime = transform_interval(ys, b_inv, a_inv, flip=True)
             return self.subexpr.invert(ys_prime)
         assert False, 'Impossible Reciprocal interval: %s ' % (ys,)

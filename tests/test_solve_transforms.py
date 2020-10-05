@@ -318,6 +318,10 @@ def test_solver_23_reciprocal_lte():
         solution = Interval.Ropen(-oo, 0) | Interval(Rat(c, 10), oo)
         event = (c / Y) <= 10
         assert event.solve() == solution
+        # 1 / X <= sqrt(2)
+        solution = Interval.Ropen(-oo, 0) | Interval(c / sympy.sqrt(2), oo)
+        event = (c / Y) <= sympy.sqrt(2)
+        assert event.solve() == solution
         # Negative.
         # 1 / X < -10
         solution = Interval.open(-Rat(c, 10), 0)
@@ -326,6 +330,10 @@ def test_solver_23_reciprocal_lte():
         # 1 / X <= -10
         solution = Interval.Ropen(-Rat(c, 10), 0)
         event = (c / Y) <= -10
+        assert event.solve() == solution
+        # 1 / X <= -sqrt(2)
+        solution = Interval.Ropen(-c / sympy.sqrt(2), 0)
+        event = (c / Y) <= -sympy.sqrt(2)
         assert event.solve() == solution
 
 def test_solver_23_reciprocal_gte():
