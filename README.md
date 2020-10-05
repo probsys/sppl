@@ -3,7 +3,7 @@ Sum-Product Probabilistic Language
 
 ### Installation
 
-This software is tested on Ubuntu 18.04 and requires a Python 3
+This software is tested on Ubuntu 18.04 and requires a Python 3.6+
 environment. First clone this repository. To install the `sppl` Python
 package, run one of the following commands:
 - Basic installation: `$ pip install .`
