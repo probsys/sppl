@@ -9,17 +9,17 @@ from distutils.core import setup
 requirements = {
     'src' : [
         'astunparse==1.6.3',
-        'numpy==1.16.*',
+        'numpy==1.16.6',
         'scipy==1.4.1',
         'sympy==1.6',
     ],
     'magics' : [
         'graphviz==0.13.2',
-        'ipython==7.13.*',
-        'jupyter-core==4.6.*',
+        'ipython==7.13.0',
+        'jupyter-core==4.6.3',
         'networkx==2.4',
-        'notebook==6.0.*',
-        'matplotlib==3.3.*',
+        'notebook==6.0.3',
+        'matplotlib==3.3.2',
         'pygraphviz==1.5',
     ],
     'tests' : [
