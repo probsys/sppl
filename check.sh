@@ -31,6 +31,11 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
     elif [ ${1} = 'docker' ]; then
         # Build docker image containing the software.
         docker build -t probcomp:sppl -f docker/ubuntu1804 .
+    elif [ ${1} = 'release' ]; then
+        # Make a release
+        rm -rf dist
+        "$PYTHON" setup.py sdist bdist_wheel
+        twine upload --repository pypi dist/*
     else
         # If args are specified delegate control to user.
         ./pythenv.sh "$PYTHON" -m pytest "$@"
