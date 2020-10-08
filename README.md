@@ -24,6 +24,14 @@ The installation with the Jupyter interface requires dependencies listed in
 
 To view the coverage report, open `htmlcov/index.html` in the browser.
 
+### Paper
+
+Please refer to
+
+> Feras A. Saad, Martin C. Rinard, and Vikash K. Mansinghka.
+> Exact Symbolic Inference in Probabilistic Programs via Sum-Product Representations.
+> https://arxiv.org/abs/2010.03485
+
 ### Examples
 
 Refer to the `.ipynb` notebooks under the [examples](./examples/) directory.
