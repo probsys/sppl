@@ -24,16 +24,20 @@ A system description of SPPL is given in:
 ### Installation
 
 This software is tested on Ubuntu 18.04 and requires a Python 3.6+
-environment. First clone this repository. To install the `sppl` Python
-package, run one of the following commands:
-- Basic installation: `$ pip install .`
-- Installation with test suite: `$ pip install '.[tests]'`
-- Installation with Jupyter interface: `$ pip install '.[all]'`
+environment. SPPL is available on PyPI
 
-The installation with the Jupyter interface requires dependencies listed in
+    $ pip install 'sppl[all]'
+
+It may be necessary to install the system-wide dependencies in
 [./requirements.sh](./requirements.sh).
 
 ### Tests
+
+To run the test suite as a user:
+
+    $ python -m pytest --pyargs sppl
+
+To run the test suite as a developer:
 
 - To run crash tests:             `$ ./check.sh`
 - To run integration tests:       `$ ./check.sh ci`

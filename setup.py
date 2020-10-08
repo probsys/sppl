@@ -3,7 +3,7 @@
 
 import os
 import re
-from distutils.core import setup
+from setuptools import setup
 
 # Specify the requirements.
 requirements = {
@@ -40,10 +40,12 @@ setup(
     name='sppl',
     version=__version__,
     description='The Sum-Product Probabilistic Language',
-    url='https://github.com/probcomp/sum-product-probabilistic-language',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
+    url='https://github.com/probcomp/sppl',
     license='Apache-2.0',
     maintainer='Feras A. Saad',
-    maintainer_email='fsaad@.mit.edu',
+    maintainer_email='fsaad@mit.edu',
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Science/Research',
