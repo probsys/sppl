@@ -64,7 +64,9 @@ setup(
         'sppl.magics'    : 'magics',
         'sppl.tests'     : 'tests',
     },
-    install_requires=requirements['src'],
-    extras_require=requirements,
+    install_requires=requirements['all'],
+    # Allow extras packaging.
+    # install_requires=requirements['src'],
+    # extras_require=requirements,
     python_requires='>=3.6',
 )

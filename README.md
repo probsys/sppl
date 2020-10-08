@@ -26,7 +26,7 @@ A system description of SPPL is given in:
 This software is tested on Ubuntu 18.04 and requires a Python 3.6+
 environment. SPPL is available on PyPI
 
-    $ pip install 'sppl[all]'
+    $ pip install 'sppl'
 
 It may be necessary to install the system-wide dependencies in
 [./requirements.sh](./requirements.sh).
@@ -51,7 +51,6 @@ To view the coverage report, open `htmlcov/index.html` in the browser.
 ### Examples
 
 Refer to the `.ipynb` notebooks under the [examples](./examples/) directory.
-Running these examples requires the installation with Jupyter interface.
 
 ### Benchmarks
 
