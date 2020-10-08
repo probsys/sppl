@@ -26,7 +26,7 @@ A system description of SPPL is given in:
 This software is tested on Ubuntu 18.04 and requires a Python 3.6+
 environment. SPPL is available on PyPI
 
-    $ pip install 'sppl'
+    $ pip install sppl
 
 It may be necessary to install the system-wide dependencies in
 [./requirements.sh](./requirements.sh).
