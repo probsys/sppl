@@ -3,7 +3,7 @@
 
 import os
 import re
-from distutils.core import setup
+from setuptools import setup
 
 # Specify the requirements.
 requirements = {
