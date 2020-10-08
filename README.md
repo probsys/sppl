@@ -8,12 +8,12 @@ transformations, and a query language that includes general predicates on
 random variables.
 
 Users express generative models using imperative code with standard
-programming constructs (arrays, if/else, for loops, etc.). This code is
-then translated to a sum-product representation (a probabilistic
-graphical model that generalizes [sum-product networks](https://arxiv.org/pdf/2004.01167.pdf))
-that statically represents the probability distribution on all random
-variables in the program and is used as the basis of probabilistic
-inference.
+programming constructs, such as arrays, if/else, for loops, etc.
+This code is then translated to a sum-product representation (a
+probabilistic graphical model that generalizes [sum-product
+networks](https://arxiv.org/pdf/2004.01167.pdf)) which statically represents
+the probability distribution on all random variables in the program and is
+used as the basis of probabilistic inference.
 
 A system description of SPPL is given in:
 
