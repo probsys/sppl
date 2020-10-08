@@ -1,6 +1,8 @@
 .dockerignore
 .cache/
 .coverage
+*.egg
+*.egg-info
 __pycache__/
 build/
 clean.sh
