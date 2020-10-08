@@ -29,7 +29,7 @@ environment. SPPL is available on PyPI
     $ pip install sppl
 
 It may be necessary to install the system-wide dependencies in
-[./requirements.sh](./requirements.sh).
+[requirements.sh](https://github.com/probcomp/sppl/blob/master/requirements.sh).
 
 ### Tests
 
@@ -50,7 +50,8 @@ To view the coverage report, open `htmlcov/index.html` in the browser.
 
 ### Examples
 
-Refer to the `.ipynb` notebooks under the [examples](./examples/) directory.
+Refer to the `.ipynb` notebooks under the
+[examples](https://github.com/probcomp/sppl/tree/master/examples) directory.
 
 ### Benchmarks
 
