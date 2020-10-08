@@ -33,7 +33,7 @@ requirements['all'] = [r for v in requirements.values() for r in v]
 # Determine the version (hardcoded).
 dirname = os.path.dirname(os.path.realpath(__file__))
 vre = re.compile('__version__ = \'(.*?)\'')
-m = open(os.path.join(dirname, 'src', 'version.py')).read()
+m = open(os.path.join(dirname, 'src', '__init__.py')).read()
 __version__ = vre.findall(m)[0]
 
 setup(

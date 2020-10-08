@@ -1,4 +1,4 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from .version import __version__
+__version__ = '1.0.7'
