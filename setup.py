@@ -40,6 +40,8 @@ setup(
     name='sppl',
     version=__version__,
     description='The Sum-Product Probabilistic Language',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     url='https://github.com/probcomp/sppl',
     license='Apache-2.0',
     maintainer='Feras A. Saad',
