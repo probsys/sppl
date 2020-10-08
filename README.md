@@ -9,7 +9,7 @@ random variables.
 
 Users express generative models using imperative code with standard
 programming constructs (arrays, if/else, for loops, etc.). This code is
-then translated to a sum-product representation (a of probabilistic
+then translated to a sum-product representation (a probabilistic
 graphical model that generalizes [sum-product networks](https://arxiv.org/pdf/2004.01167.pdf))
 that statically represents the probability distribution on all random
 variables in the program and is used as the basis of probabilistic
