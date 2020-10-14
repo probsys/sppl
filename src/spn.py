@@ -48,6 +48,19 @@ from .sets import Union
 
 inf = float('inf')
 
+def memoize(f):
+    table = f.__name__.split('_')[0]
+    def f_(*args):
+        (spn, event_factor, memo) = args
+        if memo is False:
+            return f(spn, event_factor_to_event, memo)
+        m = getattr(memo, table)
+        key = spn.get_memo_key(event_factor)
+        if key not in m:
+            m[key] = f(spn, event_factor, memo)
+        return m[key]
+    return f_
+
 # ==============================================================================
 # SPN (base class).
 
@@ -171,31 +184,10 @@ class BranchSPN(SPN):
         assert len(event_factor) == 1
         return self.logpdf_factored(event_factor, memo)
     def logprob_factored(self, event_factor, memo):
-        if memo is False:
-            return self.logprob_factored__(event_factor, memo)
-        key = self.get_memo_key(event_factor)
-        if key not in memo.logprob:
-            memo.logprob[key] = self.logprob_factored__(event_factor, memo)
-        return memo.logprob[key]
+        raise NotImplementedError()
     def condition_factored(self, event_factor, memo):
-        if memo is False:
-            return self.logprob_factored__(event_factor, memo)
-        key = self.get_memo_key(event_factor)
-        if key not in memo.condition:
-            memo.condition[key] = self.condition_factored__(event_factor, memo)
-        return memo.condition[key]
+        raise NotImplementedError()
     def logpdf_factored(self, event_factor, memo):
-        if memo is False:
-            return self.logprob_factored__(event_factor, memo)
-        key = self.get_memo_key(event_factor)
-        if key not in memo.logpdf:
-            memo.logpdf[key] = self.logpdf_factored__(event_factor, memo)
-        return memo.logpdf[key]
-    def logprob_factored__(self, event_factor, memo):
-        raise NotImplementedError()
-    def condition_factored__(self, event_factor, memo):
-        raise NotImplementedError()
-    def logpdf_factored__(self, event_factor, memo):
         raise NotImplementedError()
 
 # ==============================================================================
@@ -250,12 +242,14 @@ class SumSPN(BranchSPN):
         children = [spn.transform(symbol, expr) for spn in self.children]
         return SumSPN(children, self.weights)
 
-    def logprob_factored__(self, event_factor, memo):
+    @memoize
+    def logprob_factored(self, event_factor, memo):
         logps = [spn.logprob_factored(event_factor, memo) for spn in self.children]
         logp = logsumexp([p + w for (p, w) in zip(logps, self.weights)])
         return logp
 
-    def condition_factored__(self, event_factor, memo):
+    @memoize
+    def condition_factored(self, event_factor, memo):
         logps_condt = [spn.logprob_factored(event_factor, memo) for spn in self.children]
         indexes = [i for i, lp in enumerate(logps_condt) if not isinf_neg(lp)]
         if not indexes:
@@ -265,7 +259,8 @@ class SumSPN(BranchSPN):
         weights = lognorm(logps_joint)
         return SumSPN(children, weights) if len(indexes) > 1 else children[0]
 
-    def logpdf_factored__(self, event_factor, memo):
+    @memoize
+    def logpdf_factored(self, event_factor, memo):
         # FIXME: Check base measures of children.
         logps = [spn.logpdf_factored(event_factor, memo) for spn in self.children]
         return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
@@ -457,7 +452,8 @@ class ProductSPN(BranchSPN):
         children[index[0]] = children[index[0]].transform(symbol, expr)
         return ProductSPN(children)
 
-    def logprob_factored__(self, event_factor, memo):
+    @memoize
+    def logprob_factored(self, event_factor, memo):
         # Adopting Inclusion--Exclusion principle for DNF event:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
         (logps_pos, logps_neg) = ([], [])
@@ -489,7 +485,8 @@ class ProductSPN(BranchSPN):
         logp_neg = logsumexp(logps_neg) if logps_neg else -inf
         return logdiffexp(logp_pos, logp_neg)
 
-    def condition_factored__(self, event_factor, memo):
+    @memoize
+    def condition_factored(self, event_factor, memo):
         logps = [self.logprob_conjunction([c], [0], memo) for c in event_factor]
         assert allclose(logsumexp(logps), self.logprob_factored(event_factor, memo))
         indexes = [i for (i, lp) in enumerate(logps) if not isinf_neg(lp)]
@@ -540,7 +537,8 @@ class ProductSPN(BranchSPN):
             children.append(spn_condition)
         return children
 
-    def logpdf_factored__(self, event_factor, memo):
+    @memoize
+    def logpdf_factored(self, event_factor, memo):
         assert len(event_factor) == 1
         conjunctions = {}
         for symbol, event in event_factor[0].items():
