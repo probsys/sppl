@@ -31,12 +31,10 @@ environment. SPPL is available on PyPI
 
     $ pip install sppl
 
-It may be necessary to install the system-wide dependencies in
-[requirements.sh](https://github.com/probcomp/sppl/blob/master/requirements.sh).
-
 ### Tests
 
-To run the test suite as a user:
+To run the test suite as a user, first install with `pip install 'sppl[tests]'`
+and then run:
 
     $ python -m pytest --pyargs sppl
 
@@ -55,6 +53,11 @@ To view the coverage report, open `htmlcov/index.html` in the browser.
 
 Refer to the `.ipynb` notebooks under the
 [examples](https://github.com/probcomp/sppl/tree/master/examples) directory.
+
+These examples require the Jupyter interface.
+First install the system-wide dependencies in
+[requirements.sh](https://github.com/probcomp/sppl/blob/master/requirements.sh)
+and then use `pip install 'sppl[magics]'`.
 
 ### Benchmarks
 
