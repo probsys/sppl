@@ -32,7 +32,7 @@ def test_render_lists_crash():
     render_nested_lists_concise(model)
     render_nested_lists(model)
 
-def test_render_graphviz_crash():
+def test_render_graphviz_crash__magics_():
     pytest.importorskip('graphviz')
     pytest.importorskip('pygraphviz')
     pytest.importorskip('networkx')
