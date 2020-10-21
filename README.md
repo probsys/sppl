@@ -6,8 +6,8 @@ Sum-Product Probabilistic Language
 
 SPPL is a probabilistic programming language that delivers exact inferences
 to a broad range of probabilistic inference queries. SPPL handles
-continuous and discrete distributions, many-to-one numerical
-transformations, and a query language that includes general predicates on
+continuous, discrete, and mixed-type distributions; many-to-one numerical
+transformations; and a query language that includes general predicates on
 random variables.
 
 Users express generative models using imperative code with standard
@@ -40,7 +40,7 @@ Refer to the `.ipynb` notebooks under the
 
 To install the Jupyter interface, first install the system-wide dependencies in
 [requirements.sh](https://github.com/probcomp/sppl/blob/master/requirements.sh)
-and then use `pip install 'sppl[magics]'`.
+and then run `pip install 'sppl[magics]'`.
 
 ### Benchmarks
 
