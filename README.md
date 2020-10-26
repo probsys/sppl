@@ -31,16 +31,18 @@ environment. SPPL is available on PyPI
 
     $ pip install sppl
 
+To install the Jupyter interface, first obtain the system-wide dependencies in
+[requirements.sh](https://github.com/probcomp/sppl/blob/master/requirements.sh)
+and then run
+
+    pip install 'sppl[magics]'
+
 ### Examples
 
 The easiest way to use SPPL is via the browser-based Jupyter interface, which
 allows for interactive modeling, querying, and plotting.
 Refer to the `.ipynb` notebooks under the
 [examples](https://github.com/probcomp/sppl/tree/master/examples) directory.
-
-To install the Jupyter interface, first install the system-wide dependencies in
-[requirements.sh](https://github.com/probcomp/sppl/blob/master/requirements.sh)
-and then run `pip install 'sppl[magics]'`.
 
 ### Benchmarks
 
