@@ -4,6 +4,7 @@
 from math import log
 
 from sppl.distributions import bernoulli
+from sppl.distributions import choice
 from sppl.compilers.ast_to_spn import For
 from sppl.compilers.ast_to_spn import IfElse
 from sppl.compilers.ast_to_spn import Otherwise
@@ -42,7 +43,7 @@ def test_complex_model():
     # Slow for larger number of repetitions
     # https://github.com/probcomp/sum-product-dsl/issues/43
     command = Sequence(
-        Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
+        Sample(Y, choice({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})),
         For(0, 3, lambda i: Sequence(
             Sample(Z[i], bernoulli(p=0.1)),
             IfElse(
@@ -53,7 +54,7 @@ def test_complex_model():
 
 def test_complex_model_reorder():
     command = Sequence(
-        Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
+        Sample(Y, choice({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})),
         For(0, 3, lambda i:
             Sample(Z[i], bernoulli(p=0.1))),
         For(0, 3, lambda i:
@@ -109,7 +110,7 @@ def test_repeat_handcode_equivalence():
 
 def make_model_for(n=2):
     command = Sequence(
-        Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
+        Sample(Y, choice({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})),
         For(0, n, lambda i: Sequence(
             Sample(Z[i], bernoulli(p=.5)),
             IfElse(
@@ -119,7 +120,7 @@ def make_model_for(n=2):
 
 def make_model_handcode():
     command = Sequence(
-        Sample(Y, {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
+        Sample(Y, choice({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})),
         Sample(Z[0], bernoulli(p=.5)),
         Sample(Z[1], bernoulli(p=.5)),
         IfElse(

@@ -59,7 +59,7 @@ def test_sum_normal_gamma():
 def test_sum_normal_gamma_exposed():
     X = Id('X')
     W = Id('W')
-    weights = (W >> {
+    weights = W >> choice({
         '0': Fraction(2,3),
         '1': Fraction(1,3),
     })

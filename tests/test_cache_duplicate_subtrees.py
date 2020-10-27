@@ -6,6 +6,7 @@ from math import log
 import numpy
 
 from sppl.distributions import bernoulli
+from sppl.distributions import choice
 from sppl.distributions import norm
 from sppl.spn import ProductSPN
 from sppl.spn import SumSPN
@@ -42,14 +43,14 @@ def test_cache_complex_sum_of_product():
                 (X[0] >> bernoulli(p=.1)),
                 SumSPN([
                     (Z[0] >> bernoulli(p=.5))
-                        & (Y >> {'0':.1, '1': .9}),
+                        & (Y >> choice({'0':.1, '1': .9})),
                     (Z[0] >> bernoulli(p=.1))
-                        & (Y >> {'0':.9, '1': .1})
+                        & (Y >> choice({'0':.9, '1': .1}))
                 ], weights=[log(.730), log(.270)])
             ]),
             ProductSPN([
                 Z[0] >> bernoulli(p=.1),
-                Y >> {'0':.9, '1':.1},
+                Y >> choice({'0':.9, '1':.1}),
                 X[0] >> bernoulli(p=.5),
             ]),
         ], weights=[log(.925), log(.075)])
@@ -67,10 +68,10 @@ def test_cache_complex_sum_of_product():
             ProductSPN([
                 Z[1] >> bernoulli(p=.7),
                 SumSPN([
-                    Y >> {'0':.3, '1':.7}
+                    Y >> choice({'0':.3, '1':.7})
                         & X[0] >> bernoulli(p=.1)
                         & Z[0] >> bernoulli(p=.1),
-                    Y >> {'0':.7, '1':.3}
+                    Y >> choice({'0':.7, '1':.3})
                         & X[0] >> bernoulli(p=.5)
                         & Z[0] >> bernoulli(p=.5),
                 ], weights=[log(.9), log(.1)])

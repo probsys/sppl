@@ -8,6 +8,7 @@ from sympy import sqrt
 
 from sppl.compilers.spn_to_dict import spn_from_dict
 from sppl.compilers.spn_to_dict import spn_to_dict
+from sppl.distributions import choice
 from sppl.distributions import gamma
 from sppl.distributions import norm
 from sppl.distributions import poisson
@@ -25,7 +26,7 @@ Y = Id('Y')
 spns = [
     X >> norm(loc=0, scale=1),
     X >> poisson(mu=7),
-    Y >> {'a': 0.5, 'b': 0.5},
+    Y >> choice({'a': 0.5, 'b': 0.5}),
     (X >> norm(loc=0, scale=1)) & (Y >> gamma(a=1)),
     0.2*(X >> norm(loc=0, scale=1)) | 0.8*(X >> gamma(a=1)),
 ]

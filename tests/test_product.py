@@ -8,6 +8,7 @@ import pytest
 import numpy
 import sympy
 
+from sppl.distributions import choice
 from sppl.distributions import gamma
 from sppl.distributions import norm
 from sppl.dnf import dnf_to_disjoint_union
@@ -293,8 +294,8 @@ def test_product_disjoint_union_nominal():
     N = Id('N')
     P = Id('P')
 
-    nationality = N >> {'India': 0.5, 'USA': 0.5}
-    perfect = P >> {'Imperfect': 0.99, 'Perfect': 0.01}
+    nationality = N >> choice({'India': 0.5, 'USA': 0.5})
+    perfect = P >> choice({'Imperfect': 0.99, 'Perfect': 0.01})
     student = nationality & perfect
 
     condition_1 = (N << {'India'}) & (P << {'Imperfect'})

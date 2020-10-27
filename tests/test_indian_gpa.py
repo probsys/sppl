@@ -13,6 +13,7 @@ import pytest
 
 from sppl.compilers.sppl_to_python import SPPL_Compiler
 from sppl.distributions import atomic
+from sppl.distributions import choice
 from sppl.distributions import uniform
 from sppl.compilers.ast_to_spn import IfElse
 from sppl.compilers.ast_to_spn import Sample
@@ -37,18 +38,18 @@ def model_no_latents():
 
 def model_exposed():
     return ExposedSumSPN(
-        spn_weights=(Nationality >> {'India': 0.5, 'USA': 0.5}),
+        spn_weights=(Nationality >> choice({'India': 0.5, 'USA': 0.5})),
         children={
             # American student.
             'USA': ExposedSumSPN(
-                spn_weights=(Perfect >> {'True': 0.01, 'False': 0.99}),
+                spn_weights=(Perfect >> choice({'True': 0.01, 'False': 0.99})),
                 children={
                     'False'   : GPA >> uniform(loc=0, scale=4),
                     'True'    : GPA >> atomic(loc=4),
                 }),
             # Indian student.
             'India': ExposedSumSPN(
-                spn_weights=(Perfect >> {'True': 0.01, 'False': 0.99}),
+                spn_weights=(Perfect >> choice({'True': 0.01, 'False': 0.99})),
                 children={
                     'False'   : GPA >> uniform(loc=0, scale=10),
                     'True'    : GPA >> atomic(loc=10),
@@ -57,8 +58,8 @@ def model_exposed():
 
 def model_ifelse_exhuastive():
     command = Sequence(
-        Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
-        Sample(Perfect,     {'True': 0.01, 'False': 0.99}),
+        Sample(Nationality, choice({'India': 0.5, 'USA': 0.5})),
+        Sample(Perfect,     choice({'True': 0.01, 'False': 0.99})),
         IfElse(
             (Nationality << {'India'}) & (Perfect << {'False'}),
                 Sample(GPA, uniform(loc=0, scale=10))
@@ -78,8 +79,8 @@ def model_ifelse_non_exhuastive():
     Perfect     = Id('Perfect')
     GPA         = Id('GPA')
     command = Sequence(
-        Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
-        Sample(Perfect,     {'True': 0.01, 'False': 0.99}),
+        Sample(Nationality, choice({'India': 0.5, 'USA': 0.5})),
+        Sample(Perfect,     choice({'True': 0.01, 'False': 0.99})),
         IfElse(
             (Nationality << {'India'}) & (Perfect << {'False'}),
                 Sample(GPA, uniform(loc=0, scale=10))
@@ -99,8 +100,8 @@ def model_ifelse_nested():
     Perfect     = Id('Perfect')
     GPA         = Id('GPA')
     command = Sequence(
-        Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
-        Sample(Perfect,     {'True': 0.01, 'False': 0.99}),
+        Sample(Nationality, choice({'India': 0.5, 'USA': 0.5})),
+        Sample(Perfect,     choice({'True': 0.01, 'False': 0.99})),
         IfElse(
             Nationality << {'India'},
                 IfElse(
@@ -119,16 +120,16 @@ def model_perfect_nested():
     Perfect     = Id('Perfect')
     GPA         = Id('GPA')
     command = Sequence(
-        Sample(Nationality, {'India': 0.5, 'USA': 0.5}),
+        Sample(Nationality, choice({'India': 0.5, 'USA': 0.5})),
         IfElse(
             Nationality << {'India'}, Sequence(
-                    Sample(Perfect, {'True': 0.01, 'False': 0.99}),
+                    Sample(Perfect, choice({'True': 0.01, 'False': 0.99})),
                     IfElse(
                         Perfect << {'True'},    Sample(GPA, atomic(loc=10)),
                         True,                   Sample(GPA, uniform(scale=10))
                     )),
             Nationality << {'USA'}, Sequence(
-                Sample(Perfect, {'True': 0.01, 'False': 0.99}),
+                Sample(Perfect, choice({'True': 0.01, 'False': 0.99})),
                 IfElse(
                     Perfect << {'True'},    Sample(GPA, atomic(loc=4)),
                     True,                   Sample(GPA, uniform(scale=4)),
