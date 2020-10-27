@@ -3,6 +3,7 @@
 
 import pytest
 
+from sppl.distributions import choice
 from sppl.distributions import norm
 from sppl.distributions import poisson
 from sppl.math_util import allclose
@@ -56,7 +57,7 @@ def test_transform_sum():
     Y = Id('Y')
     spn \
         = 0.3*(X >> norm(loc=0, scale=1)) \
-        | 0.7*(X >> {'0': 0.4, '1': 0.6})
+        | 0.7*(X >> choice({'0': 0.4, '1': 0.6}))
     with pytest.raises(Exception):
         # Cannot transform Nominal variate.
         spn.transform(Z, X**2)

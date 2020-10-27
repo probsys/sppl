@@ -1,20 +1,15 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from math import log
-
 import pytest
 
-from numpy import linspace
-
-from sppl.distributions import bernoulli
-from sppl.distributions import beta
-from sppl.distributions import randint
-from sppl.compilers.ast_to_spn import IfElse
 from sppl.compilers.ast_to_spn import Condition
+from sppl.compilers.ast_to_spn import Id
 from sppl.compilers.ast_to_spn import Sample
 from sppl.compilers.ast_to_spn import Sequence
-from sppl.compilers.ast_to_spn import Id
+from sppl.distributions import beta
+from sppl.distributions import choice
+from sppl.distributions import randint
 from sppl.math_util import allclose
 
 Y = Id('Y')
@@ -22,7 +17,7 @@ X = Id('X')
 
 def test_condition_nominal():
     command = Sequence(
-        Sample(Y, {'a':.1, 'b':.1, 'c':.8}),
+        Sample(Y, choice({'a':.1, 'b':.1, 'c':.8})),
         Condition(Y << {'a', 'b'}))
     model = command.interpret()
     assert allclose(model.prob(Y << {'a'}), .5)

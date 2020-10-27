@@ -30,8 +30,8 @@ from .math_util import random
 from .sym_util import are_disjoint
 from .sym_util import are_identical
 from .sym_util import get_union
-from .sym_util import partition_list_blocks
 from .sym_util import partition_finite_real_contiguous
+from .sym_util import partition_list_blocks
 from .sym_util import sympify_number
 
 from .transforms import EventFiniteNominal

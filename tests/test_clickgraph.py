@@ -3,21 +3,19 @@
 
 import pytest
 
-from numpy import linspace
-
 from sppl.distributions import bernoulli
 from sppl.distributions import beta
 from sppl.distributions import randint
 from sppl.distributions import uniform
 
 from sppl.compilers.ast_to_spn import For
+from sppl.compilers.ast_to_spn import Id
+from sppl.compilers.ast_to_spn import IdArray
 from sppl.compilers.ast_to_spn import IfElse
 from sppl.compilers.ast_to_spn import Sample
 from sppl.compilers.ast_to_spn import Sequence
 from sppl.compilers.ast_to_spn import Switch
 from sppl.compilers.ast_to_spn import Transform
-from sppl.compilers.ast_to_spn import Id
-from sppl.compilers.ast_to_spn import IdArray
 
 from sppl.sym_util import binspace
 

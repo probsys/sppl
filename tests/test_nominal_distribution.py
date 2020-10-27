@@ -7,6 +7,7 @@ from math import log
 import numpy
 import pytest
 
+from sppl.distributions import choice
 from sppl.math_util import allclose
 from sppl.math_util import isinf_neg
 from sppl.sets import FiniteNominal
@@ -14,7 +15,11 @@ from sppl.transforms import Id
 
 def test_nominal_distribution():
     X = Id('X')
-    spn = X >> {'a': Fraction(1, 5), 'b': Fraction(1, 5), 'c': Fraction(3, 5)}
+    spn = X >> choice({
+        'a': Fraction(1, 5),
+        'b': Fraction(1, 5),
+        'c': Fraction(3, 5),
+    })
     assert allclose(spn.logprob(X << {'a'}), log(Fraction(1, 5)))
     assert allclose(spn.logprob(X << {'b'}), log(Fraction(1, 5)))
     assert allclose(spn.logprob(X << {'a', 'c'}), log(Fraction(4, 5)))

@@ -5,13 +5,14 @@ import os
 
 import pytest
 
-from sppl.distributions import bernoulli
 from sppl.compilers.ast_to_spn import Id
 from sppl.compilers.ast_to_spn import IfElse
 from sppl.compilers.ast_to_spn import Otherwise
 from sppl.compilers.ast_to_spn import Sample
 from sppl.compilers.ast_to_spn import Sequence
 from sppl.compilers.ast_to_spn import Transform
+from sppl.distributions import bernoulli
+from sppl.distributions import choice
 from sppl.render import render_nested_lists
 from sppl.render import render_nested_lists_concise
 
@@ -20,7 +21,7 @@ def get_model():
     X = Id('X')
     Z = Id('Z')
     command = Sequence(
-        Sample(Y,     {'0': .2, '1': .2, '2': .2, '3': .2, '4': .2}),
+        Sample(Y,     choice({'0': .2, '1': .2, '2': .2, '3': .2, '4': .2})),
         Sample(Z,     bernoulli(p=0.1)),
         IfElse(
             Y << {str(0)} | Z << {0},  Sample(X, bernoulli(p=1/(0+1))),

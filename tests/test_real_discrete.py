@@ -10,12 +10,12 @@ from sppl.distributions import randint
 from sppl.math_util import allclose
 from sppl.math_util import logdiffexp
 from sppl.math_util import logsumexp
+from sppl.sets import Interval
+from sppl.sets import Range
+from sppl.sets import inf as oo
 from sppl.spn import DiscreteLeaf
 from sppl.spn import SumSPN
 from sppl.transforms import Id
-from sppl.sets import Range
-from sppl.sets import Interval
-from sppl.sets import inf as oo
 
 def test_poisson():
     X = Id('X')

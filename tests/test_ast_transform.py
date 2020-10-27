@@ -3,14 +3,14 @@
 
 from math import log
 
-from sppl.distributions import bernoulli
-from sppl.distributions import norm
+from sppl.compilers.ast_to_spn import Id
 from sppl.compilers.ast_to_spn import IfElse
 from sppl.compilers.ast_to_spn import Otherwise
 from sppl.compilers.ast_to_spn import Sample
 from sppl.compilers.ast_to_spn import Sequence
 from sppl.compilers.ast_to_spn import Transform
-from sppl.compilers.ast_to_spn import Id
+from sppl.distributions import bernoulli
+from sppl.distributions import norm
 from sppl.math_util import allclose
 
 X = Id('X')
