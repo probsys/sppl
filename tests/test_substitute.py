@@ -2,6 +2,7 @@
 # See LICENSE.txt
 
 import pytest
+
 from sppl.transforms import Id
 from sppl.transforms import Logarithm
 

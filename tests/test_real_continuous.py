@@ -13,10 +13,10 @@ from sppl.math_util import allclose
 from sppl.math_util import isinf_neg
 from sppl.math_util import logdiffexp
 from sppl.sets import Interval
+from sppl.sets import Reals
 from sppl.sets import inf as oo
 from sppl.spn import ContinuousLeaf
 from sppl.spn import SumSPN
-from sppl.sets import Reals
 from sppl.transforms import Id
 
 def test_numeric_distribution_normal():

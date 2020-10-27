@@ -1,21 +1,15 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from math import log
-
 import pytest
 
-from numpy import linspace
-
-from sppl.distributions import bernoulli
+from sppl.compilers.ast_to_spn import Condition
+from sppl.compilers.ast_to_spn import Id
+from sppl.compilers.ast_to_spn import Sample
+from sppl.compilers.ast_to_spn import Sequence
 from sppl.distributions import beta
 from sppl.distributions import choice
 from sppl.distributions import randint
-from sppl.compilers.ast_to_spn import IfElse
-from sppl.compilers.ast_to_spn import Condition
-from sppl.compilers.ast_to_spn import Sample
-from sppl.compilers.ast_to_spn import Sequence
-from sppl.compilers.ast_to_spn import Id
 from sppl.math_util import allclose
 
 Y = Id('Y')

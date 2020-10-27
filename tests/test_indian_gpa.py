@@ -11,17 +11,17 @@ https://arxiv.org/pdf/1806.02027.pdf
 
 import pytest
 
+from sppl.compilers.ast_to_spn import Id
+from sppl.compilers.ast_to_spn import IfElse
+from sppl.compilers.ast_to_spn import Sample
+from sppl.compilers.ast_to_spn import Sequence
 from sppl.compilers.sppl_to_python import SPPL_Compiler
 from sppl.distributions import atomic
 from sppl.distributions import choice
 from sppl.distributions import uniform
-from sppl.compilers.ast_to_spn import IfElse
-from sppl.compilers.ast_to_spn import Sample
-from sppl.compilers.ast_to_spn import Sequence
-from sppl.compilers.ast_to_spn import Id
 from sppl.math_util import allclose
-from sppl.spn import ExposedSumSPN
 from sppl.sets import Interval
+from sppl.spn import ExposedSumSPN
 
 Nationality = Id('Nationality')
 Perfect     = Id('Perfect')

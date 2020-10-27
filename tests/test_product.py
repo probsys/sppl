@@ -6,7 +6,6 @@ from math import log
 import pytest
 
 import numpy
-import sympy
 
 from sppl.distributions import choice
 from sppl.distributions import gamma

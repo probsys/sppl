@@ -12,8 +12,8 @@ from sppl.distributions import poisson
 from sppl.math_util import allclose
 from sppl.math_util import isinf_neg
 from sppl.math_util import logsumexp
-from sppl.transforms import Id
 from sppl.spn import SumSPN
+from sppl.transforms import Id
 
 X = Id('X')
 Y = Id('Y')

@@ -5,14 +5,14 @@ import os
 
 import pytest
 
-from sppl.distributions import bernoulli
-from sppl.distributions import choice
 from sppl.compilers.ast_to_spn import Id
 from sppl.compilers.ast_to_spn import IfElse
 from sppl.compilers.ast_to_spn import Otherwise
 from sppl.compilers.ast_to_spn import Sample
 from sppl.compilers.ast_to_spn import Sequence
 from sppl.compilers.ast_to_spn import Transform
+from sppl.distributions import bernoulli
+from sppl.distributions import choice
 from sppl.render import render_nested_lists
 from sppl.render import render_nested_lists_concise
 
