@@ -1,20 +1,22 @@
 [![Actions Status](https://github.com/probcomp/sppl/workflows/Python%20package/badge.svg)](https://github.com/probcomp/sppl/actions)
 [![pypi](https://img.shields.io/pypi/v/sppl.svg)](https://pypi.org/project/sppl/)
 
+<img src="./sppl.png" width="200">
+
 Sum-Product Probabilistic Language
 ==================================
 
-SPPL is a probabilistic programming language that delivers exact inferences
+SPPL is a probabilistic programming language that delivers exact solutions
 to a broad range of probabilistic inference queries. SPPL handles
 continuous, discrete, and mixed-type distributions; many-to-one numerical
 transformations; and a query language that includes general predicates on
 random variables.
 
-Users express generative models using imperative code with standard
-programming constructs, such as arrays, if/else, for loops, etc.
-This code is then translated to a sum-product representation (a
-probabilistic graphical model that generalizes [sum-product
-networks](https://arxiv.org/pdf/2004.01167.pdf)) which statically represents
+Users express generative models as imperative programs with standard
+programming constructs, such as arrays, if/else, for loops, etc. The
+program is then translated to a sum-product representation (a
+generalization of [sum-product
+networks](https://arxiv.org/pdf/2004.01167.pdf)) that statically represents
 the probability distribution on all random variables in the program and is
 used as the basis of probabilistic inference.
 
@@ -73,3 +75,7 @@ To view the coverage report, open `htmlcov/index.html` in the browser.
 ### License
 
 Apache 2.0; see [LICENSE.txt](./LICENSE.txt)
+
+### Acknowledgments
+
+The [logo](./sppl.png) was designed by [McCoy R. Becker](https://femtomc.github.io/).
