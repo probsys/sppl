@@ -83,10 +83,10 @@ class SPN():
         return exp(lp)
     def condition(self, event, memo=None):
         raise NotImplementedError()
-    def logpdf(self, event, memo=None):
+    def logpdf(self, assignment, memo=None):
         raise NotImplementedError()
-    def pdf(self, event):
-        lp = self.logpdf(event)
+    def pdf(self, assignment):
+        lp = self.logpdf(assignment)
         return exp(lp)
     def mutual_information(self, A, B, memo=None):
         if memo is None:
@@ -139,7 +139,9 @@ class SPN():
 
     def get_memo_key(self, event_factor):
         x = id(self)
-        y = tuple(tuple(x.items()) for x in event_factor)
+        y = tuple(event_factor.items()) \
+                if isinstance(event_factor, dict) \
+                else tuple(tuple(d.items()) for d in event_factor)
         return (x, y)
 
 # ==============================================================================
@@ -174,20 +176,15 @@ class BranchSPN(SPN):
         event_disjoint = dnf_to_disjoint_union(event_dnf)
         event_factor = dnf_factor(event_disjoint)
         return self.condition_factored(event_factor, memo)
-    def logpdf(self, event, memo=None):
+    def logpdf(self, assignment, memo=None):
         if memo is None:
             memo = Memo()
-        event_dnf = dnf_normalize(event)
-        if event_dnf is None:
-            return -inf
-        event_factor = dnf_factor(event_dnf)
-        assert len(event_factor) == 1
-        return self.logpdf_factored(event_factor, memo)
+        return self.logpdf_factored(assignment, memo)
     def logprob_factored(self, event_factor, memo):
         raise NotImplementedError()
     def condition_factored(self, event_factor, memo):
         raise NotImplementedError()
-    def logpdf_factored(self, event_factor, memo):
+    def logpdf_factored(self, assignment, memo):
         raise NotImplementedError()
 
 # ==============================================================================
@@ -260,9 +257,9 @@ class SumSPN(BranchSPN):
         return SumSPN(children, weights) if len(indexes) > 1 else children[0]
 
     @memoize
-    def logpdf_factored(self, event_factor, memo):
+    def logpdf_factored(self, assignment, memo):
         # FIXME: Check base measures of children.
-        logps = [spn.logpdf_factored(event_factor, memo) for spn in self.children]
+        logps = [spn.logpdf_factored(assignment, memo) for spn in self.children]
         return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
 
     def __eq__(self, x):
@@ -538,19 +535,15 @@ class ProductSPN(BranchSPN):
         return children
 
     @memoize
-    def logpdf_factored(self, event_factor, memo):
-        assert len(event_factor) == 1
-        conjunctions = {}
-        for symbol, event in event_factor[0].items():
+    def logpdf_factored(self, assignment, memo):
+        assignments = {}
+        for symbol, value in assignment.items():
             key = self.lookup[symbol]
-            if key not in conjunctions:
-                conjunctions[key] = dict()
-            if symbol not in conjunctions[key]:
-                conjunctions[key][symbol] = event
-            else:
-                conjunctions[key][symbol] &= event
-        return sum(self.children[k].logpdf_factored((v,), memo)
-            for k, v in conjunctions.items())
+            if key not in assignments:
+                assignments[key] = dict()
+            assignments[key][symbol] = value
+        return sum(self.children[k].logpdf_factored(a, memo)
+            for k, a in assignments.items())
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -626,25 +619,16 @@ class LeafSPN(SPN):
             event = event_factor_to_event(event_factor)
             memo.condition[key] = self.condition(event)
         return memo.condition[key]
-    def logpdf_factored(self, event_factor, memo):
-        if memo is False:
-            event = event_factor_to_event(event_factor)
-            return self.logpdf(event)
-        key = self.get_memo_key(event_factor)
-        if key not in memo.logpdf:
-            assert len(event_factor) == 1
-            event = event_factor_to_event(event_factor)
-            memo.logpdf[key] = self.logpdf(event)
-        return memo.logpdf[key]
-    def logpdf(self, event, memo=None):
-        assert isinstance(event.subexpr, Id)
-        assert event.subexpr.symbols == {self.symbol}
-        assert isinstance(event, (EventFiniteNominal, EventFiniteReal))
-        if isinstance(event, EventFiniteNominal):
-            assert not event.values.b
-        assert len(event.values) == 1
-        x = list(event.values)[0]
-        return self.logpdf__(x)
+    def logpdf(self, assignment, memo=None):
+        if memo is None:
+            memo = Memo()
+        return self.logpdf_factored(assignment, memo)
+    @memoize
+    def logpdf_factored(self, assignment, memo):
+        assert len(assignment) == 1
+        [(k, v)] = assignment.items()
+        assert k == self.symbol
+        return self.logpdf__(v)
     def sample__(self, N, prng):
         raise NotImplementedError()
     def logprob__(self, event):
