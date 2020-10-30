@@ -38,7 +38,7 @@ def test_poisson():
         spn_condition.logprob(X << {10}))
     assert allclose(
         spn_condition.logprob(X <= 10),
-        spn_condition.logpdf(X << {10}))
+        spn_condition.logpdf({X: 10}))
 
     samples = spn_condition.sample(100)
     assert all(10 <= s[X] for s in samples)
