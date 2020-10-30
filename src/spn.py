@@ -34,8 +34,6 @@ from .sym_util import partition_finite_real_contiguous
 from .sym_util import partition_list_blocks
 from .sym_util import sympify_number
 
-from .transforms import EventFiniteNominal
-from .transforms import EventFiniteReal
 from .transforms import EventOr
 from .transforms import Id
 
