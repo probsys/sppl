@@ -76,16 +76,10 @@ class SPN():
         raise NotImplementedError()
     def logprob(self, event, memo=None):
         raise NotImplementedError()
-    def prob(self, event):
-        lp = self.logprob(event)
-        return exp(lp)
     def condition(self, event, memo=None):
         raise NotImplementedError()
     def logpdf(self, assignment, memo=None):
         raise NotImplementedError()
-    def pdf(self, assignment):
-        lp = self.logpdf(assignment)
-        return exp(lp)
     def mutual_information(self, A, B, memo=None):
         if memo is None:
             memo = Memo()
@@ -103,6 +97,12 @@ class SPN():
         m01 = exp(lp01) * (lp01 - (lpA0 + lpB1)) if not isinf_neg(lp01) else 0
         m00 = exp(lp00) * (lp00 - (lpA0 + lpB0)) if not isinf_neg(lp00) else 0
         return m11 + m10 + m01 + m00
+    def prob(self, event):
+        lp = self.logprob(event)
+        return exp(lp)
+    def pdf(self, assignment):
+        lp = self.logpdf(assignment)
+        return exp(lp)
 
     def __rmul__number(self, x):
         x_val = sympify_number(x)
@@ -604,6 +604,10 @@ class LeafSPN(SPN):
         if key not in memo.condition:
             memo.condition[key] = self.condition__(event_subs)
         return memo.condition[key]
+    def logpdf(self, assignment, memo=None):
+        if memo is None:
+            memo = Memo()
+        return self.logpdf_mem(assignment, memo)[1]
     def logprob_mem(self, event_factor, memo):
         if memo is False:
             event = event_factor_to_event(event_factor)
@@ -622,10 +626,6 @@ class LeafSPN(SPN):
             event = event_factor_to_event(event_factor)
             memo.condition[key] = self.condition(event)
         return memo.condition[key]
-    def logpdf(self, assignment, memo=None):
-        if memo is None:
-            memo = Memo()
-        return self.logpdf_mem(assignment, memo)[1]
     @memoize
     def logpdf_mem(self, assignment, memo):
         assert len(assignment) == 1
