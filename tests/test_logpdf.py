@@ -5,7 +5,9 @@ from math import log
 
 import pytest
 
+from sppl.distributions import atomic
 from sppl.distributions import choice
+from sppl.distributions import discrete
 from sppl.distributions import gamma
 from sppl.distributions import norm
 from sppl.distributions import poisson
@@ -83,3 +85,22 @@ def test_logpdf_bivariate():
     assert allclose(
         spn.logpdf({X: 0, Y: 'a'}),
         norm().dist.logpdf(0) + log(.5))
+
+def test_logpdf_lexicographic_either():
+    spn = .75*(X >> norm() & Y >> atomic(loc=0) & Z >> discrete({1:.1, 2:.9})) \
+        | .25*(X >> atomic(loc=0) & Y >> norm() & Z >> norm())
+    assert allclose( # Lexicographic, Branch 1
+        spn.logpdf({X:0, Y:0, Z:2}),
+        log(.75) + norm().dist.logpdf(0) + log(1) + log(.9))
+    assert allclose( # Lexicographic, Branch 2
+        spn.logpdf({X:0, Y:0, Z:0}),
+        log(.25) + log(1) + norm().dist.logpdf(0) + norm().dist.logpdf(0))
+
+def test_logpdf_lexicographic_both():
+    spn = .75*(X >> norm() & Y >> atomic(loc=0) & Z >> discrete({1:.2, 2:.8})) \
+        | .25*(X >> discrete({1:.5, 2:.5}) & Y >> norm() & Z >> atomic(loc=2))
+    assert allclose( # Lexicographic, Mix
+        spn.logpdf({X:1, Y:0, Z:2}),
+        logsumexp([
+            log(.75) + norm().dist.logpdf(1) + log(1) + log(.8),
+            log(.25) + log(.5) + norm().dist.logpdf(0) + log(1)]))

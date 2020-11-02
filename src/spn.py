@@ -177,7 +177,7 @@ class BranchSPN(SPN):
     def logpdf(self, assignment, memo=None):
         if memo is None:
             memo = Memo()
-        return self.logpdf_factored(assignment, memo)
+        return self.logpdf_factored(assignment, memo)[1]
     def logprob_factored(self, event_factor, memo):
         raise NotImplementedError()
     def condition_factored(self, event_factor, memo):
@@ -256,9 +256,13 @@ class SumSPN(BranchSPN):
 
     @memoize
     def logpdf_factored(self, assignment, memo):
-        # FIXME: Check base measures of children.
         logps = [spn.logpdf_factored(assignment, memo) for spn in self.children]
-        return logsumexp([p + w for (p, w) in zip(logps, self.weights)])
+        logps_noninf = [(d, w) for d, w in logps if not isinf_neg(w)]
+        if len(logps_noninf) == 0:
+            return (0, -inf)
+        d_min = min(d for (d, w) in logps_noninf)
+        lp = [p + w for (d, w), p in zip(logps, self.weights) if d == d_min]
+        return (d_min, logsumexp(lp))
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -540,8 +544,8 @@ class ProductSPN(BranchSPN):
             if key not in assignments:
                 assignments[key] = dict()
             assignments[key][symbol] = value
-        return sum(self.children[k].logpdf_factored(a, memo)
-            for k, a in assignments.items())
+        return reduce(lambda x, s: (x[0]+s[0], x[1]+s[1]),
+            (self.children[k].logpdf_factored(a, memo) for k, a in assignments.items()))
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -557,6 +561,7 @@ def spn_list_to_product(children):
 # Basic Distribution base class.
 
 class LeafSPN(SPN):
+    atomic = None          # True if distribution has an atom
     symbol = None          # Symbol (Id) of base random variable
     def get_symbols(self):
         return frozenset(self.env)
@@ -620,13 +625,14 @@ class LeafSPN(SPN):
     def logpdf(self, assignment, memo=None):
         if memo is None:
             memo = Memo()
-        return self.logpdf_factored(assignment, memo)
+        return self.logpdf_factored(assignment, memo)[1]
     @memoize
     def logpdf_factored(self, assignment, memo):
         assert len(assignment) == 1
         [(k, v)] = assignment.items()
         assert k == self.symbol
-        return self.logpdf__(v)
+        w = self.logpdf__(v)
+        return (1 - self.atomic, w)
     def sample__(self, N, prng):
         raise NotImplementedError()
     def logprob__(self, event):
@@ -780,6 +786,7 @@ class RealLeaf(LeafSPN):
 
 class ContinuousLeaf(RealLeaf):
     """Non-atomic distribution with a cumulative distribution function."""
+    atomic = False
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
         super().__init__(symbol, dist, support, conditioned, env)
         self.xl = float(support.left)
@@ -822,7 +829,7 @@ class ContinuousLeaf(RealLeaf):
 
 class DiscreteLeaf(RealLeaf):
     """Integral atomic distribution with a cumulative distribution function."""
-
+    atomic = True
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
         super().__init__(symbol, dist, support, conditioned, env)
         assert int_or_isinf_neg(support.left)
@@ -869,7 +876,7 @@ class DiscreteLeaf(RealLeaf):
 
 class NominalLeaf(LeafSPN):
     """Atomic distribution, no cumulative distribution function."""
-
+    atomic = True
     def __init__(self, symbol, dist):
         assert isinstance(symbol, Id)
         assert all(isinstance(x, str) for x in dist)
