@@ -261,3 +261,8 @@ def test_condition():
     assert allclose(
         model_condition.children[0].logprob(GPA < 1),
         model_condition.children[1].logprob(GPA < 1))
+
+def test_logpdf():
+    model = model_no_latents()
+    assert allclose(0.005, model.pdf({GPA: 4}))
+    assert allclose(0.005, model.pdf({GPA: 10}))
