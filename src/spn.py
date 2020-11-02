@@ -157,7 +157,7 @@ class BranchSPN(SPN):
         if event_dnf is None:
             return -inf
         event_factor = dnf_factor(event_dnf)
-        return self.logprob_factored(event_factor, memo)
+        return self.logprob_mem(event_factor, memo)
     def condition(self, event, memo=None):
         if memo is None:
             memo = Memo()
@@ -166,23 +166,23 @@ class BranchSPN(SPN):
             raise ValueError('Zero probability event: %s' % (event,))
         if isinstance(event_dnf, EventOr):
             conjunctions = [dnf_factor(e) for e in event_dnf.subexprs]
-            logps = [self.logprob_factored(c, memo) for c in conjunctions]
+            logps = [self.logprob_mem(c, memo) for c in conjunctions]
             indexes = [i for i, lp in enumerate(logps) if not isinf_neg(lp)]
             if not indexes:
                 raise ValueError('Zero probability event: %s' % (event,))
             event_dnf = EventOr([event_dnf.subexprs[i] for i in indexes])
         event_disjoint = dnf_to_disjoint_union(event_dnf)
         event_factor = dnf_factor(event_disjoint)
-        return self.condition_factored(event_factor, memo)
+        return self.condition_mem(event_factor, memo)
     def logpdf(self, assignment, memo=None):
         if memo is None:
             memo = Memo()
-        return self.logpdf_factored(assignment, memo)[1]
-    def logprob_factored(self, event_factor, memo):
+        return self.logpdf_mem(assignment, memo)[1]
+    def logprob_mem(self, event_factor, memo):
         raise NotImplementedError()
-    def condition_factored(self, event_factor, memo):
+    def condition_mem(self, event_factor, memo):
         raise NotImplementedError()
-    def logpdf_factored(self, assignment, memo):
+    def logpdf_mem(self, assignment, memo):
         raise NotImplementedError()
 
 # ==============================================================================
@@ -238,25 +238,25 @@ class SumSPN(BranchSPN):
         return SumSPN(children, self.weights)
 
     @memoize
-    def logprob_factored(self, event_factor, memo):
-        logps = [spn.logprob_factored(event_factor, memo) for spn in self.children]
+    def logprob_mem(self, event_factor, memo):
+        logps = [spn.logprob_mem(event_factor, memo) for spn in self.children]
         logp = logsumexp([p + w for (p, w) in zip(logps, self.weights)])
         return logp
 
     @memoize
-    def condition_factored(self, event_factor, memo):
-        logps_condt = [spn.logprob_factored(event_factor, memo) for spn in self.children]
+    def condition_mem(self, event_factor, memo):
+        logps_condt = [spn.logprob_mem(event_factor, memo) for spn in self.children]
         indexes = [i for i, lp in enumerate(logps_condt) if not isinf_neg(lp)]
         if not indexes:
             raise ValueError('Conditioning event "%s" has probability zero' % (str(event_factor),))
         logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
-        children = [self.children[i].condition_factored(event_factor, memo) for i in indexes]
+        children = [self.children[i].condition_mem(event_factor, memo) for i in indexes]
         weights = lognorm(logps_joint)
         return SumSPN(children, weights) if len(indexes) > 1 else children[0]
 
     @memoize
-    def logpdf_factored(self, assignment, memo):
-        logps = [spn.logpdf_factored(assignment, memo) for spn in self.children]
+    def logpdf_mem(self, assignment, memo):
+        logps = [spn.logpdf_mem(assignment, memo) for spn in self.children]
         logps_noninf = [(d, w) for d, w in logps if not isinf_neg(w)]
         if len(logps_noninf) == 0:
             return (0, -inf)
@@ -452,7 +452,7 @@ class ProductSPN(BranchSPN):
         return ProductSPN(children)
 
     @memoize
-    def logprob_factored(self, event_factor, memo):
+    def logprob_mem(self, event_factor, memo):
         # Adopting Inclusion--Exclusion principle for DNF event:
         # https://cp-algorithms.com/combinatorics/inclusion-exclusion.html#toc-tgt-4
         (logps_pos, logps_neg) = ([], [])
@@ -485,9 +485,9 @@ class ProductSPN(BranchSPN):
         return logdiffexp(logp_pos, logp_neg)
 
     @memoize
-    def condition_factored(self, event_factor, memo):
+    def condition_mem(self, event_factor, memo):
         logps = [self.logprob_conjunction([c], [0], memo) for c in event_factor]
-        assert allclose(logsumexp(logps), self.logprob_factored(event_factor, memo))
+        assert allclose(logsumexp(logps), self.logprob_mem(event_factor, memo))
         indexes = [i for (i, lp) in enumerate(logps) if not isinf_neg(lp)]
         if not indexes:
             raise ValueError('Conditioning event "%s" has probability zero'
@@ -522,7 +522,7 @@ class ProductSPN(BranchSPN):
                         clause[symbol] &= event
         if not clause:
             return -inf
-        return self.children[key].logprob_factored((clause,), memo)
+        return self.children[key].logprob_mem((clause,), memo)
 
     def condition_clause(self, clause, memo):
         # Return children conditioned on a clause (one conjunction).
@@ -532,12 +532,12 @@ class ProductSPN(BranchSPN):
             symbols = spn.get_symbols().intersection(clause)
             if symbols:
                 spn_clause = ({symbol: clause[symbol] for symbol in symbols},)
-                spn_condition = spn.condition_factored(spn_clause, memo)
+                spn_condition = spn.condition_mem(spn_clause, memo)
             children.append(spn_condition)
         return children
 
     @memoize
-    def logpdf_factored(self, assignment, memo):
+    def logpdf_mem(self, assignment, memo):
         assignments = {}
         for symbol, value in assignment.items():
             key = self.lookup[symbol]
@@ -545,7 +545,7 @@ class ProductSPN(BranchSPN):
                 assignments[key] = dict()
             assignments[key][symbol] = value
         return reduce(lambda x, s: (x[0]+s[0], x[1]+s[1]),
-            (self.children[k].logpdf_factored(a, memo) for k, a in assignments.items()))
+            (self.children[k].logpdf_mem(a, memo) for k, a in assignments.items()))
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -604,7 +604,7 @@ class LeafSPN(SPN):
         if key not in memo.condition:
             memo.condition[key] = self.condition__(event_subs)
         return memo.condition[key]
-    def logprob_factored(self, event_factor, memo):
+    def logprob_mem(self, event_factor, memo):
         if memo is False:
             event = event_factor_to_event(event_factor)
             return self.logprob(event)
@@ -613,7 +613,7 @@ class LeafSPN(SPN):
             event = event_factor_to_event(event_factor)
             memo.logprob[key] = self.logprob(event)
         return memo.logprob[key]
-    def condition_factored(self, event_factor, memo):
+    def condition_mem(self, event_factor, memo):
         if memo is False:
             event = event_factor_to_event(event_factor)
             return self.condition(event)
@@ -625,9 +625,9 @@ class LeafSPN(SPN):
     def logpdf(self, assignment, memo=None):
         if memo is None:
             memo = Memo()
-        return self.logpdf_factored(assignment, memo)[1]
+        return self.logpdf_mem(assignment, memo)[1]
     @memoize
-    def logpdf_factored(self, assignment, memo):
+    def logpdf_mem(self, assignment, memo):
         assert len(assignment) == 1
         [(k, v)] = assignment.items()
         assert k == self.symbol
