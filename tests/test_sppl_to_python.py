@@ -344,6 +344,32 @@ else:
     namespace = compiler.execute_module()
     assert isclose(namespace.model.prob((-1 < namespace.Y) < 1), 1)
 
+def test_constrain_simple():
+    source = '''
+Y ~= norm(loc=0, scale=2)
+Z ~= binom(n=10, p=.2)
+constrain({Z: 10, Y: 0})
+'''
+    compiler = SPPL_Compiler(source)
+    namespace = compiler.execute_module()
+    assert isclose(namespace.model.prob((0 < namespace.Y) < 2), 0)
+    assert isclose(namespace.model.prob((0 <= namespace.Y) < 2), 1)
+    assert isclose(namespace.model.prob(namespace.Z << {10}), 1)
+
+def test_constrain_if():
+    source = '''
+Y ~= norm(loc=0, scale=2)
+if (Y > 1):
+    constrain({Y: 2})
+else:
+    constrain({Y: 0})
+'''
+    compiler = SPPL_Compiler(source)
+    namespace = compiler.execute_module()
+    assert isclose(namespace.model.prob(namespace.Y > 0), 0.3085375387259868)
+    assert isclose(namespace.model.prob(namespace.Y < 0), 0)
+    assert isclose(namespace.model.prob(namespace.Y << {0}), 1-0.3085375387259868)
+
 def test_constant_parameter():
     source = '''
 parameters = [1, 2, 3]

@@ -98,3 +98,10 @@ def test_numeric_distribution_gamma():
     # Support on (-3, oo)
     spn = (X >> gamma(loc=-3, a=1))
     assert spn.prob((-3 < X) < 0) > 0.95
+
+    # Constrain.
+    with pytest.raises(Exception):
+        spn.constrain({X: -4})
+    spn_constrain = spn.constrain({X: .5})
+    samples = spn_constrain.sample(100, prng=None)
+    assert all(s == {X: .5} for s in samples)

@@ -9,6 +9,7 @@ import scipy.stats
 from sympy import E
 from sympy import sqrt
 
+from ..spn import AtomicLeaf
 from ..spn import ContinuousLeaf
 from ..spn import DiscreteLeaf
 from ..spn import NominalLeaf
@@ -59,6 +60,11 @@ def spn_from_dict(metadata):
         symbol = Id(metadata['symbol'])
         dist = {x: Fraction(w[0], w[1]) for x, w in metadata['dist']}
         return NominalLeaf(symbol, dist)
+    if metadata['class'] == 'AtomicLeaf':
+        symbol = Id(metadata['symbol'])
+        value = float(metadata['value'])
+        env = env_from_dict(metadata['env'])
+        return AtomicLeaf(symbol, value, env=env)
     if metadata['class'] == 'ContinuousLeaf':
         symbol = Id(metadata['symbol'])
         dist = scipy_dist_from_dict(metadata['dist'])
@@ -92,7 +98,14 @@ def spn_to_dict(spn):
                 (str(x), (w.numerator, w.denominator))
                 for x, w in spn.dist.items()
             ],
-            'env'         : env_to_dict(spn.env),
+            'env'          : env_to_dict(spn.env),
+        }
+    if isinstance(spn, AtomicLeaf):
+        return {
+            'class'        : 'AtomicLeaf',
+            'symbol'       : spn.symbol.token,
+            'value'        : spn.value,
+            'env'          : env_to_dict(spn.env),
         }
     if isinstance(spn, ContinuousLeaf):
         return {

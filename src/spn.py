@@ -80,6 +80,8 @@ class SPN():
         raise NotImplementedError()
     def logpdf(self, assignment, memo=None):
         raise NotImplementedError()
+    def constrain(self, assignment, memo=None):
+        raise NotImplementedError()
     def mutual_information(self, A, B, memo=None):
         if memo is None:
             memo = Memo()
@@ -178,11 +180,17 @@ class BranchSPN(SPN):
         if memo is None:
             memo = Memo()
         return self.logpdf_mem(assignment, memo)[1]
+    def constrain(self, assignment, memo=None):
+        if memo is None:
+            memo = Memo()
+        return self.constrain_mem(assignment, memo)
     def logprob_mem(self, event_factor, memo):
         raise NotImplementedError()
     def condition_mem(self, event_factor, memo):
         raise NotImplementedError()
     def logpdf_mem(self, assignment, memo):
+        raise NotImplementedError()
+    def constrain_mem(self, assignment, memo):
         raise NotImplementedError()
 
 # ==============================================================================
@@ -263,6 +271,18 @@ class SumSPN(BranchSPN):
         d_min = min(d for (d, w) in logps_noninf)
         lp = [p + w for (d, w), p in zip(logps, self.weights) if d == d_min]
         return (d_min, logsumexp(lp))
+
+    @memoize
+    def constrain_mem(self, assignment, memo):
+        logpdfs_condt = [spn.logpdf_mem(assignment, memo) for spn in self.children]
+        indexes = [i for i, (d, l) in enumerate(logpdfs_condt) if not isinf_neg(l)]
+        assert indexes, 'Assignment "%s" has density zero' % (str(assignment),)
+        d_min = min(logpdfs_condt[i][0] for i in indexes)
+        indexes_d_min = [i for i in indexes if logpdfs_condt[i][0] == d_min]
+        logpdfs = [logpdfs_condt[i][1] + self.weights[i] for i in indexes_d_min]
+        children = [self.children[i].constrain(assignment, memo) for i in indexes_d_min]
+        weights = lognorm(logpdfs)
+        return SumSPN(children, weights) if len(indexes_d_min) > 1 else children[0]
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -547,6 +567,18 @@ class ProductSPN(BranchSPN):
         return reduce(lambda x, s: (x[0]+s[0], x[1]+s[1]),
             (self.children[k].logpdf_mem(a, memo) for k, a in assignments.items()))
 
+    @memoize
+    def constrain_mem(self, assignment, memo):
+        children = []
+        for spn in self.children:
+            spn_constrain = spn
+            symbols = spn.get_symbols().intersection(assignment.keys())
+            if symbols:
+                spn_assignment = {s: assignment[s] for s in symbols}
+                spn_constrain = spn.constrain_mem(spn_assignment, memo)
+            children.append(spn_constrain)
+        return ProductSPN(children)
+
     def __eq__(self, x):
         return isinstance(x, type(self)) \
             and self.children == x.children
@@ -608,6 +640,10 @@ class LeafSPN(SPN):
         if memo is None:
             memo = Memo()
         return self.logpdf_mem(assignment, memo)[1]
+    def constrain(self, assignment, memo=None):
+        if memo is None:
+            memo = Memo()
+        return self.constrain_mem(assignment, memo)
     def logprob_mem(self, event_factor, memo):
         if memo is False:
             event = event_factor_to_event(event_factor)
@@ -633,6 +669,12 @@ class LeafSPN(SPN):
         assert k == self.symbol
         w = self.logpdf__(v)
         return (1 - self.atomic, w)
+    @memoize
+    def constrain_mem(self, assignment, memo):
+        assert len(assignment) == 1
+        [(k, v)] = assignment.items()
+        assert k == self.symbol
+        return self.constrain__(v)
     def sample__(self, N, prng):
         raise NotImplementedError()
     def logprob__(self, event):
@@ -640,6 +682,8 @@ class LeafSPN(SPN):
     def condition__(self, event):
         raise NotImplementedError()
     def logpdf__(self, x):
+        raise NotImplementedError()
+    def constrain__(self, x):
         raise NotImplementedError()
 
 # ==============================================================================
@@ -766,6 +810,10 @@ class RealLeaf(LeafSPN):
         # Unknown set.
         assert False, 'Unknown set type: %s' % (values,)
 
+    def constrain__(self, x):
+        assert not isinf_neg(self.logpdf__(x))
+        return AtomicLeaf(self.symbol, x)
+
     def __hash__(self):
         d = (self.dist.dist.name, self.dist.args, tuple(self.dist.kwds.items()))
         e = tuple(self.env.items())
@@ -872,6 +920,43 @@ class DiscreteLeaf(RealLeaf):
         return logdiffexp(logFu, logFl)
 
 # ==============================================================================
+# Atomic RealLeaf.
+
+class AtomicLeaf(LeafSPN):
+    """Real atomic distribution."""
+    atomic = True
+    def __init__(self, symbol, value, env=None):
+        self.symbol = symbol
+        self.support = FiniteReal(value)
+        self.value = value
+        self.env = env or OrderedDict([(symbol, symbol)])
+
+    def transform(self, symbol, expr):
+        assert symbol not in self.env
+        assert all(s in self.env for s in expr.get_symbols())
+        env = OrderedDict(self.env)
+        env[symbol] = expr
+        return AtomicLeaf(self.symbol, self.value, env=env)
+
+    def sample__(self, N, prng):
+        return [{self.symbol : self.value}] * N
+    def logprob__(self, event):
+        interval = event.solve()
+        return 0 if self.value in interval else -inf
+    def condition__(self, event):
+        interval = event.solve()
+        assert self.value in interval, 'Measure zero condition %s' % (event,)
+        return self
+
+    def __hash__(self):
+        x = (self.__class__, self.symbol, self.value)
+        return hash(x)
+    def __eq__(self, x):
+        return isinstance(x, type(self)) \
+            and self.symbol == x.symbol \
+            and self.value == x.value
+
+# ==============================================================================
 # Nominal distribution.
 
 class NominalLeaf(LeafSPN):
@@ -929,6 +1014,10 @@ class NominalLeaf(LeafSPN):
         }
         return NominalLeaf(self.symbol, dist)
 
+    def constrain__(self, x):
+        assert not isinf_neg(self.logpdf__(x))
+        return NominalLeaf(self.symbol, {x: 1})
+
     def __hash__(self):
         x = (self.__class__, self.symbol, tuple(self.dist.items()))
         return hash(x)
@@ -945,6 +1034,7 @@ class Memo():
         self.logprob = {}
         self.condition = {}
         self.logpdf = {}
+        self.constrain = {}
 
 def spn_cache_duplicate_subtrees(spn, memo):
     if isinstance(spn, LeafSPN):

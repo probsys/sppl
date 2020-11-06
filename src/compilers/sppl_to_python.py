@@ -261,6 +261,13 @@ class SPPL_Visitor(ast.NodeVisitor):
             src_event = unparse(event_prime).strip()
             self.command.write('%sCondition(%s),' % (idt, src_event))
             self.command.write('\n')
+        elif node.func.id == 'constrain':
+            assert len(node.args) == 1, unode
+            idt = get_indentation(self.indentation)
+            assignment = node.args[0]
+            src_assignment = unparse(assignment).strip()
+            self.command.write('%sConstrain(%s),' % (idt, src_assignment))
+            self.command.write('\n')
 
 def unroll_if(node, current=None):
     current = [] if current is None else current
@@ -362,7 +369,7 @@ class SPPL_Compiler():
         for d in sorted(visitor.distributions):
             self.prog.imports.write('from sppl.distributions import %s' % (d,))
             self.prog.imports.write('\n')
-        for c in ['Id', 'IdArray', 'Condition', 'IfElse', 'For', 'Sample',
+        for c in ['Id', 'IdArray', 'Condition', 'Constrain', 'IfElse', 'For', 'Sample',
                     'Sequence', 'Switch', 'Transform']:
             self.prog.imports.write('from sppl.compilers.ast_to_spn import %s' % (c,))
             self.prog.imports.write('\n')

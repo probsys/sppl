@@ -15,6 +15,7 @@ from sppl.math_util import allclose
 from sppl.math_util import isinf_neg
 from sppl.math_util import logsumexp
 from sppl.spn import SumSPN
+from sppl.spn import ProductSPN
 from sppl.transforms import Id
 
 X = Id('X')
@@ -89,18 +90,27 @@ def test_logpdf_bivariate():
 def test_logpdf_lexicographic_either():
     spn = .75*(X >> norm() & Y >> atomic(loc=0) & Z >> discrete({1:.1, 2:.9})) \
         | .25*(X >> atomic(loc=0) & Y >> norm() & Z >> norm())
-    assert allclose( # Lexicographic, Branch 1
-        spn.logpdf({X:0, Y:0, Z:2}),
+    # Lexicographic, Branch 1
+    assignment = {X:0, Y:0, Z:2}
+    assert allclose(
+        spn.logpdf(assignment),
         log(.75) + norm().dist.logpdf(0) + log(1) + log(.9))
-    assert allclose( # Lexicographic, Branch 2
-        spn.logpdf({X:0, Y:0, Z:0}),
+    assert isinstance(spn.constrain(assignment), ProductSPN)
+    # Lexicographic, Branch 2
+    assignment = {X:0, Y:0, Z:0}
+    assert allclose(
+        spn.logpdf(assignment),
         log(.25) + log(1) + norm().dist.logpdf(0) + norm().dist.logpdf(0))
+    assert isinstance(spn.constrain(assignment), ProductSPN)
 
 def test_logpdf_lexicographic_both():
     spn = .75*(X >> norm() & Y >> atomic(loc=0) & Z >> discrete({1:.2, 2:.8})) \
         | .25*(X >> discrete({1:.5, 2:.5}) & Y >> norm() & Z >> atomic(loc=2))
-    assert allclose( # Lexicographic, Mix
-        spn.logpdf({X:1, Y:0, Z:2}),
+    # Lexicographic, Mix
+    assignment = {X:1, Y:0, Z:2}
+    assert allclose(
+        spn.logpdf(assignment),
         logsumexp([
             log(.75) + norm().dist.logpdf(1) + log(1) + log(.8),
             log(.25) + log(.5) + norm().dist.logpdf(0) + log(1)]))
+    assert isinstance(spn.constrain(assignment), SumSPN)
