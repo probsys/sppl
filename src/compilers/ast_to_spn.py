@@ -59,6 +59,13 @@ class Condition(Command):
         assert spn is not None
         return spn.condition(self.event)
 
+class Constrain(Command):
+    def __init__(self, assignment):
+        self.assignment = assignment
+    def interpret(self, spn=None):
+        assert spn is not None
+        return spn.constrain(self.assignment)
+
 class IfElse(Command):
     def __init__(self, *branches):
         assert len(branches) % 2 == 0

@@ -3,11 +3,12 @@
 
 from math import exp
 
-from .spn import RealLeaf
+from .spn import AtomicLeaf
 from .spn import DiscreteLeaf
 from .spn import LeafSPN
 from .spn import NominalLeaf
 from .spn import ProductSPN
+from .spn import RealLeaf
 from .spn import SumSPN
 
 def render_nested_lists_concise(spn):
@@ -29,6 +30,12 @@ def render_nested_lists(spn):
             ['symbol', spn.symbol],
             ['env', dict(spn.env)],
             ['dist', {str(x): float(w) for x, w in spn.dist.items()}]]
+        ]
+    if isinstance(spn, AtomicLeaf):
+        return ['AtomicLeaf', [
+            ['symbol', spn.symbol],
+            ['value', spn.value],
+            ['env', dict(spn.env)]]
         ]
     if isinstance(spn, RealLeaf):
         return ['RealLeaf', [

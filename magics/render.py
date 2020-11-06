@@ -10,6 +10,7 @@ from math import exp
 import graphviz
 import networkx as nx
 
+from sppl.spn import AtomicLeaf
 from sppl.spn import NominalLeaf
 from sppl.spn import ProductSPN
 from sppl.spn import RealLeaf
@@ -22,6 +23,12 @@ def render_networkx_graph(spn):
         G = nx.DiGraph()
         root = gensym()
         G.add_node(root, label='%s\n%s' % (spn.symbol.token, 'Nominal'))
+        return G
+    if isinstance(spn, AtomicLeaf):
+        G = nx.DiGraph()
+        root = gensym()
+        G.add_node(root, label='%s\n%s(%s)'
+            % (spn.symbol.token, 'Atomic', str(spn.value)))
         return G
     if isinstance(spn, RealLeaf):
         G = nx.DiGraph()

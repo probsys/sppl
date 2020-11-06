@@ -89,6 +89,14 @@ def test_poisson():
     # Condition on single point.
     assert allclose(0, spn.condition(X << {2}).logprob(X<<{2}))
 
+    # Constrain.
+    with pytest.raises(Exception):
+        spn.constrain({X: -1})
+    with pytest.raises(Exception):
+        spn.constrain({X: .5})
+    spn_constrain = spn.constrain({X: 10})
+    assert allclose(spn_constrain.prob(X << {0, 10}), 1)
+
 def test_condition_non_contiguous():
     X = Id('X')
     spn = X >> poisson(mu=5)
