@@ -216,16 +216,6 @@ class foldnorm(ContinuousReal):
     dist = scipy.stats.foldnorm
     def get_domain(self): return RealsPosLoc(self.kwargs)
 
-class frechet_r(ContinuousReal):
-    """A Frechet right (or Weibull minimum) continuous random variable."""
-    dist = scipy.stats.frechet_r
-    def get_domain(self): return RealsPosLoc(self.kwargs)
-
-class frechet_l(ContinuousReal):
-    """A Frechet left (or Weibull maximum) continuous random variable."""
-    dist = scipy.stats.frechet_l
-    def get_domain(self): return RealsNeg
-
 class genlogistic(ContinuousReal):
     """A generalized logistic continuous random variable."""
     dist = scipy.stats.genlogistic
