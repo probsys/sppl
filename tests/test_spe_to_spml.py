@@ -1,7 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from sppl.compilers.spn_to_sppl import render_sppl
+from sppl.compilers.spe_to_sppl import render_sppl
 from sppl.compilers.sppl_to_python import SPPL_Compiler
 from sppl.math_util import allclose
 from sppl.tests.test_render import get_model

@@ -14,7 +14,7 @@ random variables.
 
 Users express generative models as imperative programs with standard
 programming constructs, such as arrays, if/else, for loops, etc. The
-program is then translated to a sum-product representation (a
+program is then translated to a sum-product expression (a
 generalization of [sum-product
 networks](https://arxiv.org/pdf/2004.01167.pdf)) that statically represents
 the probability distribution on all random variables in the program and is

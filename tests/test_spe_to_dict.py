@@ -6,8 +6,8 @@ import pytest
 
 from sympy import sqrt
 
-from sppl.compilers.spn_to_dict import spn_from_dict
-from sppl.compilers.spn_to_dict import spn_to_dict
+from sppl.compilers.spe_to_dict import spe_from_dict
+from sppl.compilers.spe_to_dict import spe_to_dict
 from sppl.distributions import choice
 from sppl.distributions import gamma
 from sppl.distributions import norm
@@ -23,7 +23,7 @@ from sppl.transforms import Logarithm
 X = Id('X')
 Y = Id('Y')
 
-spns = [
+spes = [
     X >> norm(loc=0, scale=1),
     X >> poisson(mu=7),
     Y >> choice({'a': 0.5, 'b': 0.5}),
@@ -31,13 +31,13 @@ spns = [
     0.2*(X >> norm(loc=0, scale=1)) | 0.8*(X >> gamma(a=1)),
     ((X >> norm(loc=0, scale=1)) & (Y >> gamma(a=1))).constrain({Y:1}),
 ]
-@pytest.mark.parametrize('spn', spns)
-def test_serialize_equal(spn):
-    metadata = spn_to_dict(spn)
-    spn_json_encoded = json.dumps(metadata)
-    spn_json_decoded = json.loads(spn_json_encoded)
-    spn2 = spn_from_dict(spn_json_decoded)
-    assert spn2 == spn
+@pytest.mark.parametrize('spe', spes)
+def test_serialize_equal(spe):
+    metadata = spe_to_dict(spe)
+    spe_json_encoded = json.dumps(metadata)
+    spe_json_decoded = json.loads(spe_json_encoded)
+    spe2 = spe_from_dict(spe_json_decoded)
+    assert spe2 == spe
 
 transforms = [
     X,
@@ -62,9 +62,9 @@ transforms = [
 ]
 @pytest.mark.parametrize('transform', transforms)
 def test_serialize_env(transform):
-    spn = (X >> norm()).transform(Y, transform)
-    metadata = spn_to_dict(spn)
-    spn_json_encoded = json.dumps(metadata)
-    spn_json_decoded = json.loads(spn_json_encoded)
-    spn2 = spn_from_dict(spn_json_decoded)
-    assert spn2 == spn
+    spe = (X >> norm()).transform(Y, transform)
+    metadata = spe_to_dict(spe)
+    spe_json_encoded = json.dumps(metadata)
+    spe_json_decoded = json.loads(spe_json_encoded)
+    spe2 = spe_from_dict(spe_json_decoded)
+    assert spe2 == spe

@@ -11,17 +11,17 @@ https://arxiv.org/pdf/1806.02027.pdf
 
 import pytest
 
-from sppl.compilers.ast_to_spn import Id
-from sppl.compilers.ast_to_spn import IfElse
-from sppl.compilers.ast_to_spn import Sample
-from sppl.compilers.ast_to_spn import Sequence
+from sppl.compilers.ast_to_spe import Id
+from sppl.compilers.ast_to_spe import IfElse
+from sppl.compilers.ast_to_spe import Sample
+from sppl.compilers.ast_to_spe import Sequence
 from sppl.compilers.sppl_to_python import SPPL_Compiler
 from sppl.distributions import atomic
 from sppl.distributions import choice
 from sppl.distributions import uniform
 from sppl.math_util import allclose
 from sppl.sets import Interval
-from sppl.spn import ExposedSumSPN
+from sppl.spe import ExposedSumSPE
 
 Nationality = Id('Nationality')
 Perfect     = Id('Perfect')
@@ -37,19 +37,19 @@ def model_no_latents():
             0.01 * (GPA >> atomic(loc=10)))
 
 def model_exposed():
-    return ExposedSumSPN(
-        spn_weights=(Nationality >> choice({'India': 0.5, 'USA': 0.5})),
+    return ExposedSumSPE(
+        spe_weights=(Nationality >> choice({'India': 0.5, 'USA': 0.5})),
         children={
             # American student.
-            'USA': ExposedSumSPN(
-                spn_weights=(Perfect >> choice({'True': 0.01, 'False': 0.99})),
+            'USA': ExposedSumSPE(
+                spe_weights=(Perfect >> choice({'True': 0.01, 'False': 0.99})),
                 children={
                     'False'   : GPA >> uniform(loc=0, scale=4),
                     'True'    : GPA >> atomic(loc=4),
                 }),
             # Indian student.
-            'India': ExposedSumSPN(
-                spn_weights=(Perfect >> choice({'True': 0.01, 'False': 0.99})),
+            'India': ExposedSumSPE(
+                spe_weights=(Perfect >> choice({'True': 0.01, 'False': 0.99})),
                 children={
                     'False'   : GPA >> uniform(loc=0, scale=10),
                     'True'    : GPA >> atomic(loc=10),

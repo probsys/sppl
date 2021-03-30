@@ -49,20 +49,20 @@ inf = float('inf')
 def memoize(f):
     table = f.__name__.split('_')[0]
     def f_(*args):
-        (spn, event_factor, memo) = args
+        (spe, event_factor, memo) = args
         if memo is False:
-            return f(spn, event_factor_to_event, memo)
+            return f(spe, event_factor_to_event, memo)
         m = getattr(memo, table)
-        key = spn.get_memo_key(event_factor)
+        key = spe.get_memo_key(event_factor)
         if key not in m:
-            m[key] = f(spn, event_factor, memo)
+            m[key] = f(spe, event_factor, memo)
         return m[key]
     return f_
 
 # ==============================================================================
-# SPN (base class).
+# SPE (base class).
 
-class SPN():
+class SPE():
     env = None             # Environment mapping symbols to transforms.
     def __init__(self):
         raise NotImplementedError()
@@ -110,7 +110,7 @@ class SPN():
         x_val = sympify_number(x)
         if not 0 < x < 1:
             raise ValueError('Weight %s must be in (0, 1)' % (str(x),))
-        return PartialSumSPN([self], [x_val])
+        return PartialSumSPE([self], [x_val])
     def __rmul__(self, x):
         # Try to multiply x as a number.
         try:
@@ -122,16 +122,16 @@ class SPN():
     def __mul__(self, x):
         return x * self
 
-    def __and__spn(self, x):
-        if isinstance(x, PartialSumSPN):
+    def __and__spe(self, x):
+        if isinstance(x, PartialSumSPE):
             raise TypeError()
-        if not isinstance(x, SPN):
+        if not isinstance(x, SPE):
             raise TypeError()
-        return ProductSPN([self, x])
+        return ProductSPE([self, x])
     def __and__(self, x):
-        # Try to & x as a SPN.
+        # Try to & x as a SPE.
         try:
-            return self.__and__spn(x)
+            return self.__and__spe(x)
         except TypeError:
             pass
         # Failed.
@@ -145,9 +145,9 @@ class SPN():
         return (x, y)
 
 # ==============================================================================
-# Branch SPN.
+# Branch SPE.
 
-class BranchSPN(SPN):
+class BranchSPE(SPE):
     symbols = None
     children = None
     def get_symbols(self):
@@ -194,28 +194,28 @@ class BranchSPN(SPN):
         raise NotImplementedError()
 
 # ==============================================================================
-# Sum SPN.
+# Sum SPE.
 
-class SumSPN(BranchSPN):
-    """Weighted mixture of SPNs."""
+class SumSPE(BranchSPE):
+    """Weighted mixture of SPEs."""
 
     def __init__(self, children, weights):
         assert len(children) == len(weights)
         self.children = tuple(chain.from_iterable([
-            spn.children
-                if isinstance(spn, type(self)) else [spn]
-            for spn in children
+            spe.children
+                if isinstance(spe, type(self)) else [spe]
+            for spe in children
         ]))
         self.weights = tuple(chain.from_iterable([
-            [weight + w for w in spn.weights]
-                if isinstance(spn, type(self)) else [weight]
-            for spn, weight in zip(children, weights)
+            [weight + w for w in spe.weights]
+                if isinstance(spe, type(self)) else [weight]
+            for spe, weight in zip(children, weights)
         ]))
         # Derived attributes.
         self.indexes = tuple(range(len(self.weights)))
         assert allclose(float(logsumexp(weights)),  0)
 
-        symbols = [spn.get_symbols() for spn in self.children]
+        symbols = [spe.get_symbols() for spe in self.children]
         if not are_identical(symbols):
             syms = '\n'.join([', '.join(sorted(str(x) for x in s)) for s in symbols])
             raise ValueError('Mixture must have identical symbols:\n%s' % (syms,))
@@ -242,29 +242,29 @@ class SumSPN(BranchSPN):
         return list(chain.from_iterable(samples))
 
     def transform(self, symbol, expr):
-        children = [spn.transform(symbol, expr) for spn in self.children]
-        return SumSPN(children, self.weights)
+        children = [spe.transform(symbol, expr) for spe in self.children]
+        return SumSPE(children, self.weights)
 
     @memoize
     def logprob_mem(self, event_factor, memo):
-        logps = [spn.logprob_mem(event_factor, memo) for spn in self.children]
+        logps = [spe.logprob_mem(event_factor, memo) for spe in self.children]
         logp = logsumexp([p + w for (p, w) in zip(logps, self.weights)])
         return logp
 
     @memoize
     def condition_mem(self, event_factor, memo):
-        logps_condt = [spn.logprob_mem(event_factor, memo) for spn in self.children]
+        logps_condt = [spe.logprob_mem(event_factor, memo) for spe in self.children]
         indexes = [i for i, lp in enumerate(logps_condt) if not isinf_neg(lp)]
         if not indexes:
             raise ValueError('Conditioning event "%s" has probability zero' % (str(event_factor),))
         logps_joint = [logps_condt[i] + self.weights[i] for i in indexes]
         children = [self.children[i].condition_mem(event_factor, memo) for i in indexes]
         weights = lognorm(logps_joint)
-        return SumSPN(children, weights) if len(indexes) > 1 else children[0]
+        return SumSPE(children, weights) if len(indexes) > 1 else children[0]
 
     @memoize
     def logpdf_mem(self, assignment, memo):
-        logps = [spn.logpdf_mem(assignment, memo) for spn in self.children]
+        logps = [spe.logpdf_mem(assignment, memo) for spe in self.children]
         logps_noninf = [(d, w) for d, w in logps if not isinf_neg(w)]
         if len(logps_noninf) == 0:
             return (0, -inf)
@@ -274,7 +274,7 @@ class SumSPN(BranchSPN):
 
     @memoize
     def constrain_mem(self, assignment, memo):
-        logpdfs_condt = [spn.logpdf_mem(assignment, memo) for spn in self.children]
+        logpdfs_condt = [spe.logpdf_mem(assignment, memo) for spe in self.children]
         indexes = [i for i, (d, l) in enumerate(logpdfs_condt) if not isinf_neg(l)]
         assert indexes, 'Assignment "%s" has density zero' % (str(assignment),)
         d_min = min(logpdfs_condt[i][0] for i in indexes)
@@ -282,7 +282,7 @@ class SumSPN(BranchSPN):
         logpdfs = [logpdfs_condt[i][1] + self.weights[i] for i in indexes_d_min]
         children = [self.children[i].constrain(assignment, memo) for i in indexes_d_min]
         weights = lognorm(logpdfs)
-        return SumSPN(children, weights) if len(indexes_d_min) > 1 else children[0]
+        return SumSPE(children, weights) if len(indexes_d_min) > 1 else children[0]
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -292,31 +292,31 @@ class SumSPN(BranchSPN):
         x = (self.__class__, self.children, self.weights)
         return hash(x)
 
-class ExposedSumSPN(SumSPN):
-    def __init__(self, children, spn_weights):
-        """Weighted mixture of SPNs with exposed internal choice."""
-        assert isinstance(spn_weights, NominalLeaf)
+class ExposedSumSPE(SumSPE):
+    def __init__(self, children, spe_weights):
+        """Weighted mixture of SPEs with exposed internal choice."""
+        assert isinstance(spe_weights, NominalLeaf)
         weights = [
-            spn_weights.logprob(spn_weights.symbol << {n})
-            for n in spn_weights.support
+            spe_weights.logprob(spe_weights.symbol << {n})
+            for n in spe_weights.support
         ]
         children = [
-            ProductSPN([
-                NominalLeaf(spn_weights.symbol, {str(n): 1}),
+            ProductSPE([
+                NominalLeaf(spe_weights.symbol, {str(n): 1}),
                 children[n]
-            ]) for n in spn_weights.support
+            ]) for n in spe_weights.support
         ]
         super().__init__(children, weights)
 
-class PartialSumSPN(SPN):
-    """Weighted mixture of SPNs that do not yet sum to unity."""
+class PartialSumSPE(SPE):
+    """Weighted mixture of SPEs that do not yet sum to unity."""
     def __init__(self, children, weights):
         self.children = children
         self.weights = weights
         self.indexes = list(range(len(self.weights)))
         assert sum(weights) <  1
 
-        symbols = [spn.get_symbols() for spn in children]
+        symbols = [spe.get_symbols() for spe in children]
         if not are_identical(symbols):
             raise ValueError('Mixture must have identical symbols.')
         self.symbols = self.children[0].get_symbols()
@@ -326,25 +326,25 @@ class PartialSumSPN(SPN):
     def __rand__(self, x):
         raise TypeError('Weights do not sum to one.')
     def __mul__(self, x):
-        raise TypeError('Cannot multiply PartialSumSPN by constant.')
+        raise TypeError('Cannot multiply PartialSumSPE by constant.')
     def __rmul__(self, x):
-        raise TypeError('Cannot multiply PartialSumSPN by constant.')
+        raise TypeError('Cannot multiply PartialSumSPE by constant.')
 
     def __or__partialsum(self, x):
-        if not isinstance(x, PartialSumSPN):
+        if not isinstance(x, PartialSumSPE):
             raise TypeError()
         weights = self.weights + x.weights
         cumsum = float(sum(weights))
         if allclose(cumsum, 1):
             weights = [log(w) for w in weights]
             children = self.children + x.children
-            return SumSPN(children, weights)
+            return SumSPE(children, weights)
         if cumsum < 1:
             children = self.children + x.children
-            return PartialSumSPN(children, weights)
+            return PartialSumSPE(children, weights)
         raise ValueError('Weights sum to more than one.')
     def __or__(self, x):
-        # Try to | x as a PartialSumSPN
+        # Try to | x as a PartialSumSPE
         try:
             return self.__or__partialsum(x)
         except TypeError:
@@ -352,39 +352,39 @@ class PartialSumSPN(SPN):
         # Failed.
         return NotImplemented
 
-def spn_simplify_sum(spn):
-    if isinstance(spn.children[0], LeafSPN):
-        return spn_simplify_sum_leaf(spn)
-    if isinstance(spn.children[0], ProductSPN):
-        return spn_simplify_sum_product(spn)
-    assert False, 'Invalid children of SumSPN: %s' % (spn.children,)
+def spe_simplify_sum(spe):
+    if isinstance(spe.children[0], LeafSPE):
+        return spe_simplify_sum_leaf(spe)
+    if isinstance(spe.children[0], ProductSPE):
+        return spe_simplify_sum_product(spe)
+    assert False, 'Invalid children of SumSPE: %s' % (spe.children,)
 
-def spn_simplify_sum_leaf(spn):
-    assert all(isinstance(c, LeafSPN) for c in spn.children)
-    partition = partition_list_blocks(spn.children)
-    if len(partition) == len(spn.children):
-        return spn
+def spe_simplify_sum_leaf(spe):
+    assert all(isinstance(c, LeafSPE) for c in spe.children)
+    partition = partition_list_blocks(spe.children)
+    if len(partition) == len(spe.children):
+        return spe
     if len(partition) == 1:
-        return spn.children[0]
-    children = [spn.children[block[0]] for block in partition]
-    weights = [logsumexp([spn.weights[i] for i in block]) for block in partition]
-    return SumSPN(children, weights)
+        return spe.children[0]
+    children = [spe.children[block[0]] for block in partition]
+    weights = [logsumexp([spe.weights[i] for i in block]) for block in partition]
+    return SumSPE(children, weights)
 
-def spn_simplify_sum_product(spn):
+def spe_simplify_sum_product(spe):
     # TODO: Handle case when some children are leaves with environments;
-    # e.g. SumSPN([X & Y, (X & Y=X**2)])
-    if not all(isinstance(c, ProductSPN) for c in spn.children):
-        return spn
-    children_list = [c.children for c in spn.children]
+    # e.g. SumSPE([X & Y, (X & Y=X**2)])
+    if not all(isinstance(c, ProductSPE) for c in spe.children):
+        return spe
+    children_list = [c.children for c in spe.children]
     children_simplified, weight_simplified = reduce(
-        lambda state, cw: spn_simplify_sum_product_helper(state, cw[0], cw[1]),
-        zip(children_list[1:], spn.weights[1:]),
-        (children_list[0], spn.weights[0]),
+        lambda state, cw: spe_simplify_sum_product_helper(state, cw[0], cw[1]),
+        zip(children_list[1:], spe.weights[1:]),
+        (children_list[0], spe.weights[0]),
     )
     assert allclose(logsumexp(weight_simplified), 0)
-    return spn_list_to_product(children_simplified)
+    return spe_list_to_product(children_simplified)
 
-def spn_simplify_sum_product_helper(state, children_b, w_b):
+def spe_simplify_sum_product_helper(state, children_b, w_b):
     (children_a, w_a) = state
     weights_sum = lognorm([w_a, w_b])
     weight_overall = logsumexp([w_a, w_b])
@@ -394,9 +394,9 @@ def spn_simplify_sum_product_helper(state, children_b, w_b):
         if ca == cb
     ]
     if len(overlap) == 0:
-        product_a = spn_list_to_product(children_a)
-        product_b = spn_list_to_product(children_b)
-        children_simplified = [SumSPN([product_a, product_b], weights_sum)]
+        product_a = spe_list_to_product(children_a)
+        product_b = spe_list_to_product(children_b)
+        children_simplified = [SumSPE([product_a, product_b], weights_sum)]
     elif len(overlap) == len(children_a):
         children_simplified = children_a
     else:
@@ -405,25 +405,25 @@ def spn_simplify_sum_product_helper(state, children_b, w_b):
         uniq_children_b = [c for j, c in enumerate(children_b) if j not in dup_b]
         uniq_children_a = [c for i, c in enumerate(children_a) if i not in dup_a]
         dup_children = [c for i, c in enumerate(children_a) if i in dup_a]
-        product_a = spn_list_to_product(uniq_children_a)
-        product_b = spn_list_to_product(uniq_children_b)
-        sum_a_b = SumSPN([product_a, product_b], weights_sum)
+        product_a = spe_list_to_product(uniq_children_a)
+        product_b = spe_list_to_product(uniq_children_b)
+        sum_a_b = SumSPE([product_a, product_b], weights_sum)
         children_simplified = [sum_a_b] + dup_children
     return (children_simplified, weight_overall)
 
 # ==============================================================================
 # Product base class.
 
-class ProductSPN(BranchSPN):
-    """List of independent SPNs."""
+class ProductSPE(BranchSPE):
+    """List of independent SPEs."""
 
     def __init__(self, children):
         self.children = tuple(chain.from_iterable([
-            (spn.children if isinstance(spn, type(self)) else [spn])
-            for spn in children
+            (spe.children if isinstance(spe, type(self)) else [spe])
+            for spe in children
         ]))
         # Derived attributes.
-        symbols = [spn.get_symbols() for spn in self.children]
+        symbols = [spe.get_symbols() for spe in self.children]
         if not are_disjoint(symbols):
             syms = '\n'.join([', '.join(sorted(str(x) for x in s)) for s in symbols])
             raise ValueError('Product must have disjoint symbols:\n%s' % (syms,))
@@ -431,7 +431,7 @@ class ProductSPN(BranchSPN):
         self.symbols = frozenset(get_union(symbols))
 
     def sample(self, N, prng=None):
-        samples = [spn.sample(N, prng=prng) for spn in self.children]
+        samples = [spe.sample(N, prng=prng) for spe in self.children]
         return merge_samples(samples)
 
     def sample_subset(self, symbols, N, prng=None):
@@ -463,13 +463,13 @@ class ProductSPN(BranchSPN):
         expr_symbols = expr.get_symbols()
         assert all(e in self.get_symbols() for e in expr_symbols)
         index = [
-            i for i, spn in enumerate(self.children)
-            if all(s in spn.get_symbols() for s in expr_symbols)
+            i for i, spe in enumerate(self.children)
+            if all(s in spe.get_symbols() for s in expr_symbols)
         ]
         assert len(index) == 1, 'No child has all symbols in: %s' % (expr,)
         children = list(self.children)
         children[index[0]] = children[index[0]].transform(symbol, expr)
-        return ProductSPN(children)
+        return ProductSPE(children)
 
     @memoize
     def logprob_mem(self, event_factor, memo):
@@ -514,13 +514,13 @@ class ProductSPN(BranchSPN):
                 % (str(event_factor),))
         weights = lognorm([logps[i] for i in indexes])
         childrens = [self.condition_clause(event_factor[i], memo) for i in indexes]
-        products = [ProductSPN(children) for children in childrens]
+        products = [ProductSPE(children) for children in childrens]
         if len(indexes) == 1:
-            spn = products[0]
+            spe = products[0]
         else:
-            spn_sum = SumSPN(products, weights)
-            spn = spn_simplify_sum(spn_sum)
-        return spn
+            spe_sum = SumSPE(products, weights)
+            spe = spe_simplify_sum(spe_sum)
+        return spe
 
     def logprob_conjunction(self, event_factor, J, memo):
         # Return probability of conjunction of |J| conjunctions.
@@ -547,13 +547,13 @@ class ProductSPN(BranchSPN):
     def condition_clause(self, clause, memo):
         # Return children conditioned on a clause (one conjunction).
         children = []
-        for spn in self.children:
-            spn_condition = spn
-            symbols = spn.get_symbols().intersection(clause)
+        for spe in self.children:
+            spe_condition = spe
+            symbols = spe.get_symbols().intersection(clause)
             if symbols:
-                spn_clause = ({symbol: clause[symbol] for symbol in symbols},)
-                spn_condition = spn.condition_mem(spn_clause, memo)
-            children.append(spn_condition)
+                spe_clause = ({symbol: clause[symbol] for symbol in symbols},)
+                spe_condition = spe.condition_mem(spe_clause, memo)
+            children.append(spe_condition)
         return children
 
     @memoize
@@ -570,14 +570,14 @@ class ProductSPN(BranchSPN):
     @memoize
     def constrain_mem(self, assignment, memo):
         children = []
-        for spn in self.children:
-            spn_constrain = spn
-            symbols = spn.get_symbols().intersection(assignment.keys())
+        for spe in self.children:
+            spe_constrain = spe
+            symbols = spe.get_symbols().intersection(assignment.keys())
             if symbols:
-                spn_assignment = {s: assignment[s] for s in symbols}
-                spn_constrain = spn.constrain_mem(spn_assignment, memo)
-            children.append(spn_constrain)
-        return ProductSPN(children)
+                spe_assignment = {s: assignment[s] for s in symbols}
+                spe_constrain = spe.constrain_mem(spe_assignment, memo)
+            children.append(spe_constrain)
+        return ProductSPE(children)
 
     def __eq__(self, x):
         return isinstance(x, type(self)) \
@@ -586,13 +586,13 @@ class ProductSPN(BranchSPN):
         x = (self.__class__, self.children)
         return hash(x)
 
-def spn_list_to_product(children):
-    return children[0] if len(children) == 1 else ProductSPN(children)
+def spe_list_to_product(children):
+    return children[0] if len(children) == 1 else ProductSPE(children)
 
 # ==============================================================================
 # Basic Distribution base class.
 
-class LeafSPN(SPN):
+class LeafSPE(SPE):
     atomic = None          # True if distribution has an atom
     symbol = None          # Symbol (Id) of base random variable
     def get_symbols(self):
@@ -689,7 +689,7 @@ class LeafSPN(SPN):
 # ==============================================================================
 # RealLeaf base class.
 
-class RealLeaf(LeafSPN):
+class RealLeaf(LeafSPE):
     """Base class for distribution with a cumulative distribution function."""
 
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
@@ -806,7 +806,7 @@ class RealLeaf(LeafSPN):
                 (type(self))(self.symbol, self.dist, values[i], True, self.env)
                 for i in indexes
             ]
-            return SumSPN(children, weights) if 1 < len(indexes) else children[0]
+            return SumSPE(children, weights) if 1 < len(indexes) else children[0]
         # Unknown set.
         assert False, 'Unknown set type: %s' % (values,)
 
@@ -922,7 +922,7 @@ class DiscreteLeaf(RealLeaf):
 # ==============================================================================
 # Atomic RealLeaf.
 
-class AtomicLeaf(LeafSPN):
+class AtomicLeaf(LeafSPE):
     """Real atomic distribution."""
     atomic = True
     def __init__(self, symbol, value, env=None):
@@ -959,7 +959,7 @@ class AtomicLeaf(LeafSPN):
 # ==============================================================================
 # Nominal distribution.
 
-class NominalLeaf(LeafSPN):
+class NominalLeaf(LeafSPE):
     """Atomic distribution, no cumulative distribution function."""
     atomic = True
     def __init__(self, symbol, dist):
@@ -1036,28 +1036,28 @@ class Memo():
         self.logpdf = {}
         self.constrain = {}
 
-def spn_cache_duplicate_subtrees(spn, memo):
-    if isinstance(spn, LeafSPN):
-        if spn not in memo:
-            memo[spn] = spn
-        return memo[spn]
-    if isinstance(spn, BranchSPN):
-        if spn not in memo:
-            memo[spn] = spn
-            spn.children = list(spn.children)
-            for i, c in enumerate(spn.children):
-                spn.children[i] = spn_cache_duplicate_subtrees(c, memo)
-            spn.children = tuple(spn.children)
-        return memo[spn]
-    assert False, '%s is not an spn' % (spn,)
+def spe_cache_duplicate_subtrees(spe, memo):
+    if isinstance(spe, LeafSPE):
+        if spe not in memo:
+            memo[spe] = spe
+        return memo[spe]
+    if isinstance(spe, BranchSPE):
+        if spe not in memo:
+            memo[spe] = spe
+            spe.children = list(spe.children)
+            for i, c in enumerate(spe.children):
+                spe.children[i] = spe_cache_duplicate_subtrees(c, memo)
+            spe.children = tuple(spe.children)
+        return memo[spe]
+    assert False, '%s is not an spe' % (spe,)
 
-def func_evaluate(spn, func, samples):
-    args = func_symbols(spn, func)
+def func_evaluate(spe, func, samples):
+    args = func_symbols(spe, func)
     sample_kwargs = [{X.token: s[X] for X in args} for s in samples]
     return [func(**kwargs) for kwargs in sample_kwargs]
 
-def func_symbols(spn, func):
-    symbols = spn.get_symbols()
+def func_symbols(spe, func):
+    symbols = spe.get_symbols()
     args = [Id(a) for a in getfullargspec(func).args]
     unknown = [a for a in args if a not in symbols]
     if unknown:

@@ -1,15 +1,15 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-"""Convert SPN to SPPL."""
+"""Convert SPE to SPPL."""
 
 from io import StringIO
 from math import exp
 
-from ..spn import RealLeaf
-from ..spn import NominalLeaf
-from ..spn import ProductSPN
-from ..spn import SumSPN
+from ..spe import RealLeaf
+from ..spe import NominalLeaf
+from ..spe import ProductSPE
+from ..spe import SumSPE
 
 get_indentation = lambda i: ' ' * i
 float_to_str = lambda x,fw: '%1.*f' % (fw, float(x)) if fw else str(x)
@@ -41,50 +41,50 @@ def render_sppl_choice(symbol, dist, stream, indentation, fwidth):
     stream.write('%s%s ~= choice({%s%s%s})' %
         (idt, symbol, dist_op, dist_str, dist_cl))
     stream.write('\n')
-def render_sppl_helper(spn, state):
-    if isinstance(spn, NominalLeaf):
-        assert len(spn.env) == 1
+def render_sppl_helper(spe, state):
+    if isinstance(spe, NominalLeaf):
+        assert len(spe.env) == 1
         render_sppl_choice(
-            spn.symbol,
-            spn.dist,
+            spe.symbol,
+            spe.dist,
             state.stream,
             state.indentation,
             state.fwidth)
         return state
-    if isinstance(spn, RealLeaf):
+    if isinstance(spe, RealLeaf):
         kwds = ', '.join([
             '%s=%s' % (k, float_to_str(v, state.fwidth))
-            for k, v in spn.dist.kwds.items()
+            for k, v in spe.dist.kwds.items()
         ])
-        dist = '%s(%s)' % (spn.dist.dist.name, kwds)
+        dist = '%s(%s)' % (spe.dist.dist.name, kwds)
         idt = get_indentation(state.indentation)
-        state.stream.write('%s%s ~= %s' % (idt, spn.symbol, dist))
+        state.stream.write('%s%s ~= %s' % (idt, spe.symbol, dist))
         state.stream.write('\n')
-        if spn.conditioned:
-            event = spn.symbol << spn.support
+        if spe.conditioned:
+            event = spe.symbol << spe.support
             # TODO: Consider using repr(event)
             state.stream.write('%scondition(%s)' % (idt, event))
             state.stream.write('\n')
-        for i, (var, expr) in enumerate(spn.env.items()):
+        for i, (var, expr) in enumerate(spe.env.items()):
             if 1 <= i:
                 state.stream.write('%s%s ~= %s' % (idt, var, expr))
                 state.stream.write('\n')
         return state
-    if isinstance(spn, ProductSPN):
-        for child in spn.children:
+    if isinstance(spe, ProductSPE):
+        for child in spe.children:
             state = render_sppl_helper(child, state)
         return state
-    if isinstance(spn, SumSPN):
-        if len(spn.children) == 0:
+    if isinstance(spe, SumSPE):
+        if len(spe.children) == 0:
             return state
-        if len(spn.children) == 1:
-            return render_sppl_helper(spn.children[0], state)
+        if len(spe.children) == 1:
+            return render_sppl_helper(spe.children[0], state)
         branch_var = 'branch_var_%s' % (len(state.branches))
-        branch_idxs = [str(i) for i in range(len(spn.children))]
-        branch_dist = {k: exp(w) for k, w in zip(branch_idxs, spn.weights)}
+        branch_idxs = [str(i) for i in range(len(spe.children))]
+        branch_dist = {k: exp(w) for k, w in zip(branch_idxs, spe.weights)}
         state.branches.append((branch_var, branch_dist))
         # Write the branches.
-        for i, child in zip(branch_idxs, spn.children):
+        for i, child in zip(branch_idxs, spe.children):
             ifstmt = 'if' if i == '0' else 'elif'
             idt = get_indentation(state.indentation)
             state.stream.write('%s%s (%s == \'%s\'):'
@@ -95,13 +95,13 @@ def render_sppl_helper(spn, state):
             state.stream.write('\n')
             state.indentation -= 4
         return state
-    assert False, 'Unknown spn %s' % (spn,)
+    assert False, 'Unknown spe %s' % (spe,)
 
-def render_sppl(spn, stream=None, fwidth=None):
+def render_sppl(spe, stream=None, fwidth=None):
     if stream is None:
         stream = StringIO()
     state = _SPPL_Render_State(fwidth=fwidth)
-    state = render_sppl_helper(spn, state)
+    state = render_sppl_helper(spe, state)
     assert state.indentation == 0
     # Write the import.
     stream.write('from sppl.distributions import *')

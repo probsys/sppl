@@ -8,11 +8,11 @@ Artificial Intelligence: A Modern Approach (3rd Edition).
 Russel and Norvig, Fig 14.2 pp 512.
 '''
 
-from sppl.compilers.ast_to_spn import Id
-from sppl.compilers.ast_to_spn import IfElse
-from sppl.compilers.ast_to_spn import Otherwise
-from sppl.compilers.ast_to_spn import Sample
-from sppl.compilers.ast_to_spn import Sequence
+from sppl.compilers.ast_to_spe import Id
+from sppl.compilers.ast_to_spe import IfElse
+from sppl.compilers.ast_to_spe import Otherwise
+from sppl.compilers.ast_to_spe import Sample
+from sppl.compilers.ast_to_spe import Sequence
 from sppl.distributions import bernoulli
 
 Burglary    = Id('Burglary')

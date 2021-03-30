@@ -8,14 +8,14 @@ from sppl.distributions import beta
 from sppl.distributions import randint
 from sppl.distributions import uniform
 
-from sppl.compilers.ast_to_spn import For
-from sppl.compilers.ast_to_spn import Id
-from sppl.compilers.ast_to_spn import IdArray
-from sppl.compilers.ast_to_spn import IfElse
-from sppl.compilers.ast_to_spn import Sample
-from sppl.compilers.ast_to_spn import Sequence
-from sppl.compilers.ast_to_spn import Switch
-from sppl.compilers.ast_to_spn import Transform
+from sppl.compilers.ast_to_spe import For
+from sppl.compilers.ast_to_spe import Id
+from sppl.compilers.ast_to_spe import IdArray
+from sppl.compilers.ast_to_spe import IfElse
+from sppl.compilers.ast_to_spe import Sample
+from sppl.compilers.ast_to_spe import Sequence
+from sppl.compilers.ast_to_spe import Switch
+from sppl.compilers.ast_to_spe import Transform
 
 from sppl.sym_util import binspace
 

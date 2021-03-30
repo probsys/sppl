@@ -19,7 +19,7 @@ class NominalDistribution(Distribution):
     def __init__(self, dist):
         self.dist = dict(dist)
     def __call__(self, symbol):
-        from .spn import NominalLeaf
+        from .spe import NominalLeaf
         return NominalLeaf(symbol, self.dist)
 
 choice = NominalDistribution
@@ -43,16 +43,16 @@ class RealDistribution(Distribution):
         raise NotImplementedError()
 
 class DistributionMix():
-    """Weighted mixture of SPNs that do not yet sum to unity."""
+    """Weighted mixture of SPEs that do not yet sum to unity."""
     def __init__(self, distributions, weights):
         self.distributions = distributions
         self.weights = weights
     def __call__(self, symbol):
         from math import log
-        from .spn import SumSPN
+        from .spe import SumSPE
         distributions = [d(symbol) for d in self.distributions]
         weights = [log(w) for w in self.weights]
-        return SumSPN(distributions, weights)
+        return SumSPE(distributions, weights)
 
     def __or__(self, x):
         if not isinstance(x, DistributionMix):
@@ -71,7 +71,7 @@ from .sets import Reals
 from .sets import RealsNeg
 from .sets import RealsPos
 from .sets import inf as oo
-from .spn import ContinuousLeaf
+from .spe import ContinuousLeaf
 
 def RealsPosLoc(kwargs):
     if 'loc' in kwargs:
@@ -598,7 +598,7 @@ from .sets import Integers
 from .sets import IntegersPos
 from .sets import IntegersPos0
 from .sets import Range
-from .spn import DiscreteLeaf
+from .spe import DiscreteLeaf
 
 class DiscreteReal(RealDistribution):
     constructor = DiscreteLeaf

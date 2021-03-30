@@ -36,7 +36,7 @@ def solve_poly_inequality(expr, b, strict, extended=None):
     if isinf(b):
         return solve_poly_inequality_inf(expr, b, strict, extended=extended)
     # Bypass symbolic inference.
-    if os.environ.get('SPN_NO_SYMBOLIC'):
+    if os.environ.get('SPE_NO_SYMBOLIC'):
         return solve_poly_inequality_numerically(expr, b, strict)
     # Solve symbolically, if possible.
     try:
@@ -106,7 +106,7 @@ def solve_poly_equality(expr, b):
     if isinf(b):
         return solve_poly_equality_inf(expr, b)
     # Bypass symbolic inference.
-    if os.environ.get('SPN_NO_SYMBOLIC'):
+    if os.environ.get('SPE_NO_SYMBOLIC'):
         return solve_poly_equality_numerically(expr, b)
     # Solve symbolically, if possible.
     try:

@@ -3,66 +3,66 @@
 
 from math import exp
 
-from .spn import AtomicLeaf
-from .spn import DiscreteLeaf
-from .spn import LeafSPN
-from .spn import NominalLeaf
-from .spn import ProductSPN
-from .spn import RealLeaf
-from .spn import SumSPN
+from .spe import AtomicLeaf
+from .spe import DiscreteLeaf
+from .spe import LeafSPE
+from .spe import NominalLeaf
+from .spe import ProductSPE
+from .spe import RealLeaf
+from .spe import SumSPE
 
-def render_nested_lists_concise(spn):
-    if isinstance(spn, LeafSPN):
-        return [(str(k), str(v)) for k, v in spn.env.items()]
-    if isinstance(spn, SumSPN):
-        return ['+(%d)' % (len(spn.children),),
-            # [exp(w) for w in spn.weights],
-            [render_nested_lists_concise(c) for c in spn.children]
+def render_nested_lists_concise(spe):
+    if isinstance(spe, LeafSPE):
+        return [(str(k), str(v)) for k, v in spe.env.items()]
+    if isinstance(spe, SumSPE):
+        return ['+(%d)' % (len(spe.children),),
+            # [exp(w) for w in spe.weights],
+            [render_nested_lists_concise(c) for c in spe.children]
         ]
-    if isinstance(spn, ProductSPN):
-        return ['*(%d)' % (len(spn.children),),
-            [render_nested_lists_concise(c) for c in spn.children]
+    if isinstance(spe, ProductSPE):
+        return ['*(%d)' % (len(spe.children),),
+            [render_nested_lists_concise(c) for c in spe.children]
         ]
 
-def render_nested_lists(spn):
-    if isinstance(spn, NominalLeaf):
+def render_nested_lists(spe):
+    if isinstance(spe, NominalLeaf):
         return ['NominalLeaf', [
-            ['symbol', spn.symbol],
-            ['env', dict(spn.env)],
-            ['dist', {str(x): float(w) for x, w in spn.dist.items()}]]
+            ['symbol', spe.symbol],
+            ['env', dict(spe.env)],
+            ['dist', {str(x): float(w) for x, w in spe.dist.items()}]]
         ]
-    if isinstance(spn, AtomicLeaf):
+    if isinstance(spe, AtomicLeaf):
         return ['AtomicLeaf', [
-            ['symbol', spn.symbol],
-            ['value', spn.value],
-            ['env', dict(spn.env)]]
+            ['symbol', spe.symbol],
+            ['value', spe.value],
+            ['env', dict(spe.env)]]
         ]
-    if isinstance(spn, RealLeaf):
+    if isinstance(spe, RealLeaf):
         return ['RealLeaf', [
-            ['symbol', spn.symbol],
-            ['env', dict(spn.env)],
-            ['dist', (spn.dist.dist.name, spn.dist.args, spn.dist.kwds)],
-            ['support', spn.support],
-            ['conditioned', spn.conditioned]]
+            ['symbol', spe.symbol],
+            ['env', dict(spe.env)],
+            ['dist', (spe.dist.dist.name, spe.dist.args, spe.dist.kwds)],
+            ['support', spe.support],
+            ['conditioned', spe.conditioned]]
         ]
-    if isinstance(spn, DiscreteLeaf):
+    if isinstance(spe, DiscreteLeaf):
         return ['DiscreteLeaf', [
-            ['symbol', spn.symbol],
-            ['dist', (spn.dist.dist.name, spn.dist.args, spn.dist.kwds)],
-            ['support', spn.support],
-            ['conditioned', spn.conditioned]]
+            ['symbol', spe.symbol],
+            ['dist', (spe.dist.dist.name, spe.dist.args, spe.dist.kwds)],
+            ['support', spe.support],
+            ['conditioned', spe.conditioned]]
         ]
-    if isinstance(spn, SumSPN):
-        return ['SumSPN', [
-            ['symbols', list(spn.symbols)],
-            ['weights', [exp(w) for w in spn.weights]],
-            ['n_children', len(spn.children)],
-            ['children', [render_nested_lists(c) for c in spn.children]]]
+    if isinstance(spe, SumSPE):
+        return ['SumSPE', [
+            ['symbols', list(spe.symbols)],
+            ['weights', [exp(w) for w in spe.weights]],
+            ['n_children', len(spe.children)],
+            ['children', [render_nested_lists(c) for c in spe.children]]]
         ]
-    if isinstance(spn, ProductSPN):
-        return ['ProductSPN', [
-            ['symbols', list(spn.symbols)],
-            ['n_children', len(spn.children)],
-            ['children', [render_nested_lists(c) for c in spn.children]]]
+    if isinstance(spe, ProductSPE):
+        return ['ProductSPE', [
+            ['symbols', list(spe.symbols)],
+            ['n_children', len(spe.children)],
+            ['children', [render_nested_lists(c) for c in spe.children]]]
         ]
-    assert False, 'Unknown SPN type: %s' % (spn,)
+    assert False, 'Unknown SPE type: %s' % (spe,)
