@@ -1,4 +1,4 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-__version__ = '1.2.1'
+__version__ = '2.0.0rc1'
