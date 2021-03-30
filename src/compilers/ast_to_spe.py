@@ -160,7 +160,7 @@ def interpret_if_block(spe, events, subcommands):
         spe = children[0]
     else:
         spe = SumSPE(children, weights_conditioned)
-        if not os.environ.get('SPE_NO_SIMPLIFY'):
+        if not os.environ.get('SPPL_NO_SIMPLIFY'):
             spe = spe_simplify_sum(spe)
     # Return the SPE.
     return spe
