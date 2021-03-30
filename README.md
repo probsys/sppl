@@ -54,6 +54,11 @@ Refer to https://github.com/probcomp/sppl-benchmarks-oct20
 
 Coming Soon!
 
+### Guide to Source Codes
+
+Please refer to [GUIDE.md](./GUIDE.md) for an description of each of the
+main source files in this repository.
+
 ### Tests
 
 To run the test suite as a user, first install with `pip install 'sppl[tests]'`
