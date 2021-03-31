@@ -15,16 +15,17 @@ random variables.
 Users express generative models as imperative programs with standard
 programming constructs, such as arrays, if/else, for loops, etc. The
 program is then translated to a sum-product expression (a
-generalization of [sum-product
-networks](https://arxiv.org/pdf/2004.01167.pdf)) that statically represents
+generalization of [sum-product networks](https://arxiv.org/pdf/2004.01167.pdf)) that statically represents
 the probability distribution on all random variables in the program and is
 used as the basis of probabilistic inference.
 
-A system description of SPPL is given in:
+If you use SPPL in your research, please cite the following PLDI 2021 paper:
 
-> Exact Symbolic Inference in Probabilistic Programs via Sum-Product Representations. <br/>
-> Feras A. Saad, Martin C. Rinard, and Vikash K. Mansinghka. <br/>
-> https://arxiv.org/abs/2010.03485
+SPPL: Probabilistic Programming with Fast Exact Symbolic Inference. Saad,
+F. A.; Rinard, M. C.; and Mansinghka, V. K. In Proceedings of the 42nd ACM
+SIGPLAN Conference on Programming Language Design and Implementation
+(PLDI '21). https://doi.org/10.1145/3453483.3454078
+
 
 ### Installation
 
@@ -48,7 +49,8 @@ Refer to the `.ipynb` notebooks under the
 
 ### Benchmarks
 
-Refer to https://github.com/probcomp/sppl-benchmarks-oct20
+Please refer to the artifact at the ACM Digital Library:
+https://doi.org/10.1145/3453483.3454078
 
 ### Language Reference
 
