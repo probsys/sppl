@@ -24,10 +24,9 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         coverage report
     elif [ ${1} = 'examples' ]; then
         # Run the .ipynb notebooks under examples/
-        for x in $(ls examples/*.ipynb); do
-            rm -rf ${x%%.ipynb}.html
-            ./pythenv.sh jupyter nbconvert --execute --to html ${x};
-        done
+        cd -- examples/
+        ./generate.sh
+        cd -- "${root}"
     elif [ ${1} = 'docker' ]; then
         # Build docker image containing the software.
         docker build -t probcomp:sppl -f docker/ubuntu1804 .
