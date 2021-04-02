@@ -26,7 +26,6 @@ F. A.; Rinard, M. C.; and Mansinghka, V. K. In Proceedings of the 42nd ACM
 SIGPLAN Conference on Programming Language Design and Implementation
 (PLDI '21). https://doi.org/10.1145/3453483.3454078. [(bibtex)]() [(pdf)]()
 
-
 ### Installation
 
 This software is tested on Ubuntu 18.04 and requires a Python 3.6+
