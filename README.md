@@ -1,7 +1,7 @@
 [![Actions Status](https://github.com/probcomp/sppl/workflows/Python%20package/badge.svg)](https://github.com/probcomp/sppl/actions)
 [![pypi](https://img.shields.io/pypi/v/sppl.svg)](https://pypi.org/project/sppl/)
 
-<img src="./sppl.png" width="200">
+<img src="https://raw.githubusercontent.com/probcomp/sppl/master/sppl.png" width="200">
 
 Sum-Product Probabilistic Language
 ==================================
@@ -51,10 +51,6 @@ Refer to the `.ipynb` notebooks under the
 Please refer to the artifact at the ACM Digital Library:
 https://doi.org/10.1145/3453483.3454078
 
-### Language Reference
-
-Coming Soon!
-
 ### Guide to Source Codes
 
 Please refer to [GUIDE.md](./GUIDE.md) for an description of each of the
@@ -78,10 +74,15 @@ To run the test suite as a developer:
 
 To view the coverage report, open `htmlcov/index.html` in the browser.
 
+### Language Reference
+
+Coming Soon!
+
 ### License
 
 Apache 2.0; see [LICENSE.txt](./LICENSE.txt)
 
 ### Acknowledgments
 
-The [logo](./sppl.png) was designed by [McCoy R. Becker](https://femtomc.github.io/).
+The [logo](https://github.com/probcomp/sppl/blob/master/sppl.png) was
+designed by [McCoy R. Becker](https://femtomc.github.io/).
