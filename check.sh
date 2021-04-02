@@ -35,6 +35,13 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         rm -rf dist
         "$PYTHON" setup.py sdist bdist_wheel
         twine upload --repository pypi dist/*
+    elif [ ${1} = 'tag' ]; then
+        [ -z $(git diff --stat) ] || (echo 'fatal: tag dirty' && exit 1)
+        tag="${2}"
+        sed -i "s/__version__ = .*/__version__ = '${tag}'/g" -- src/__init__.py
+        git add -- src/__init__.py
+        git commit -m "Pin version ${tag}."
+        git tag -a -m v"${tag}" v"${tag}"
     else
         # If args are specified delegate control to user.
         ./pythenv.sh "$PYTHON" -m pytest "$@"
