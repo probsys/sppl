@@ -24,7 +24,7 @@ class SPPL_Magics(Magics):
         self.programs = {}
 
     @line_magic
-    def sppl_get_spn(self, line):
+    def sppl_get_spe(self, line):
         assert line in self.programs, 'unknown program %s' % (line,)
         return getattr(self.programs[line].namespace, line)
 
@@ -51,12 +51,12 @@ class SPPL_Magics(Magics):
         line = tokens[0]
         filename = tokens[1] if len(tokens) == 2 else None
         if line in self.programs:
-            spn = self.sppl_get_spn(line)
+            spe = self.sppl_get_spe(line)
         elif line in local_ns:
-            spn = local_ns[line]
+            spe = local_ns[line]
         else:
             assert False, 'unknown program %s' % (line,)
-        return render_graphviz(spn, filename=filename)
+        return render_graphviz(spe, filename=filename)
 
     @line_magic
     def sppl_get_namespace(self, line):

@@ -17,12 +17,12 @@ from contextlib import contextmanager
 
 from astunparse import unparse
 
-def __load_spn_distributions():
+def __load_spe_distributions():
     from .. import distributions
     members = inspect.getmembers(distributions,lambda t: isinstance(t, type))
     return frozenset(m for (m, v) in members if m[0].islower())
 
-DISTRIBUTIONS = __load_spn_distributions()
+DISTRIBUTIONS = __load_spe_distributions()
 get_indentation = lambda i: ' ' * i
 
 @contextmanager
@@ -371,7 +371,7 @@ class SPPL_Compiler():
             self.prog.imports.write('\n')
         for c in ['Id', 'IdArray', 'Condition', 'Constrain', 'IfElse', 'For', 'Sample',
                     'Sequence', 'Switch', 'Transform']:
-            self.prog.imports.write('from sppl.compilers.ast_to_spn import %s' % (c,))
+            self.prog.imports.write('from sppl.compilers.ast_to_spe import %s' % (c,))
             self.prog.imports.write('\n')
         # Write the constants.
         if visitor.constants:

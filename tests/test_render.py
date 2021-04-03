@@ -5,12 +5,12 @@ import os
 
 import pytest
 
-from sppl.compilers.ast_to_spn import Id
-from sppl.compilers.ast_to_spn import IfElse
-from sppl.compilers.ast_to_spn import Otherwise
-from sppl.compilers.ast_to_spn import Sample
-from sppl.compilers.ast_to_spn import Sequence
-from sppl.compilers.ast_to_spn import Transform
+from sppl.compilers.ast_to_spe import Id
+from sppl.compilers.ast_to_spe import IfElse
+from sppl.compilers.ast_to_spe import Otherwise
+from sppl.compilers.ast_to_spe import Sample
+from sppl.compilers.ast_to_spe import Sequence
+from sppl.compilers.ast_to_spe import Transform
 from sppl.distributions import bernoulli
 from sppl.distributions import choice
 from sppl.render import render_nested_lists
@@ -43,7 +43,7 @@ def test_render_graphviz_crash__magics_():
 
     model = get_model()
     render_networkx_graph(model)
-    for fname in [None, '/tmp/spn.test.render']:
+    for fname in [None, '/tmp/spe.test.render']:
         for e in ['pdf', 'png', None]:
             render_graphviz(model, fname, ext=e)
             if fname is not None:

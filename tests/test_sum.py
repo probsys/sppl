@@ -17,11 +17,11 @@ from sppl.math_util import logsumexp
 from sppl.sets import FiniteNominal
 from sppl.sets import Interval
 from sppl.sets import inf as oo
-from sppl.spn import ContinuousLeaf
-from sppl.spn import ExposedSumSPN
-from sppl.spn import NominalLeaf
-from sppl.spn import ProductSPN
-from sppl.spn import SumSPN
+from sppl.spe import ContinuousLeaf
+from sppl.spe import ExposedSumSPE
+from sppl.spe import NominalLeaf
+from sppl.spe import ProductSPE
+from sppl.spe import SumSPE
 from sppl.transforms import Id
 
 def test_sum_normal_gamma():
@@ -30,30 +30,30 @@ def test_sum_normal_gamma():
         log(Fraction(2, 3)),
         log(Fraction(1, 3))
     ]
-    spn = SumSPN(
+    spe = SumSPE(
         [X >> norm(loc=0, scale=1), X >> gamma(loc=0, a=1),], weights)
 
-    assert spn.logprob(X > 0) == logsumexp([
-        spn.weights[0] + spn.children[0].logprob(X > 0),
-        spn.weights[1] + spn.children[1].logprob(X > 0),
+    assert spe.logprob(X > 0) == logsumexp([
+        spe.weights[0] + spe.children[0].logprob(X > 0),
+        spe.weights[1] + spe.children[1].logprob(X > 0),
     ])
-    assert spn.logprob(X < 0) == log(Fraction(2, 3)) + log(Fraction(1, 2))
-    samples = spn.sample(100, prng=numpy.random.RandomState(1))
+    assert spe.logprob(X < 0) == log(Fraction(2, 3)) + log(Fraction(1, 2))
+    samples = spe.sample(100, prng=numpy.random.RandomState(1))
     assert all(s[X] for s in samples)
-    spn.sample_func(lambda X: abs(X**3), 100)
+    spe.sample_func(lambda X: abs(X**3), 100)
     with pytest.raises(ValueError):
-        spn.sample_func(lambda Y: abs(X**3), 100)
+        spe.sample_func(lambda Y: abs(X**3), 100)
 
-    spn_condition = spn.condition(X < 0)
-    assert isinstance(spn_condition, ContinuousLeaf)
-    assert spn_condition.conditioned
-    assert spn_condition.logprob(X < 0) == 0
-    samples = spn_condition.sample(100)
+    spe_condition = spe.condition(X < 0)
+    assert isinstance(spe_condition, ContinuousLeaf)
+    assert spe_condition.conditioned
+    assert spe_condition.logprob(X < 0) == 0
+    samples = spe_condition.sample(100)
     assert all(s[X] < 0 for s in samples)
 
-    assert spn.logprob(X < 0) == logsumexp([
-        spn.weights[0] + spn.children[0].logprob(X < 0),
-        spn.weights[1] + spn.children[1].logprob(X < 0),
+    assert spe.logprob(X < 0) == logsumexp([
+        spe.weights[0] + spe.children[0].logprob(X < 0),
+        spe.weights[1] + spe.children[1].logprob(X < 0),
     ])
 
 def test_sum_normal_gamma_exposed():
@@ -67,37 +67,37 @@ def test_sum_normal_gamma_exposed():
         '0': X >> norm(loc=0, scale=1),
         '1': X >> gamma(loc=0, a=1),
     }
-    spn = ExposedSumSPN(children, weights)
+    spe = ExposedSumSPE(children, weights)
 
-    assert spn.logprob(W << {'0'}) == log(Fraction(2, 3))
-    assert spn.logprob(W << {'1'}) == log(Fraction(1, 3))
-    assert allclose(spn.logprob((W << {'0'}) | (W << {'1'})), 0)
-    assert spn.logprob((W << {'0'}) & (W << {'1'})) == -float('inf')
-
-    assert allclose(
-        spn.logprob((W << {'0', '1'}) & (X < 1)),
-        spn.logprob(X < 1))
+    assert spe.logprob(W << {'0'}) == log(Fraction(2, 3))
+    assert spe.logprob(W << {'1'}) == log(Fraction(1, 3))
+    assert allclose(spe.logprob((W << {'0'}) | (W << {'1'})), 0)
+    assert spe.logprob((W << {'0'}) & (W << {'1'})) == -float('inf')
 
     assert allclose(
-        spn.logprob((W << {'0'}) & (X < 1)),
-        spn.weights[0] + spn.children[0].logprob(X < 1))
+        spe.logprob((W << {'0', '1'}) & (X < 1)),
+        spe.logprob(X < 1))
 
-    spn_condition = spn.condition((W << {'1'}) | (W << {'0'}))
-    assert isinstance(spn_condition, SumSPN)
-    assert len(spn_condition.weights) == 2
+    assert allclose(
+        spe.logprob((W << {'0'}) & (X < 1)),
+        spe.weights[0] + spe.children[0].logprob(X < 1))
+
+    spe_condition = spe.condition((W << {'1'}) | (W << {'0'}))
+    assert isinstance(spe_condition, SumSPE)
+    assert len(spe_condition.weights) == 2
     assert \
-        allclose(spn_condition.weights[0], log(Fraction(2,3))) \
-            and allclose(spn_condition.weights[0], log(Fraction(2,3))) \
+        allclose(spe_condition.weights[0], log(Fraction(2,3))) \
+            and allclose(spe_condition.weights[0], log(Fraction(2,3))) \
         or \
-        allclose(spn_condition.weights[1], log(Fraction(2,3))) \
-            and allclose(spn_condition.weights[0], log(Fraction(2,3))
+        allclose(spe_condition.weights[1], log(Fraction(2,3))) \
+            and allclose(spe_condition.weights[0], log(Fraction(2,3))
         )
 
-    spn_condition = spn.condition((W << {'1'}))
-    assert isinstance(spn_condition, ProductSPN)
-    assert isinstance(spn_condition.children[0], NominalLeaf)
-    assert isinstance(spn_condition.children[1], ContinuousLeaf)
-    assert spn_condition.logprob(X < 5) == spn.children[1].logprob(X < 5)
+    spe_condition = spe.condition((W << {'1'}))
+    assert isinstance(spe_condition, ProductSPE)
+    assert isinstance(spe_condition.children[0], NominalLeaf)
+    assert isinstance(spe_condition.children[1], ContinuousLeaf)
+    assert spe_condition.logprob(X < 5) == spe.children[1].logprob(X < 5)
 
 def test_sum_normal_nominal():
     X = Id('X')
@@ -107,48 +107,48 @@ def test_sum_normal_nominal():
     ]
     weights = [log(Fraction(4,7)), log(Fraction(3, 7))]
 
-    spn = SumSPN(children, weights)
+    spe = SumSPE(children, weights)
 
     assert allclose(
-        spn.logprob(X < 0),
+        spe.logprob(X < 0),
         log(Fraction(4,7)) + log(Fraction(1,2)))
 
     assert allclose(
-        spn.logprob(X << {'low'}),
+        spe.logprob(X << {'low'}),
         log(Fraction(3,7)) + log(Fraction(3, 10)))
 
     # The semantics of ~(X<<{'low'}) are (X << String and X != 'low')
     assert allclose(
-        spn.logprob(~(X << {'low'})),
-        spn.logprob((X << {'high'})))
+        spe.logprob(~(X << {'low'})),
+        spe.logprob((X << {'high'})))
     assert allclose(
-        spn.logprob((X<<FiniteNominal(b=True)) & ~(X << {'low'})),
-        spn.logprob((X<<FiniteNominal(b=True)) & (X << {'high'})))
+        spe.logprob((X<<FiniteNominal(b=True)) & ~(X << {'low'})),
+        spe.logprob((X<<FiniteNominal(b=True)) & (X << {'high'})))
 
-    assert isinf_neg(spn.logprob((X < 0) & (X << {'low'})))
-
-    assert allclose(
-        spn.logprob((X < 0) | (X << {'low'})),
-        logsumexp([spn.logprob(X < 0), spn.logprob(X << {'low'})]))
-
-    assert isinf_neg(spn.logprob(X << {'a'}))
-    assert allclose(
-        spn.logprob(~(X << {'a'})),
-        spn.logprob(X<<{'low','high'}))
+    assert isinf_neg(spe.logprob((X < 0) & (X << {'low'})))
 
     assert allclose(
-        spn.logprob(X**2 < 9),
-        log(Fraction(4, 7)) + spn.children[0].logprob(X**2 < 9))
+        spe.logprob((X < 0) | (X << {'low'})),
+        logsumexp([spe.logprob(X < 0), spe.logprob(X << {'low'})]))
 
-    spn_condition = spn.condition(X**2 < 9)
-    assert isinstance(spn_condition, ContinuousLeaf)
-    assert spn_condition.support == Interval.open(-3, 3)
+    assert isinf_neg(spe.logprob(X << {'a'}))
+    assert allclose(
+        spe.logprob(~(X << {'a'})),
+        spe.logprob(X<<{'low','high'}))
 
-    spn_condition = spn.condition((X**2 < 9) | X << {'low'})
-    assert isinstance(spn_condition, SumSPN)
-    assert spn_condition.children[0].support == Interval.open(-3, 3)
-    assert spn_condition.children[1].support == FiniteNominal('low', 'high')
-    assert isinf_neg(spn_condition.children[1].logprob(X << {'high'}))
+    assert allclose(
+        spe.logprob(X**2 < 9),
+        log(Fraction(4, 7)) + spe.children[0].logprob(X**2 < 9))
 
-    assert spn_condition == spn.condition((X**2 < 9) | ~(X << {'high'}))
-    assert allclose(spn.logprob((X < oo) | ~(X << {'1'})), 0)
+    spe_condition = spe.condition(X**2 < 9)
+    assert isinstance(spe_condition, ContinuousLeaf)
+    assert spe_condition.support == Interval.open(-3, 3)
+
+    spe_condition = spe.condition((X**2 < 9) | X << {'low'})
+    assert isinstance(spe_condition, SumSPE)
+    assert spe_condition.children[0].support == Interval.open(-3, 3)
+    assert spe_condition.children[1].support == FiniteNominal('low', 'high')
+    assert isinf_neg(spe_condition.children[1].logprob(X << {'high'}))
+
+    assert spe_condition == spe.condition((X**2 < 9) | ~(X << {'high'}))
+    assert allclose(spe.logprob((X < oo) | ~(X << {'1'})), 0)

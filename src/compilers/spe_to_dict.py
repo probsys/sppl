@@ -1,7 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-"""Convert SPN to JSON friendly dictionary."""
+"""Convert SPE to JSON friendly dictionary."""
 
 from fractions import Fraction
 
@@ -9,12 +9,12 @@ import scipy.stats
 from sympy import E
 from sympy import sqrt
 
-from ..spn import AtomicLeaf
-from ..spn import ContinuousLeaf
-from ..spn import DiscreteLeaf
-from ..spn import NominalLeaf
-from ..spn import ProductSPN
-from ..spn import SumSPN
+from ..spe import AtomicLeaf
+from ..spe import ContinuousLeaf
+from ..spe import DiscreteLeaf
+from ..spe import NominalLeaf
+from ..spe import ProductSPE
+from ..spe import SumSPE
 
 # Needed for "eval"
 from ..sets import *
@@ -55,7 +55,7 @@ def scipy_dist_to_dict(dist):
         'kwds': dist.kwds
     }
 
-def spn_from_dict(metadata):
+def spe_from_dict(metadata):
     if metadata['class'] == 'NominalLeaf':
         symbol = Id(metadata['symbol'])
         dist = {x: Fraction(w[0], w[1]) for x, w in metadata['dist']}
@@ -79,61 +79,61 @@ def spn_from_dict(metadata):
         conditioned = metadata['conditioned']
         env = env_from_dict(metadata['env'])
         return DiscreteLeaf(symbol, dist, support, conditioned, env=env)
-    if metadata['class'] == 'SumSPN':
-        children = [spn_from_dict(c) for c in metadata['children']]
+    if metadata['class'] == 'SumSPE':
+        children = [spe_from_dict(c) for c in metadata['children']]
         weights = metadata['weights']
-        return SumSPN(children, weights)
-    if metadata['class'] == 'ProductSPN':
-        children = [spn_from_dict(c) for c in metadata['children']]
-        return ProductSPN(children)
+        return SumSPE(children, weights)
+    if metadata['class'] == 'ProductSPE':
+        children = [spe_from_dict(c) for c in metadata['children']]
+        return ProductSPE(children)
 
-    assert False, 'Cannot convert %s to SPN' % (metadata,)
+    assert False, 'Cannot convert %s to SPE' % (metadata,)
 
-def spn_to_dict(spn):
-    if isinstance(spn, NominalLeaf):
+def spe_to_dict(spe):
+    if isinstance(spe, NominalLeaf):
         return {
             'class'        : 'NominalLeaf',
-            'symbol'       : spn.symbol.token,
+            'symbol'       : spe.symbol.token,
             'dist'         : [
                 (str(x), (w.numerator, w.denominator))
-                for x, w in spn.dist.items()
+                for x, w in spe.dist.items()
             ],
-            'env'          : env_to_dict(spn.env),
+            'env'          : env_to_dict(spe.env),
         }
-    if isinstance(spn, AtomicLeaf):
+    if isinstance(spe, AtomicLeaf):
         return {
             'class'        : 'AtomicLeaf',
-            'symbol'       : spn.symbol.token,
-            'value'        : spn.value,
-            'env'          : env_to_dict(spn.env),
+            'symbol'       : spe.symbol.token,
+            'value'        : spe.value,
+            'env'          : env_to_dict(spe.env),
         }
-    if isinstance(spn, ContinuousLeaf):
+    if isinstance(spe, ContinuousLeaf):
         return {
             'class'         : 'ContinuousLeaf',
-            'symbol'        : spn.symbol.token,
-            'dist'          : scipy_dist_to_dict(spn.dist),
-            'support'       : repr(spn.support),
-            'conditioned'   : spn.conditioned,
-            'env'           : env_to_dict(spn.env),
+            'symbol'        : spe.symbol.token,
+            'dist'          : scipy_dist_to_dict(spe.dist),
+            'support'       : repr(spe.support),
+            'conditioned'   : spe.conditioned,
+            'env'           : env_to_dict(spe.env),
         }
-    if isinstance(spn, DiscreteLeaf):
+    if isinstance(spe, DiscreteLeaf):
         return {
             'class'         : 'DiscreteLeaf',
-            'symbol'        : spn.symbol.token,
-            'dist'          : scipy_dist_to_dict(spn.dist),
-            'support'       : repr(spn.support),
-            'conditioned'   : spn.conditioned,
-            'env'           : env_to_dict(spn.env),
+            'symbol'        : spe.symbol.token,
+            'dist'          : scipy_dist_to_dict(spe.dist),
+            'support'       : repr(spe.support),
+            'conditioned'   : spe.conditioned,
+            'env'           : env_to_dict(spe.env),
         }
-    if isinstance(spn, SumSPN):
+    if isinstance(spe, SumSPE):
         return {
-            'class'         : 'SumSPN',
-            'children'      : [spn_to_dict(c) for c in spn.children],
-            'weights'       : spn.weights,
+            'class'         : 'SumSPE',
+            'children'      : [spe_to_dict(c) for c in spe.children],
+            'weights'       : spe.weights,
         }
-    if isinstance(spn, ProductSPN):
+    if isinstance(spe, ProductSPE):
         return {
-            'class'         : 'ProductSPN',
-            'children'      : [spn_to_dict(c) for c in spn.children],
+            'class'         : 'ProductSPE',
+            'children'      : [spe_to_dict(c) for c in spe.children],
         }
-    assert False, 'Cannot convert %s to JSON' % (spn,)
+    assert False, 'Cannot convert %s to JSON' % (spe,)

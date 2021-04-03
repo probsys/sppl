@@ -3,13 +3,13 @@
 
 from math import log
 
-from sppl.compilers.ast_to_spn import For
-from sppl.compilers.ast_to_spn import Id
-from sppl.compilers.ast_to_spn import IdArray
-from sppl.compilers.ast_to_spn import IfElse
-from sppl.compilers.ast_to_spn import Otherwise
-from sppl.compilers.ast_to_spn import Sample
-from sppl.compilers.ast_to_spn import Sequence
+from sppl.compilers.ast_to_spe import For
+from sppl.compilers.ast_to_spe import Id
+from sppl.compilers.ast_to_spe import IdArray
+from sppl.compilers.ast_to_spe import IfElse
+from sppl.compilers.ast_to_spe import Otherwise
+from sppl.compilers.ast_to_spe import Sample
+from sppl.compilers.ast_to_spe import Sequence
 from sppl.distributions import bernoulli
 from sppl.distributions import choice
 from sppl.math_util import allclose

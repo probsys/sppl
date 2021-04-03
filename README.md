@@ -1,30 +1,30 @@
 [![Actions Status](https://github.com/probcomp/sppl/workflows/Python%20package/badge.svg)](https://github.com/probcomp/sppl/actions)
 [![pypi](https://img.shields.io/pypi/v/sppl.svg)](https://pypi.org/project/sppl/)
 
-<img src="./sppl.png" width="200">
+<img src="https://raw.githubusercontent.com/probcomp/sppl/master/sppl.png" width="200">
 
 Sum-Product Probabilistic Language
 ==================================
 
 SPPL is a probabilistic programming language that delivers exact solutions
-to a broad range of probabilistic inference queries. SPPL handles
-continuous, discrete, and mixed-type distributions; many-to-one numerical
-transformations; and a query language that includes general predicates on
-random variables.
+to a broad range of probabilistic inference queries. The language handles
+continuous, discrete, and mixed-type probability distributions; many-to-one
+numerical transformations; and a query language that includes general
+predicates on random variables.
 
 Users express generative models as imperative programs with standard
 programming constructs, such as arrays, if/else, for loops, etc. The
-program is then translated to a sum-product representation (a
-generalization of [sum-product
-networks](https://arxiv.org/pdf/2004.01167.pdf)) that statically represents
+program is then translated to a sum-product expression (a
+generalization of [sum-product networks](https://arxiv.org/pdf/2004.01167.pdf)) that statically represents
 the probability distribution on all random variables in the program and is
 used as the basis of probabilistic inference.
 
-A system description of SPPL is given in:
+If you use SPPL in your research, please cite the following PLDI 2021 paper:
 
-> Exact Symbolic Inference in Probabilistic Programs via Sum-Product Representations. <br/>
-> Feras A. Saad, Martin C. Rinard, and Vikash K. Mansinghka. <br/>
-> https://arxiv.org/abs/2010.03485
+SPPL: Probabilistic Programming with Fast Exact Symbolic Inference. Saad,
+F. A.; Rinard, M. C.; and Mansinghka, V. K. In Proceedings of the 42nd ACM
+SIGPLAN Conference on Programming Language Design and Implementation
+(PLDI '21). https://doi.org/10.1145/3453483.3454078. [(bibtex)]() [(pdf)]()
 
 ### Installation
 
@@ -48,11 +48,13 @@ Refer to the `.ipynb` notebooks under the
 
 ### Benchmarks
 
-Refer to https://github.com/probcomp/sppl-benchmarks-oct20
+Please refer to the artifact at the ACM Digital Library:
+https://doi.org/10.1145/3453483.3454078
 
-### Language Reference
+### Guide to Source Code
 
-Coming Soon!
+Please refer to [GUIDE.md](./GUIDE.md) for an description of each of the
+main source files in this repository.
 
 ### Tests
 
@@ -72,10 +74,15 @@ To run the test suite as a developer:
 
 To view the coverage report, open `htmlcov/index.html` in the browser.
 
+### Language Reference
+
+Coming Soon!
+
 ### License
 
 Apache 2.0; see [LICENSE.txt](./LICENSE.txt)
 
 ### Acknowledgments
 
-The [logo](./sppl.png) was designed by [McCoy R. Becker](https://femtomc.github.io/).
+The [logo](https://github.com/probcomp/sppl/blob/master/sppl.png) was
+designed by [McCoy R. Becker](https://femtomc.github.io/).

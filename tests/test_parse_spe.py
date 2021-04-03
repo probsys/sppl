@@ -5,10 +5,10 @@ from math import log
 
 import pytest
 
-from sppl.spn import ContinuousLeaf
-from sppl.spn import PartialSumSPN
-from sppl.spn import ProductSPN
-from sppl.spn import SumSPN
+from sppl.spe import ContinuousLeaf
+from sppl.spe import PartialSumSPE
+from sppl.spe import ProductSPE
+from sppl.spe import SumSPE
 
 from sppl.distributions import gamma
 from sppl.distributions import norm
@@ -22,7 +22,7 @@ Z = Id('Z')
 
 def test_mul_leaf():
     for y in [0.3 * (X >> norm()), (X >> norm()) * 0.3]:
-        assert isinstance(y, PartialSumSPN)
+        assert isinstance(y, PartialSumSPE)
         assert len(y.weights) == 1
         assert allclose(float(sum(y.weights)), 0.3)
 
@@ -44,13 +44,13 @@ def test_sum_leaf():
         0.4*(X >> norm()) | 0.7*(Y >> gamma(a=1))
 
     y = 0.4*(X >> norm()) | 0.3*(X >> gamma(a=1))
-    assert isinstance(y, PartialSumSPN)
+    assert isinstance(y, PartialSumSPE)
     assert len(y.weights) == 2
     assert allclose(float(y.weights[0]), 0.4)
     assert allclose(float(y.weights[1]), 0.3)
 
     y = 0.4*(X >> norm()) | 0.6*(X >> gamma(a=1))
-    assert isinstance(y, SumSPN)
+    assert isinstance(y, SumSPE)
     assert len(y.weights) == 2
     assert allclose(float(y.weights[0]), log(0.4))
     assert allclose(float(y.weights[1]), log(0.6))
@@ -59,14 +59,14 @@ def test_sum_leaf():
         y | 0.7 * (X >> norm())
 
     y = 0.4*(X >> norm()) | 0.3*(X >> gamma(a=1)) | 0.1*(X >> norm())
-    assert isinstance(y, PartialSumSPN)
+    assert isinstance(y, PartialSumSPE)
     assert len(y.weights) == 3
     assert allclose(float(y.weights[0]), 0.4)
     assert allclose(float(y.weights[1]), 0.3)
     assert allclose(float(y.weights[2]), 0.1)
 
     y = 0.4*(X >> norm()) | 0.3*(X >> gamma(a=1)) | 0.3*(X >> norm())
-    assert isinstance(y, SumSPN)
+    assert isinstance(y, SumSPE)
     assert len(y.weights) == 3
     assert allclose(float(y.weights[0]), log(0.4))
     assert allclose(float(y.weights[1]), log(0.3))
@@ -80,7 +80,7 @@ def test_sum_leaf():
         0.3*(0.3*(X >> norm()) | 0.5*(X >> norm()))
 
     w = 0.3*(0.4*(X >> norm()) | 0.6*(X >> norm()))
-    assert isinstance(w, PartialSumSPN)
+    assert isinstance(w, PartialSumSPE)
 
 def test_product_leaf():
     with pytest.raises(TypeError):
@@ -91,7 +91,7 @@ def test_product_leaf():
         (X >> norm()) & (X >> gamma(a=1))
 
     y = (X >> norm()) & (Y >> gamma(a=1)) & (Z >> norm())
-    assert isinstance(y, ProductSPN)
+    assert isinstance(y, ProductSPE)
     assert len(y.children) == 3
     assert y.get_symbols() == frozenset([X, Y, Z])
 
@@ -99,7 +99,7 @@ def test_sum_of_sums():
     w \
         = 0.3*(0.4*(X >> norm()) | 0.6*(X >> norm())) \
         | 0.7*(0.1*(X >> norm()) | 0.9*(X >> norm()))
-    assert isinstance(w, SumSPN)
+    assert isinstance(w, SumSPE)
     assert len(w.children) == 4
     assert allclose(float(w.weights[0]), log(0.3) + log(0.4))
     assert allclose(float(w.weights[1]), log(0.3) + log(0.6))
@@ -109,12 +109,12 @@ def test_sum_of_sums():
     w \
         = 0.3*(0.4*(X >> norm()) | 0.6*(X >> norm())) \
         | 0.2*(0.1*(X >> norm()) | 0.9*(X >> norm()))
-    assert isinstance(w, PartialSumSPN)
+    assert isinstance(w, PartialSumSPE)
     assert allclose(float(w.weights[0]), 0.3)
     assert allclose(float(w.weights[1]), 0.2)
 
     a = w | 0.5*(X >> gamma(a=1))
-    assert isinstance(a, SumSPN)
+    assert isinstance(a, SumSPE)
     assert len(a.children) == 5
     assert allclose(float(a.weights[0]), log(0.3) + log(0.4))
     assert allclose(float(a.weights[1]), log(0.3) + log(0.6))
@@ -130,6 +130,6 @@ def test_or_and():
     with pytest.raises(ValueError):
         (0.3*(X >> norm()) | 0.7*(Y >> gamma(a=1))) & (Z >> norm())
     a = (0.3*(X >> norm()) | 0.7*(X >> gamma(a=1))) & (Z >> norm())
-    assert isinstance(a, ProductSPN)
-    assert isinstance(a.children[0], SumSPN)
+    assert isinstance(a, ProductSPE)
+    assert isinstance(a.children[0], SumSPE)
     assert isinstance(a.children[1], ContinuousLeaf)
