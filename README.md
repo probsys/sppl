@@ -31,13 +31,13 @@ SIGPLAN Conference on Programming Language Design and Implementation
 This software is tested on Ubuntu 18.04 and requires a Python 3.6+
 environment. SPPL is available on PyPI
 
-    $ pip install sppl
+    $ python -m pip install sppl
 
 To install the Jupyter interface, first obtain the system-wide dependencies in
 [requirements.sh](https://github.com/probcomp/sppl/blob/master/requirements.sh)
 and then run
 
-    pip install 'sppl[magics]'
+    $ python -m pip install 'sppl[magics]'
 
 ### Examples
 
