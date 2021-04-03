@@ -7,10 +7,10 @@ Sum-Product Probabilistic Language
 ==================================
 
 SPPL is a probabilistic programming language that delivers exact solutions
-to a broad range of probabilistic inference queries. SPPL handles
-continuous, discrete, and mixed-type distributions; many-to-one numerical
-transformations; and a query language that includes general predicates on
-random variables.
+to a broad range of probabilistic inference queries. The language handles
+continuous, discrete, and mixed-type probability distributions; many-to-one
+numerical transformations; and a query language that includes general
+predicates on random variables.
 
 Users express generative models as imperative programs with standard
 programming constructs, such as arrays, if/else, for loops, etc. The
@@ -51,7 +51,7 @@ Refer to the `.ipynb` notebooks under the
 Please refer to the artifact at the ACM Digital Library:
 https://doi.org/10.1145/3453483.3454078
 
-### Guide to Source Codes
+### Guide to Source Code
 
 Please refer to [GUIDE.md](./GUIDE.md) for an description of each of the
 main source files in this repository.
