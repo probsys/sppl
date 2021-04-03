@@ -36,7 +36,8 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         "$PYTHON" setup.py sdist bdist_wheel
         twine upload --repository pypi dist/*
     elif [ ${1} = 'tag' ]; then
-        [ -z $(git diff --stat) ] || (echo 'fatal: tag dirty' && exit 1)
+        status="$(git diff --stat && git diff --staged)"
+        [ -z "${status}" ] || (echo 'fatal: tag dirty' && exit 1)
         tag="${2}"
         sed -i "s/__version__ = .*/__version__ = '${tag}'/g" -- src/__init__.py
         git add -- src/__init__.py
