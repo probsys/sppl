@@ -47,10 +47,10 @@ setup(
     maintainer='Feras A. Saad',
     maintainer_email='fsaad@mit.edu',
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3.6',
+        'Topic :: Scientific/Engineering :: Mathematics',
     ],
     packages=[
         'sppl',
