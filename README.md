@@ -59,8 +59,11 @@ main source files in this repository.
 
 ### Tests
 
-To run the test suite as a user, first install with `pip install 'sppl[tests]'`
-and then run:
+To run the test suite as a user, first install the test dependencies:
+
+    $ python -m pip install 'sppl[tests]'
+
+Then run the test suite:
 
     $ python -m pytest --pyargs sppl
 
