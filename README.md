@@ -12,12 +12,13 @@ continuous, discrete, and mixed-type probability distributions; many-to-one
 numerical transformations; and a query language that includes general
 predicates on random variables.
 
-Users express generative models as imperative programs with standard
-programming constructs, such as arrays, if/else, for loops, etc. The
-program is then translated to a sum-product expression (a
-generalization of [sum-product networks](https://arxiv.org/pdf/2004.01167.pdf)) that statically represents
-the probability distribution on all random variables in the program and is
-used as the basis of probabilistic inference.
+Users express generative models as probabilistic programs with standard
+imperative constructs, such as arrays, if/else branches, for loops, etc.
+The program is then translated to a sum-product expression (a
+generalization of [sum-product networks](https://arxiv.org/pdf/2004.01167.pdf))
+that statically represents the probability distribution on all random
+variables in the program. This expression is used to deliver answers a
+range of probabilistic inference queries.
 
 If you use SPPL in your research, please cite the following PLDI 2021 paper:
 
