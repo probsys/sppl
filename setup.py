@@ -9,8 +9,8 @@ from setuptools import setup
 requirements = {
     'src' : [
         'astunparse==1.6.3',
-        'numpy==1.16.6',
-        'scipy==1.4.1',
+        'numpy==1.17',
+        'scipy==1.5',
         'sympy==1.6',
     ],
     'magics' : [
