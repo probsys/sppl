@@ -1,10 +1,10 @@
 [![Actions Status](https://github.com/probcomp/sppl/workflows/Python%20package/badge.svg)](https://github.com/probcomp/sppl/actions)
 [![pypi](https://img.shields.io/pypi/v/sppl.svg)](https://pypi.org/project/sppl/)
 
-<img src="https://raw.githubusercontent.com/probcomp/sppl/master/sppl.png" width="200">
-
 Sum-Product Probabilistic Language
 ==================================
+
+<img src="https://raw.githubusercontent.com/probcomp/sppl/master/sppl.png" width="200">
 
 SPPL is a probabilistic programming language that delivers exact solutions
 to a broad range of probabilistic inference queries. The language handles
@@ -24,7 +24,7 @@ If you use SPPL in your research, please cite the following PLDI 2021 paper:
 SPPL: Probabilistic Programming with Fast Exact Symbolic Inference. Saad,
 F. A.; Rinard, M. C.; and Mansinghka, V. K. In Proceedings of the 42nd ACM
 SIGPLAN Conference on Programming Language Design and Implementation
-(PLDI '21). https://doi.org/10.1145/3453483.3454078. [(bibtex)]() [(pdf)]()
+(PLDI '21). https://doi.org/10.1145/3453483.3454078.
 
 ### Installation
 
