@@ -16,7 +16,7 @@ Users express generative models as probabilistic programs with standard
 imperative constructs, such as arrays, if/else branches, for loops, etc.
 The program is then translated to a sum-product expression (a
 generalization of [sum-product networks](https://arxiv.org/pdf/2004.01167.pdf))
-that statically represents the probability distribution on all random
+that statically represents the probability distribution of all random
 variables in the program. This expression is used to deliver answers a
 range of probabilistic inference queries.
 
