@@ -45,6 +45,7 @@ def test_product_distribution_normal_gamma_basic():
         children[1],
         children[2],)
     assert spe.get_symbols() == frozenset([X1, X2, X3, X4])
+    assert spe.size() == 5
 
     samples = spe.sample(2)
     assert len(samples) == 2

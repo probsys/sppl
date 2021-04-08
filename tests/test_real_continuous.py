@@ -23,6 +23,7 @@ def test_numeric_distribution_normal():
     X = Id('X')
     spe = (X >> norm(loc=0, scale=1))
 
+    assert spe.size() == 1
     assert allclose(spe.logprob(X > 0), -log(2))
     assert allclose(spe.logprob(abs(X) < 2), log(spe.dist.cdf(2) - spe.dist.cdf(-2)))
 

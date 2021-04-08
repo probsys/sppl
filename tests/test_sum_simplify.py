@@ -20,6 +20,7 @@ def test_sum_simplify_nested_sum_1():
         X >> gamma(loc=0, a=1),
     ]
     spe = SumSPE(children, [log(0.7), log(0.3)])
+    assert spe.size() == 4
     assert spe.children == (
         children[0].children[0],
         children[0].children[1],
@@ -45,13 +46,14 @@ def test_sum_simplify_nested_sum_2():
             [log(0.4), log(0.3), log(0.3)]),
     ]
     spe = SumSPE(children, [log(0.4), log(0.4), log(0.2)])
+    assert spe.size() == 19
     assert spe.children == (
-        children[0].children[0],
-        children[0].children[1],
-        children[1],
-        children[2].children[0],
-        children[2].children[1],
-        children[2].children[2],
+        children[0].children[0], # 2 leaves
+        children[0].children[1], # 2 leaves
+        children[1],             # 2 leaf
+        children[2].children[0], # 2 leaves
+        children[2].children[1], # 2 leaves
+        children[2].children[2], # 2 leaves
     )
     assert allclose(spe.weights[0], log(0.4) + log(0.9))
     assert allclose(spe.weights[1], log(0.4) + log(0.1))
@@ -65,6 +67,7 @@ def test_sum_simplify_leaf():
     Xd1 = Id('X') >> norm(loc=0, scale=2)
     Xd2 = Id('X') >> norm(loc=0, scale=3)
     spe = SumSPE([Xd0, Xd1, Xd2], [log(0.5), log(0.1), log(.4)])
+    assert spe.size() == 4
     assert spe_simplify_sum(spe) == spe
 
     Xd0 = Id('X') >> norm(loc=0, scale=1)

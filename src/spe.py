@@ -66,6 +66,8 @@ class SPE():
     env = None             # Environment mapping symbols to transforms.
     def __init__(self):
         raise NotImplementedError()
+    def size(self):
+        raise NotImplementedError
     def sample(self, N, prng=None):
         raise NotImplementedError()
     def sample_subset(self, symbols, N, prng=None):
@@ -152,6 +154,8 @@ class BranchSPE(SPE):
     children = None
     def get_symbols(self):
         return self.symbols
+    def size(self):
+        return 1 + sum(c.size() for c in self.children)
     def logprob(self, event, memo=None):
         if memo is None:
             memo = Memo()
@@ -597,6 +601,8 @@ class LeafSPE(SPE):
     symbol = None          # Symbol (Id) of base random variable
     def get_symbols(self):
         return frozenset(self.env)
+    def size(self):
+        return 1
     def sample(self, N, prng=None):
         return self.sample_subset(self.get_symbols(), N, prng=prng)
     def sample_subset(self, symbols, N, prng=None):
