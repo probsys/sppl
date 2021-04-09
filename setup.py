@@ -10,7 +10,7 @@ from setuptools import setup
 requirements = {
     'src' : [
         'astunparse==1.6.3',
-        'numpy==1.16.6',
+        'numpy==1.18.5',
         'scipy==1.4.1',
         'sympy==1.6',
     ],
@@ -50,7 +50,6 @@ setup(
     classifiers=[
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3.6',
         'Topic :: Scientific/Engineering :: Mathematics',
     ],
     packages=[
