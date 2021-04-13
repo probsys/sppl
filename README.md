@@ -25,7 +25,7 @@ If you use SPPL in your research, please cite the following PLDI 2021 paper:
 SPPL: Probabilistic Programming with Fast Exact Symbolic Inference. Saad,
 F. A.; Rinard, M. C.; and Mansinghka, V. K. In Proceedings of the 42nd ACM
 SIGPLAN Conference on Programming Language Design and Implementation
-(PLDI '21). https://doi.org/10.1145/3453483.3454078.
+(PLDI '21). https://doi.org/10.1145/3453483.3454078. [(preprint)](http://fsaad.mit.edu/assets/SaadRM21.pdf)
 
 ### Installation
 
