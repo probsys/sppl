@@ -1,3 +1,15 @@
+System Overview
+===============
+
+An overview of the SPPL architecture is shown below.
+For further details, please refer to the [system description](https://doi.org/10.1145/3453483.3454078)
+
+<img src="overview.png" width="100%">
+
+Probabilistic programs written in SPPL are translated into symbolic sum-product expressions
+that represent the joint distribution over all program variables and are used to deliver
+exact solutions to probabilistic inference queries.
+
 Guide to Source Files
 =====================
 
