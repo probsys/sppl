@@ -20,12 +20,15 @@ that statically represents the probability distribution of all random
 variables in the program. This expression is used to deliver answers a
 range of probabilistic inference queries.
 
-If you use SPPL in your research, please cite the following PLDI 2021 paper:
+A system description of SPPL is given in the following paper:
 
-SPPL: Probabilistic Programming with Fast Exact Symbolic Inference. Saad,
-F. A.; Rinard, M. C.; and Mansinghka, V. K. In Proceedings of the 42nd ACM
-SIGPLAN Conference on Programming Language Design and Implementation
-(PLDI '21). https://doi.org/10.1145/3453483.3454078. [(preprint)](http://fsaad.mit.edu/assets/SaadRM21.pdf)
+SPPL: Probabilistic Programming with Fast Exact Symbolic Inference.
+Saad, F. A.; Rinard, M. C.; and Mansinghka, V. K.
+In PLDI 2021: Proceedings of the 42nd ACM
+SIGPLAN Conference on Programming Language Design and Implementation,
+June 20-25, Virtual, Canada. ACM, New York, NY, USA. 2021.
+https://doi.org/10.1145/3453483.3454078.
+[(preprint)](http://fsaad.mit.edu/assets/SaadRM21.pdf)
 
 ### Installation
 
@@ -81,6 +84,23 @@ To view the coverage report, open `htmlcov/index.html` in the browser.
 ### Language Reference
 
 Coming Soon!
+
+### Citation
+
+To cite this work, please use the following BibTeX.
+
+```bibtex
+@inproceedings{saad2021sppl,
+title           = {{SPPL:} Probabilistic Programming with Fast Exact Symbolic Inference},
+author          = {Saad, Feras A. and Rinard, Martin C. and Mansinghka, Vikash K.},
+booktitle       = {PLDI 2021: Proceedings of the 42nd ACM SIGPLAN Conference on Programming Design and Implementation},
+year            = 2021,
+location        = {Virtual, Canada},
+publisher       = {ACM},
+address         = {New York, NY, USA},
+doi             = {10.1145/3453483.3454078},
+}
+```
 
 ### License
 
