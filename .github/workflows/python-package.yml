@@ -26,7 +26,7 @@ jobs:
     - name: Test src
       run: |
         python -m pip install --upgrade pip
-        pip install '.[tests]'
+        python -m pip install '.[tests]'
         ./check.sh ci
     - name: Test magics
       run: |
