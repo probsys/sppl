@@ -94,9 +94,9 @@ To cite this work, please use the following BibTeX.
 title           = {{SPPL:} Probabilistic Programming with Fast Exact Symbolic Inference},
 author          = {Saad, Feras A. and Rinard, Martin C. and Mansinghka, Vikash K.},
 booktitle       = {PLDI 2021: Proceedings of the 42nd ACM SIGPLAN Conference on Programming Design and Implementation},
-year            = 2021,
 location        = {Virtual, Canada},
 publisher       = {ACM},
+year            = 2021,
 address         = {New York, NY, USA},
 doi             = {10.1145/3453483.3454078},
 }
