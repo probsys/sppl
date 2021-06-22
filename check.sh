@@ -36,10 +36,11 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         "$PYTHON" setup.py sdist bdist_wheel
         twine upload --repository pypi dist/*
     elif [ ${1} = 'tag' ]; then
-        # Make a tagged release, e.g., ./check.sh 2.0.0
-        status="$(git diff --stat && git diff --staged)"
-        [ -z "${status}" ] || (echo 'fatal: tag dirty' && exit 1)
         tag="${2}"
+        (git diff --quiet --stat && git diff --quiet --staged) \
+            || (echo 'fatal: workspace dirty' && exit 1)
+        git show-ref --quiet --tags v"${tag}" \
+            && (echo 'fatal: tag exists' && exit 1)
         sed -i "s/__version__ = .*/__version__ = '${tag}'/g" -- src/__init__.py
         git add -- src/__init__.py
         git commit -m "Pin version ${tag}."
