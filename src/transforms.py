@@ -1,7 +1,7 @@
 # Copyright 2020 MIT Probabilistic Computing Project.
 # See LICENSE.txt
 
-from collections import Callable
+from collections.abc import Callable
 from functools import reduce
 from itertools import chain
 from itertools import product
