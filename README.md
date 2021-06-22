@@ -24,11 +24,10 @@ A system description of SPPL is given in the following paper:
 
 SPPL: Probabilistic Programming with Fast Exact Symbolic Inference.
 Saad, F. A.; Rinard, M. C.; and Mansinghka, V. K.
-In PLDI 2021: Proceedings of the 42nd ACM
-SIGPLAN Conference on Programming Language Design and Implementation,
+In PLDI 2021: Proceedings of the 42nd ACM SIGPLAN International Conference
+on Programming Language Design and Implementation,
 June 20-25, Virtual, Canada. ACM, New York, NY, USA. 2021.
 https://doi.org/10.1145/3453483.3454078.
-[(preprint)](http://fsaad.mit.edu/assets/SaadRM21.pdf)
 
 ### Installation
 
@@ -93,12 +92,15 @@ To cite this work, please use the following BibTeX.
 @inproceedings{saad2021sppl,
 title           = {{SPPL:} Probabilistic Programming with Fast Exact Symbolic Inference},
 author          = {Saad, Feras A. and Rinard, Martin C. and Mansinghka, Vikash K.},
-booktitle       = {PLDI 2021: Proceedings of the 42nd ACM SIGPLAN Conference on Programming Design and Implementation},
+booktitle       = {PLDI 2021: Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Design and Implementation},
+pages           = {804--819},
+year            = 2021,
 location        = {Virtual, Canada},
 publisher       = {ACM},
-year            = 2021,
 address         = {New York, NY, USA},
 doi             = {10.1145/3453483.3454078},
+address         = {New York, NY, USA},
+keywords        = {probabilistic programming, symbolic execution, static analysis},
 }
 ```
 
