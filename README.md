@@ -56,7 +56,7 @@ https://doi.org/10.1145/3453483.3454078
 
 ### Guide to Source Code
 
-Please refer to [GUIDE.md](./GUIDE.md) for an description of each of the
+Please refer to [GUIDE.md](./GUIDE.md) for a description of the
 main source files in this repository.
 
 ### Tests
