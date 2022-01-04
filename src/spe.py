@@ -461,9 +461,11 @@ class ProductSPE(BranchSPE):
 
     def transform(self, symbol, expr):
         # TODO: This algorithm does not handle the case that expr has symbols
-        # belonging to different children.  The correct solution is to
-        # implement an environment in the Product, and perform substitution
-        # on the event (recursively, unfortunately).
+        # belonging to different children, specifically defining symbol
+        # to be a predicate such as (X > 0) || (Y < 2).
+        # The correct solution is to implement an environment in the
+        # Product, and perform substitution on the event (recursively,
+        # unfortunately).
         expr_symbols = expr.get_symbols()
         assert all(e in self.get_symbols() for e in expr_symbols)
         index = [
