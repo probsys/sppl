@@ -55,10 +55,10 @@ def test_mutual_information_four_clusters(memo):
     X = Id('X')
     Y = Id('Y')
     spe \
-        = 0.25*(X >> norm(loc=0, scale=0.5) & Y >> norm(loc=0, scale=0.5)) \
-        | 0.25*(X >> norm(loc=5, scale=0.5) & Y >> norm(loc=0, scale=0.5)) \
-        | 0.25*(X >> norm(loc=0, scale=0.5) & Y >> norm(loc=5, scale=0.5)) \
-        | 0.25*(X >> norm(loc=5, scale=0.5) & Y >> norm(loc=5, scale=0.5)) \
+        = 0.25*(X << norm(loc=0, scale=0.5) & Y << norm(loc=0, scale=0.5)) \
+        | 0.25*(X << norm(loc=5, scale=0.5) & Y << norm(loc=0, scale=0.5)) \
+        | 0.25*(X << norm(loc=0, scale=0.5) & Y << norm(loc=5, scale=0.5)) \
+        | 0.25*(X << norm(loc=5, scale=0.5) & Y << norm(loc=5, scale=0.5)) \
 
     A = X > 2
     B = Y > 2

@@ -13,7 +13,7 @@ def test_transform_real_leaf_logprob():
     X = Id('X')
     Y = Id('Y')
     Z = Id('Z')
-    spe = (X >> norm(loc=0, scale=1))
+    spe = (X << norm(loc=0, scale=1))
 
     with pytest.raises(AssertionError):
         spe.transform(Z, Y**2)
@@ -41,7 +41,7 @@ def test_transform_real_leaf_sample():
     X = Id('X')
     Z = Id('Z')
     Y = Id('Y')
-    spe = (X >> poisson(loc=-1, mu=1))
+    spe = (X << poisson(loc=-1, mu=1))
     spe = spe.transform(Z, X+1)
     spe = spe.transform(Y, Z-1)
     samples = spe.sample(100)
@@ -56,14 +56,14 @@ def test_transform_sum():
     Z = Id('Z')
     Y = Id('Y')
     spe \
-        = 0.3*(X >> norm(loc=0, scale=1)) \
-        | 0.7*(X >> choice({'0': 0.4, '1': 0.6}))
+        = 0.3*(X << norm(loc=0, scale=1)) \
+        | 0.7*(X << choice({'0': 0.4, '1': 0.6}))
     with pytest.raises(Exception):
         # Cannot transform Nominal variate.
         spe.transform(Z, X**2)
     spe \
-        = 0.3*(X >> norm(loc=0, scale=1)) \
-        | 0.7*(X >> poisson(mu=2))
+        = 0.3*(X << norm(loc=0, scale=1)) \
+        | 0.7*(X << poisson(mu=2))
     spe = spe.transform(Z, X**2)
     assert spe.logprob(Z < 1) == spe.logprob(X**2 < 1)
     assert spe.children[0].env == spe.children[1].env
@@ -79,8 +79,8 @@ def test_transform_product():
     Z = Id('Z')
     V = Id('V')
     spe \
-        = (X >> norm(loc=0, scale=1)) \
-        & (Y >> poisson(mu=10))
+        = (X << norm(loc=0, scale=1)) \
+        & (Y << poisson(mu=10))
     with pytest.raises(Exception):
         # Cannot use symbols from different transforms.
         spe.transform(W, (X > 0) | (Y << {'0'}))

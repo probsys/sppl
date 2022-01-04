@@ -24,12 +24,12 @@ X = Id('X')
 Y = Id('Y')
 
 spes = [
-    X >> norm(loc=0, scale=1),
-    X >> poisson(mu=7),
-    Y >> choice({'a': 0.5, 'b': 0.5}),
-    (X >> norm(loc=0, scale=1)) & (Y >> gamma(a=1)),
-    0.2*(X >> norm(loc=0, scale=1)) | 0.8*(X >> gamma(a=1)),
-    ((X >> norm(loc=0, scale=1)) & (Y >> gamma(a=1))).constrain({Y:1}),
+    X << norm(loc=0, scale=1),
+    X << poisson(mu=7),
+    Y << choice({'a': 0.5, 'b': 0.5}),
+    (X << norm(loc=0, scale=1)) & (Y << gamma(a=1)),
+    0.2*(X << norm(loc=0, scale=1)) | 0.8*(X << gamma(a=1)),
+    ((X << norm(loc=0, scale=1)) & (Y << gamma(a=1))).constrain({Y:1}),
 ]
 @pytest.mark.parametrize('spe', spes)
 def test_serialize_equal(spe):
@@ -62,7 +62,7 @@ transforms = [
 ]
 @pytest.mark.parametrize('transform', transforms)
 def test_serialize_env(transform):
-    spe = (X >> norm()).transform(Y, transform)
+    spe = (X << norm()).transform(Y, transform)
     metadata = spe_to_dict(spe)
     spe_json_encoded = json.dumps(metadata)
     spe_json_decoded = json.loads(spe_json_encoded)

@@ -21,15 +21,15 @@ X = [Id('X[0]'), Id('X[1]')]
 Z = [Id('Z[0]'), Id('Z[1]')]
 
 def test_cache_simple_leaf():
-    spe = .5 * (W >> norm(loc=0, scale=1)) | .5 * (W >> norm(loc=0, scale=1))
+    spe = .5 * (W << norm(loc=0, scale=1)) | .5 * (W << norm(loc=0, scale=1))
     assert spe.children[0] is not spe.children[1]
     spe_cached = spe_cache_duplicate_subtrees(spe, {})
     assert spe_cached.children[0] is spe_cached.children[1]
 
 def test_cache_simple_sum_of_product():
     spe \
-        = 0.3 * ((W >> norm(loc=0, scale=1)) & (Y >> norm(loc=0, scale=1))) \
-        | 0.7 * ((W >> norm(loc=0, scale=1)) & (Y >> norm(loc=0, scale=2)))
+        = 0.3 * ((W << norm(loc=0, scale=1)) & (Y << norm(loc=0, scale=1))) \
+        | 0.7 * ((W << norm(loc=0, scale=1)) & (Y << norm(loc=0, scale=2)))
     spe_cached = spe_cache_duplicate_subtrees(spe, {})
     assert spe_cached.children[0].children[0] is spe_cached.children[1].children[0]
 
@@ -40,18 +40,18 @@ def test_cache_complex_sum_of_product():
     for i in range(2):
         duplicate_subtrees[i] = SumSPE([
             ProductSPE([
-                (X[0] >> bernoulli(p=.1)),
+                (X[0] << bernoulli(p=.1)),
                 SumSPE([
-                    (Z[0] >> bernoulli(p=.5))
-                        & (Y >> choice({'0':.1, '1': .9})),
-                    (Z[0] >> bernoulli(p=.1))
-                        & (Y >> choice({'0':.9, '1': .1}))
+                    (Z[0] << bernoulli(p=.5))
+                        & (Y << choice({'0':.1, '1': .9})),
+                    (Z[0] << bernoulli(p=.1))
+                        & (Y << choice({'0':.9, '1': .1}))
                 ], weights=[log(.730), log(.270)])
             ]),
             ProductSPE([
-                Z[0] >> bernoulli(p=.1),
-                Y >> choice({'0':.9, '1':.1}),
-                X[0] >> bernoulli(p=.5),
+                Z[0] << bernoulli(p=.1),
+                Y << choice({'0':.9, '1':.1}),
+                X[0] << bernoulli(p=.5),
             ]),
         ], weights=[log(.925), log(.075)])
 
@@ -59,29 +59,29 @@ def test_cache_complex_sum_of_product():
     assert duplicate_subtrees[0] is not duplicate_subtrees[1]
 
     left_subtree = ProductSPE([
-        X[1] >> bernoulli(p=.5),
+        X[1] << bernoulli(p=.5),
         SumSPE([
             ProductSPE([
                 duplicate_subtrees[0],
-                Z[1] >> bernoulli(p=.5),
+                Z[1] << bernoulli(p=.5),
             ]),
             ProductSPE([
-                Z[1] >> bernoulli(p=.7),
+                Z[1] << bernoulli(p=.7),
                 SumSPE([
-                    Y >> choice({'0':.3, '1':.7})
-                        & X[0] >> bernoulli(p=.1)
-                        & Z[0] >> bernoulli(p=.1),
-                    Y >> choice({'0':.7, '1':.3})
-                        & X[0] >> bernoulli(p=.5)
-                        & Z[0] >> bernoulli(p=.5),
+                    Y << choice({'0':.3, '1':.7})
+                        & X[0] << bernoulli(p=.1)
+                        & Z[0] << bernoulli(p=.1),
+                    Y << choice({'0':.7, '1':.3})
+                        & X[0] << bernoulli(p=.5)
+                        & Z[0] << bernoulli(p=.5),
                 ], weights=[log(.9), log(.1)])
             ])
         ], weights=[log(.783), log(.217)])
     ])
 
     right_subtree = ProductSPE([
-        Z[1] >> bernoulli(p=.8),
-        X[1] >> bernoulli(p=.1),
+        Z[1] << bernoulli(p=.8),
+        X[1] << bernoulli(p=.1),
         duplicate_subtrees[1]
     ])
 

@@ -41,7 +41,7 @@ class Sample(Command):
         self.symbol = symbol
         self.distribution = distribution
     def interpret(self, spe=None):
-        leaf = self.symbol >> self.distribution
+        leaf = self.symbol << self.distribution
         return leaf if (spe is None) else spe & leaf
 
 class Transform(Command):

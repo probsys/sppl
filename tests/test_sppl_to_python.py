@@ -76,6 +76,14 @@ Y[0] = array(2)
         SPPL_Compiler(source)
     SPPL_Compiler(source.replace('array(2)', 'norm()'))
 
+def test_error_assign_array():
+    source = '''
+Z = normal()
+Y = array(5)
+W = normal()
+'''
+    SPPL_Compiler(source)
+
 def test_error_assign_py_constant_after_sampling():
     source = '''
 X ~= norm()

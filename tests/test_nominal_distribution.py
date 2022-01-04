@@ -15,7 +15,7 @@ from sppl.transforms import Id
 
 def test_nominal_distribution():
     X = Id('X')
-    spe = X >> choice({
+    spe = X << choice({
         'a': Fraction(1, 5),
         'b': Fraction(1, 5),
         'c': Fraction(3, 5),

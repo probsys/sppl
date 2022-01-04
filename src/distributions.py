@@ -14,6 +14,10 @@ class Distribution():
             return DistributionMix([self], [x])
         except TypeError:
             return NotImplemented
+    def __call__(self, symbol):
+        return NotImplemented
+    def __rlshift__(self, symbol):
+        return self(symbol)
 
 class NominalDistribution(Distribution):
     def __init__(self, dist):
@@ -53,6 +57,8 @@ class DistributionMix():
         distributions = [d(symbol) for d in self.distributions]
         weights = [log(w) for w in self.weights]
         return SumSPE(distributions, weights)
+    def __rlshift__(self, symbol):
+        return self(symbol)
 
     def __or__(self, x):
         if not isinstance(x, DistributionMix):

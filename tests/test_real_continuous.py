@@ -21,7 +21,7 @@ from sppl.transforms import Id
 
 def test_numeric_distribution_normal():
     X = Id('X')
-    spe = (X >> norm(loc=0, scale=1))
+    spe = (X << norm(loc=0, scale=1))
 
     assert spe.size() == 1
     assert allclose(spe.logprob(X > 0), -log(2))
@@ -76,7 +76,7 @@ def test_numeric_distribution_normal():
 def test_numeric_distribution_gamma():
     X = Id('X')
 
-    spe = (X >> gamma(a=1, scale=1))
+    spe = (X << gamma(a=1, scale=1))
     with pytest.raises(ValueError):
         spe.condition((X << {1, 2}) | (X < 0))
 
@@ -97,7 +97,7 @@ def test_numeric_distribution_gamma():
             - spe_condition.logZ)
 
     # Support on (-3, oo)
-    spe = (X >> gamma(loc=-3, a=1))
+    spe = (X << gamma(loc=-3, a=1))
     assert spe.prob((-3 < X) < 0) > 0.95
 
     # Constrain.

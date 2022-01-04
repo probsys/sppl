@@ -23,22 +23,22 @@ Y = Id('Y')
 Z = Id('Z')
 
 def test_logpdf_real_continuous():
-    spe = (X >> norm())
+    spe = (X << norm())
     assert allclose(spe.logpdf({X: 0}), norm().dist.logpdf(0))
 
 def test_logpdf_real_discrete():
-    spe = (X >> poisson(mu=2))
+    spe = (X << poisson(mu=2))
     assert isinf_neg(spe.logpdf({X: 1.5}))
     assert isinf_neg(spe.logpdf({X: '1'}))
     assert not isinf_neg(spe.logpdf({X: 0}))
 
 def test_logpdf_nominal():
-    spe = (X >> choice({'a' : .6, 'b': .4}))
+    spe = (X << choice({'a' : .6, 'b': .4}))
     assert isinf_neg(spe.logpdf({X: 1.5}))
     allclose(spe.logpdf({X: 'a'}), log(.6))
 
 def test_logpdf_mixture_real_continuous_continuous():
-    spe = X >> (.3*norm() | .7*gamma(a=1))
+    spe = X << (.3*norm() | .7*gamma(a=1))
     assert allclose(
         spe.logpdf({X: .5}),
         logsumexp([
@@ -48,7 +48,7 @@ def test_logpdf_mixture_real_continuous_continuous():
 
 @pytest.mark.xfail
 def test_logpdf_mixture_real_continuous_discrete():
-    spe = X >> (.3*norm() | .7*poisson(mu=1))
+    spe = X << (.3*norm() | .7*poisson(mu=1))
     assert allclose(
         spe.logpdf(X << {.5}),
         logsumexp([
@@ -58,7 +58,7 @@ def test_logpdf_mixture_real_continuous_discrete():
     assert False, 'Invalid base measure addition'
 
 def test_logpdf_mixture_nominal():
-    spe = SumSPE([X >> norm(), X >> choice({'a':.1, 'b':.9})], [log(.4), log(.6)])
+    spe = SumSPE([X << norm(), X << choice({'a':.1, 'b':.9})], [log(.4), log(.6)])
     assert allclose(
         spe.logpdf({X: .5}),
         log(.4) + spe.children[0].logpdf({X: .5}))
@@ -67,29 +67,29 @@ def test_logpdf_mixture_nominal():
         log(.6) + spe.children[1].logpdf({X: 'a'}))
 
 def test_logpdf_error_event():
-    spe = (X >> norm())
+    spe = (X << norm())
     with pytest.raises(Exception):
         spe.logpdf(X < 1)
 
 def test_logpdf_error_transform_base():
-    spe = (X >> norm())
+    spe = (X << norm())
     with pytest.raises(Exception):
         spe.logpdf({X**2: 0})
 
 def test_logpdf_error_transform_env():
-    spe = (X >> norm()).transform(Z, X**2)
+    spe = (X << norm()).transform(Z, X**2)
     with pytest.raises(Exception):
         spe.logpdf({Z: 0})
 
 def test_logpdf_bivariate():
-    spe = (X >> norm()) & (Y >> choice({'a': .5, 'b': .5}))
+    spe = (X << norm()) & (Y << choice({'a': .5, 'b': .5}))
     assert allclose(
         spe.logpdf({X: 0, Y: 'a'}),
         norm().dist.logpdf(0) + log(.5))
 
 def test_logpdf_lexicographic_either():
-    spe = .75*(X >> norm() & Y >> atomic(loc=0) & Z >> discrete({1:.1, 2:.9})) \
-        | .25*(X >> atomic(loc=0) & Y >> norm() & Z >> norm())
+    spe = .75*(X << norm() & Y << atomic(loc=0) & Z << discrete({1:.1, 2:.9})) \
+        | .25*(X << atomic(loc=0) & Y << norm() & Z << norm())
     # Lexicographic, Branch 1
     assignment = {X:0, Y:0, Z:2}
     assert allclose(
@@ -104,8 +104,8 @@ def test_logpdf_lexicographic_either():
     assert isinstance(spe.constrain(assignment), ProductSPE)
 
 def test_logpdf_lexicographic_both():
-    spe = .75*(X >> norm() & Y >> atomic(loc=0) & Z >> discrete({1:.2, 2:.8})) \
-        | .25*(X >> discrete({1:.5, 2:.5}) & Y >> norm() & Z >> atomic(loc=2))
+    spe = .75*(X << norm() & Y << atomic(loc=0) & Z << discrete({1:.2, 2:.8})) \
+        | .25*(X << discrete({1:.5, 2:.5}) & Y << norm() & Z << atomic(loc=2))
     # Lexicographic, Mix
     assignment = {X:1, Y:0, Z:2}
     assert allclose(

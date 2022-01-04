@@ -19,7 +19,7 @@ from sppl.transforms import Id
 
 def test_poisson():
     X = Id('X')
-    spe = X >> poisson(mu=5)
+    spe = X << poisson(mu=5)
 
     a = spe.logprob((1 <= X) <= 7)
     b = spe.logprob(X << {1,2,3,4,5,6,7})
@@ -99,7 +99,7 @@ def test_poisson():
 
 def test_condition_non_contiguous():
     X = Id('X')
-    spe = X >> poisson(mu=5)
+    spe = X << poisson(mu=5)
     # FiniteSet.
     for c in [{0,2,3}, {-1,0,2,3}, {-1,0,2,3,'z'}]:
         spe_condition = spe.condition((X << c))
@@ -116,7 +116,7 @@ def test_condition_non_contiguous():
 
 def test_randint():
     X = Id('X')
-    spe = X >> randint(low=0, high=5)
+    spe = X << randint(low=0, high=5)
     assert spe.xl == 0
     assert spe.xu == 4
     assert spe.logprob(X < 5) == spe.logprob(X <= 4) == 0

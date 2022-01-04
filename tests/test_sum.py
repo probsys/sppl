@@ -31,7 +31,7 @@ def test_sum_normal_gamma():
         log(Fraction(1, 3))
     ]
     spe = SumSPE(
-        [X >> norm(loc=0, scale=1), X >> gamma(loc=0, a=1),], weights)
+        [X << norm(loc=0, scale=1), X << gamma(loc=0, a=1),], weights)
 
     assert spe.logprob(X > 0) == logsumexp([
         spe.weights[0] + spe.children[0].logprob(X > 0),
@@ -59,13 +59,13 @@ def test_sum_normal_gamma():
 def test_sum_normal_gamma_exposed():
     X = Id('X')
     W = Id('W')
-    weights = W >> choice({
+    weights = W << choice({
         '0': Fraction(2,3),
         '1': Fraction(1,3),
     })
     children = {
-        '0': X >> norm(loc=0, scale=1),
-        '1': X >> gamma(loc=0, a=1),
+        '0': X << norm(loc=0, scale=1),
+        '1': X << gamma(loc=0, a=1),
     }
     spe = ExposedSumSPE(children, weights)
 
@@ -102,8 +102,8 @@ def test_sum_normal_gamma_exposed():
 def test_sum_normal_nominal():
     X = Id('X')
     children = [
-        X >> norm(loc=0, scale=1),
-        X >> choice({'low': Fraction(3, 10), 'high': Fraction(7, 10)}),
+        X << norm(loc=0, scale=1),
+        X << choice({'low': Fraction(3, 10), 'high': Fraction(7, 10)}),
     ]
     weights = [log(Fraction(4,7)), log(Fraction(3, 7))]
 

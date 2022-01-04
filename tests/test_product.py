@@ -32,11 +32,11 @@ def test_product_distribution_normal_gamma_basic():
     X4 = Id('X4')
     children = [
         ProductSPE([
-            X1 >> norm(loc=0, scale=1),
-            X4 >> norm(loc=10, scale=1),
+            X1 << norm(loc=0, scale=1),
+            X4 << norm(loc=10, scale=1),
         ]),
-        X2 >> gamma(loc=0, a=1),
-        X3 >> norm(loc=2, scale=3)
+        X2 << gamma(loc=0, a=1),
+        X3 << norm(loc=2, scale=3)
     ]
     spe = ProductSPE(children)
     assert spe.children == (
@@ -71,7 +71,7 @@ def test_product_distribution_normal_gamma_basic():
 def test_product_inclusion_exclusion_basic():
     X = Id('X')
     Y = Id('Y')
-    spe = ProductSPE([X >> norm(loc=0, scale=1), Y >> gamma(a=1)])
+    spe = ProductSPE([X << norm(loc=0, scale=1), Y << gamma(a=1)])
 
     a = spe.logprob(X > 0.1)
     b = spe.logprob(Y < 0.5)
@@ -114,7 +114,7 @@ def test_product_inclusion_exclusion_basic():
 def test_product_condition_basic():
     X = Id('X')
     Y = Id('Y')
-    spe = ProductSPE([X >> norm(loc=0, scale=1), Y >> gamma(a=1)])
+    spe = ProductSPE([X << norm(loc=0, scale=1), Y << gamma(a=1)])
 
     # Condition on (X > 0) and ((X > 0) | (Y < 0))
     # where the second clause reduces to first as Y < 0
@@ -200,7 +200,7 @@ def test_product_condition_basic():
 def test_product_condition_or_probabilithy_zero():
     X = Id('X')
     Y = Id('Y')
-    spe = ProductSPE([X >> norm(loc=0, scale=1), Y >> gamma(a=1)])
+    spe = ProductSPE([X << norm(loc=0, scale=1), Y << gamma(a=1)])
 
     # Condition on event which has probability zero.
     event = (X > 2) & (X < 2)
@@ -274,9 +274,9 @@ def test_product_disjoint_union_numerical():
     Y = Id('Y')
     Z = Id('Z')
     spe = ProductSPE([
-        X >> norm(loc=0, scale=1),
-        Y >> norm(loc=0, scale=2),
-        Z >> norm(loc=0, scale=2),
+        X << norm(loc=0, scale=1),
+        Y << norm(loc=0, scale=2),
+        Z << norm(loc=0, scale=2),
     ])
 
     for event in [
@@ -294,8 +294,8 @@ def test_product_disjoint_union_nominal():
     N = Id('N')
     P = Id('P')
 
-    nationality = N >> choice({'India': 0.5, 'USA': 0.5})
-    perfect = P >> choice({'Imperfect': 0.99, 'Perfect': 0.01})
+    nationality = N << choice({'India': 0.5, 'USA': 0.5})
+    perfect = P << choice({'Imperfect': 0.99, 'Perfect': 0.01})
     student = nationality & perfect
 
     condition_1 = (N << {'India'}) & (P << {'Imperfect'})

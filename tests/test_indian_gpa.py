@@ -30,29 +30,29 @@ GPA         = Id('GPA')
 def model_no_latents():
     return \
         0.5 * ( # American student
-            0.99 * (GPA >> uniform(loc=0, scale=4)) | \
-            0.01 * (GPA >> atomic(loc=4))) | \
+            0.99 * (GPA << uniform(loc=0, scale=4)) | \
+            0.01 * (GPA << atomic(loc=4))) | \
         0.5 * ( # Indian student
-            0.99 * (GPA >> uniform(loc=0, scale=10)) | \
-            0.01 * (GPA >> atomic(loc=10)))
+            0.99 * (GPA << uniform(loc=0, scale=10)) | \
+            0.01 * (GPA << atomic(loc=10)))
 
 def model_exposed():
     return ExposedSumSPE(
-        spe_weights=(Nationality >> choice({'India': 0.5, 'USA': 0.5})),
+        spe_weights=(Nationality << choice({'India': 0.5, 'USA': 0.5})),
         children={
             # American student.
             'USA': ExposedSumSPE(
-                spe_weights=(Perfect >> choice({'True': 0.01, 'False': 0.99})),
+                spe_weights=(Perfect << choice({'True': 0.01, 'False': 0.99})),
                 children={
-                    'False'   : GPA >> uniform(loc=0, scale=4),
-                    'True'    : GPA >> atomic(loc=4),
+                    'False'   : GPA << uniform(loc=0, scale=4),
+                    'True'    : GPA << atomic(loc=4),
                 }),
             # Indian student.
             'India': ExposedSumSPE(
-                spe_weights=(Perfect >> choice({'True': 0.01, 'False': 0.99})),
+                spe_weights=(Perfect << choice({'True': 0.01, 'False': 0.99})),
                 children={
-                    'False'   : GPA >> uniform(loc=0, scale=10),
-                    'True'    : GPA >> atomic(loc=10),
+                    'False'   : GPA << uniform(loc=0, scale=10),
+                    'True'    : GPA << atomic(loc=10),
                 })},
         )
 

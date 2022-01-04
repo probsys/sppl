@@ -392,13 +392,6 @@ class Identity(Injective):
         return self.token
     def __hash__(self):
         return self.hash
-    def __rshift__(self, f):
-        if isinstance(f, Callable):
-            return f(self)
-        # if isinstance(f, dict):
-        #     from .spe import NominalLeaf
-        #     return NominalLeaf(self, f)
-        return NotImplemented
 
 class Radical(Injective):
     def __init__(self, subexpr, degree):
