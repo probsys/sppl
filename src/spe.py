@@ -86,6 +86,14 @@ class SPE():
         raise NotImplementedError()
     def constrain(self, assignment, memo=None):
         raise NotImplementedError()
+    def logprob_mem(self, event_factor, memo):
+        raise NotImplementedError()
+    def condition_mem(self, event_factor, memo):
+        raise NotImplementedError()
+    def logpdf_mem(self, assignment, memo):
+        raise NotImplementedError()
+    def constrain_mem(self, assignment, memo):
+        raise NotImplementedError()
     def mutual_information(self, A, B, memo=None):
         if memo is None:
             memo = Memo()
@@ -190,14 +198,6 @@ class BranchSPE(SPE):
         if memo is None:
             memo = Memo()
         return self.constrain_mem(assignment, memo)
-    def logprob_mem(self, event_factor, memo):
-        raise NotImplementedError()
-    def condition_mem(self, event_factor, memo):
-        raise NotImplementedError()
-    def logpdf_mem(self, assignment, memo):
-        raise NotImplementedError()
-    def constrain_mem(self, assignment, memo):
-        raise NotImplementedError()
 
 # ==============================================================================
 # Sum SPE.
