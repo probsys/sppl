@@ -66,6 +66,8 @@ class SPE():
     env = None             # Environment mapping symbols to transforms.
     def __init__(self):
         raise NotImplementedError()
+    def get_symbols(self):
+        raise NotImplementedError()
     def size(self):
         raise NotImplementedError
     def sample(self, N, prng=None):
