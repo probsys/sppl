@@ -357,14 +357,14 @@ class PartialSumSPE(SPE):
         return NotImplemented
 
 def spe_simplify_sum(spe):
-    if isinstance(spe.children[0], LeafSPE):
+    if isinstance(spe.children[0], UnivariateLeafSPE):
         return spe_simplify_sum_leaf(spe)
     if isinstance(spe.children[0], ProductSPE):
         return spe_simplify_sum_product(spe)
     assert False, 'Invalid children of SumSPE: %s' % (spe.children,)
 
 def spe_simplify_sum_leaf(spe):
-    assert all(isinstance(c, LeafSPE) for c in spe.children)
+    assert all(isinstance(c, UnivariateLeafSPE) for c in spe.children)
     partition = partition_list_blocks(spe.children)
     if len(partition) == len(spe.children):
         return spe
@@ -598,7 +598,7 @@ def spe_list_to_product(children):
 # ==============================================================================
 # Basic Distribution base class.
 
-class LeafSPE(SPE):
+class UnivariateLeafSPE(SPE):
     atomic = None          # True if distribution has an atom
     symbol = None          # Symbol (Id) of base random variable
     def get_symbols(self):
@@ -697,7 +697,7 @@ class LeafSPE(SPE):
 # ==============================================================================
 # RealLeaf base class.
 
-class RealLeaf(LeafSPE):
+class RealLeaf(UnivariateLeafSPE):
     """Base class for distribution with a cumulative distribution function."""
 
     def __init__(self, symbol, dist, support, conditioned=None, env=None):
@@ -930,7 +930,7 @@ class DiscreteLeaf(RealLeaf):
 # ==============================================================================
 # Atomic RealLeaf.
 
-class AtomicLeaf(LeafSPE):
+class AtomicLeaf(UnivariateLeafSPE):
     """Real atomic distribution."""
     atomic = True
     def __init__(self, symbol, value, env=None):
@@ -967,7 +967,7 @@ class AtomicLeaf(LeafSPE):
 # ==============================================================================
 # Nominal distribution.
 
-class NominalLeaf(LeafSPE):
+class NominalLeaf(UnivariateLeafSPE):
     """Atomic distribution, no cumulative distribution function."""
     atomic = True
     def __init__(self, symbol, dist):
@@ -1045,7 +1045,7 @@ class Memo():
         self.constrain = {}
 
 def spe_cache_duplicate_subtrees(spe, memo):
-    if isinstance(spe, LeafSPE):
+    if isinstance(spe, UnivariateLeafSPE):
         if spe not in memo:
             memo[spe] = spe
         return memo[spe]

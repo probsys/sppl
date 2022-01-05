@@ -5,14 +5,14 @@ from math import exp
 
 from .spe import AtomicLeaf
 from .spe import DiscreteLeaf
-from .spe import LeafSPE
+from .spe import UnivariateLeafSPE
 from .spe import NominalLeaf
 from .spe import ProductSPE
 from .spe import RealLeaf
 from .spe import SumSPE
 
 def render_nested_lists_concise(spe):
-    if isinstance(spe, LeafSPE):
+    if isinstance(spe, UnivariateLeafSPE):
         return [(str(k), str(v)) for k, v in spe.env.items()]
     if isinstance(spe, SumSPE):
         return ['+(%d)' % (len(spe.children),),

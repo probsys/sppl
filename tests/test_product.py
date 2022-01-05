@@ -18,7 +18,7 @@ from sppl.math_util import lognorm
 from sppl.math_util import logsumexp
 from sppl.sets import Interval
 from sppl.sets import inf as oo
-from sppl.spe import LeafSPE
+from sppl.spe import UnivariateLeafSPE
 from sppl.spe import ProductSPE
 from sppl.spe import SumSPE
 from sppl.transforms import Exp
@@ -367,8 +367,8 @@ def test_product_condition_simplify_abc():
     assert allclose(spe_sum.weights[1], weights[-1])
     assert isinstance(spe_sum.children[0], ProductSPE)
     assert isinstance(spe_sum.children[0].children[0], SumSPE)
-    assert isinstance(spe_sum.children[0].children[1], LeafSPE)
+    assert isinstance(spe_sum.children[0].children[1], UnivariateLeafSPE)
     assert isinstance(spe_sum.children[1], ProductSPE)
-    assert isinstance(spe_sum.children[1].children[0], LeafSPE)
-    assert isinstance(spe_sum.children[1].children[1], LeafSPE)
-    assert isinstance(spe_sum.children[1].children[2], LeafSPE)
+    assert isinstance(spe_sum.children[1].children[0], UnivariateLeafSPE)
+    assert isinstance(spe_sum.children[1].children[1], UnivariateLeafSPE)
+    assert isinstance(spe_sum.children[1].children[2], UnivariateLeafSPE)
