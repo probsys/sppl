@@ -73,7 +73,7 @@ def test_product_inclusion_exclusion_basic():
     Y = Id('Y')
     spe = ProductSPE([X << norm(loc=0, scale=1), Y << gamma(a=1)])
 
-    a = spe.logprob(X > 0.1)
+    a = spe.logprob(X > 0.1, memo=False)
     b = spe.logprob(Y < 0.5)
     c = spe.logprob((X > 0.1) & (Y < 0.5))
     d = spe.logprob((X > 0.1) | (Y < 0.5))
@@ -120,7 +120,7 @@ def test_product_condition_basic():
     # where the second clause reduces to first as Y < 0
     # has probability zero.
     for event in [(X > 0), (X  > 0) | (Y < 0)]:
-        dX = spe.condition(event)
+        dX = spe.condition(event, memo=False)
         assert isinstance(dX, ProductSPE)
         assert dX.children[0].symbol == Id('X')
         assert dX.children[0].conditioned

@@ -51,7 +51,7 @@ def memoize(f):
     def f_(*args):
         (spe, event_factor, memo) = args
         if memo is False:
-            return f(spe, event_factor_to_event, memo)
+            return f(spe, event_factor, memo)
         m = getattr(memo, table)
         key = spe.get_memo_key(event_factor)
         if key not in m:
