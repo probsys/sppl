@@ -11,7 +11,7 @@ requirements = {
     'src' : [
         'astunparse==1.6.3',
         'numpy==1.18.5',
-        'scipy==1.4.1',
+        'scipy==1.7.3',
         'sympy==1.6',
     ],
     'magics' : [
