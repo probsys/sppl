@@ -16,7 +16,7 @@ requirements = {
     ],
     'magics' : [
         'graphviz==0.13.2',
-        'ipython==7.13.0',
+        'ipython==7.23.1',
         'jupyter-core==4.6.3',
         'networkx==2.4',
         'notebook==6.0.3',
