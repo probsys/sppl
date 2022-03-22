@@ -32,10 +32,6 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         ./generate.sh
         cd -- "${root}"
 
-    # Build docker image containing the software.
-    elif [ ${1} = 'docker' ]; then
-        docker build -t probcomp:sppl -f docker/ubuntu1804 .
-
     # Make a tagged release.
     elif [ ${1} = 'tag' ]; then
         tag="${2}"

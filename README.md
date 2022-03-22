@@ -31,8 +31,8 @@ https://doi.org/10.1145/3453483.3454078.
 
 ### Installation
 
-This software is tested on Ubuntu 18.04 and requires a Python 3.6+
-environment. SPPL is available on PyPI
+This software is tested on Ubuntu 20.04 and Python 3.8.
+SPPL is available on the PyPI repository
 
     $ python -m pip install sppl
 

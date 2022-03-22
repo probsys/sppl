@@ -10,13 +10,13 @@ from setuptools import setup
 requirements = {
     'src' : [
         'astunparse==1.6.3',
-        'numpy==1.18.5',
-        'scipy==1.5.4',
+        'numpy==1.22.3',
+        'scipy==1.8.0',
         'sympy==1.6',
     ],
     'magics' : [
         'graphviz==0.13.2',
-        'ipython==7.13.0',
+        'ipython==7.23.1',
         'jupyter-core==4.6.3',
         'networkx==2.4',
         'notebook==6.0.3',
@@ -66,5 +66,5 @@ setup(
     },
     install_requires=requirements['src'],
     extras_require=requirements,
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )
