@@ -11,30 +11,32 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
     cd -- "${root}"
     rm -rf build
     "$PYTHON" setup.py build
+
+    # (Default) Run tests not marked __ci__
     if [ $# -eq 0 ] || [ ${1} = 'crash' ]; then
-        # (Default) Run tests not marked __ci__
         ./pythenv.sh "$PYTHON" -m pytest -k 'not __ci_' --pyargs sppl
+
+    # Run all tests under tests/
     elif [ ${1} = 'ci' ]; then
-        # Run all tests under tests/
         ./pythenv.sh "$PYTHON" -m pytest --pyargs sppl
+
+    # Generate coverage report.
     elif [ ${1} = 'coverage' ]; then
-        # Generate coverage report.
         ./pythenv.sh coverage run --source=build/ -m pytest --pyargs sppl
         coverage html
         coverage report
+
+    # Run the .ipynb notebooks under examples/
     elif [ ${1} = 'examples' ]; then
-        # Run the .ipynb notebooks under examples/
         cd -- examples/
         ./generate.sh
         cd -- "${root}"
+
+    # Build docker image containing the software.
     elif [ ${1} = 'docker' ]; then
-        # Build docker image containing the software.
         docker build -t probcomp:sppl -f docker/ubuntu1804 .
-    elif [ ${1} = 'release' ]; then
-        # Make a release
-        rm -rf dist
-        "$PYTHON" setup.py sdist bdist_wheel
-        twine upload --repository pypi dist/*
+
+    # Make a tagged release.
     elif [ ${1} = 'tag' ]; then
         tag="${2}"
         (git diff --quiet --stat && git diff --quiet --staged) \
@@ -45,8 +47,16 @@ root=`cd -- "$(dirname -- "$0")" && pwd`
         git add -- src/__init__.py
         git commit -m "Pin version ${tag}."
         git tag -a -m v"${tag}" v"${tag}"
+
+    # Send release to PyPI.
+    elif [ ${1} = 'release' ]; then
+        rm -rf dist
+        "$PYTHON" setup.py sdist bdist_wheel
+        twine upload --repository pypi dist/*
+
+    # If args are specified delegate control to user.
     else
-        # If args are specified delegate control to user.
         ./pythenv.sh "$PYTHON" -m pytest "$@"
+
     fi
 )
