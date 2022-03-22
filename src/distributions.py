@@ -24,9 +24,13 @@ class NominalDistribution(Distribution):
 
 choice = NominalDistribution
 
-def floatify(x):
-    try              : return float(x)
-    except TypeError : return x
+def to_numeric(x):
+    if isinstance(x, (int, float)):
+        return x
+    try:
+        return float(x)
+    except TypeError:
+        return x
 
 class RealDistribution(Distribution):
     # pylint: disable=not-callable
@@ -35,7 +39,7 @@ class RealDistribution(Distribution):
     constructor = None
     def __init__(self, *args, **kwargs):
         assert not args, 'Only keyword arguments allowed for %s' % (self.dist.name,)
-        self.kwargs = {k: floatify(v) for k, v in kwargs.items()}
+        self.kwargs = {k: to_numeric(v) for k, v in kwargs.items()}
     def __call__(self, symbol):
         domain = self.get_domain()
         return self.constructor(symbol, self.dist(**self.kwargs), domain)
