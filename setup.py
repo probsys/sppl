@@ -12,7 +12,7 @@ requirements = {
         'astunparse==1.6.3',
         'numpy==1.22.3',
         'scipy==1.8.0',
-        'sympy==1.6',
+        'sympy==1.10.1',
     ],
     'magics' : [
         'graphviz==0.13.2',

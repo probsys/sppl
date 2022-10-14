@@ -8,7 +8,7 @@ from math import isinf
 
 import sympy
 
-from sympy.calculus.util import limit
+from sympy import limit
 
 from .sets import EmptySet
 from .sets import ExtReals

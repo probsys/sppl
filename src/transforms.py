@@ -9,10 +9,10 @@ from math import isinf
 
 import sympy
 
+from sympy import limit
 from sympy.abc import X as symX
 
 from sympy.calculus.util import function_range
-from sympy.calculus.util import limit
 
 from .math_util import isinf_neg
 from .math_util import isinf_pos
