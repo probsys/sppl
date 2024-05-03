@@ -10,8 +10,8 @@ from setuptools import setup
 requirements = {
     'src' : [
         'astunparse==1.6.3',
-        'numpy==1.22.3',
-        'scipy==1.8.0',
+        'numpy==1.23.1',
+        'scipy==1.8.1',
         'sympy==1.10.1',
     ],
     'magics' : [
@@ -24,9 +24,9 @@ requirements = {
         'pygraphviz==1.5',
     ],
     'tests' : [
-        'pytest-timeout==1.3.3',
-        'pytest==5.2.2',
-        'coverage==5.3',
+        'pytest-timeout==2.1.0',
+        'pytest==7.1.2',
+        'coverage==6.4.2',
     ]
 }
 requirements['all'] = [r for v in requirements.values() for r in v]
