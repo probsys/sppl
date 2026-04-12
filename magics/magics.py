@@ -49,14 +49,18 @@ class SPPL_Magics(Magics):
     def sppl_to_graph(self, line, local_ns):
         tokens = line.strip().split(' ')
         line = tokens[0]
-        filename = tokens[1] if len(tokens) == 2 else None
+        if 2 <= len(tokens):
+            filename = tokens[1].split('.')[0]
+            ext = tokens[1].split('.')[-1]
+        else:
+            (filename, ext) = (None, None)
         if line in self.programs:
             spe = self.sppl_get_spe(line)
         elif line in local_ns:
             spe = local_ns[line]
         else:
             assert False, 'unknown program %s' % (line,)
-        return render_graphviz(spe, filename=filename)
+        return render_graphviz(spe, filename=filename, ext=ext)
 
     @line_magic
     def sppl_get_namespace(self, line):
