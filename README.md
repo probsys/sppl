@@ -1,4 +1,4 @@
-[![Actions Status](https://github.com/probcomp/sppl/workflows/Python%20package/badge.svg)](https://github.com/probcomp/sppl/actions)
+[![Python package](https://github.com/probsys/sppl/actions/workflows/python-package.yml/badge.svg)](https://github.com/probsys/sppl/actions/workflows/python-package.yml)
 [![pypi](https://img.shields.io/pypi/v/sppl.svg)](https://pypi.org/project/sppl/)
 
 Sum-Product Probabilistic Language
