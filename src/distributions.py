@@ -280,9 +280,14 @@ class geninvgauss(ContinuousReal):
     dist = scipy.stats.geninvgauss
     def get_domain(self): return RealsPosLoc(self.kwargs)
 
+class gibrat(ContinuousReal):
+    """A Gibrat continuous random variable."""
+    dist = scipy.stats.gibrat
+    def get_domain(self): return RealsPosLoc(self.kwargs)
+
 class gilbrat(ContinuousReal):
     """A Gilbrat continuous random variable."""
-    dist = scipy.stats.gilbrat
+    dist = scipy.stats.gibrat
     def get_domain(self): return RealsPosLoc(self.kwargs)
 
 class gompertz(ContinuousReal):
